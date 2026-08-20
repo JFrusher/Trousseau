@@ -7,6 +7,14 @@ const fromTheFuture = () => ({
   version: 1,
   event: { coupleNames: "Charis & Jacob", hashtag: "#cj2026" },
   guests: { "g-1": { name: "Priya" } },
+  seating: { "g-1": { tableLabel: "7", seat: 3 } },
+  day: {
+    kind: "cadence.day",
+    version: 1,
+    day: { date: "2026-06-20", coupleNames: "Charis & Jacob", venueName: "Vane House", curfewMin: 1500, utcOffsetMin: 60 },
+    blocks: [{ id: "blk-ceremony", label: "Ceremony", lane: "Main day", startMin: 780, endMin: 810 }],
+  },
+  crew: { jobs: [{ id: "job-1", label: "Lay 90 covers" }], unknownCrewKey: true },
   florals: { arch: "peonies", budget: 1200 },
   stationery: { cardWidthMm: 90, secretPlaqueField: true },
 });
@@ -63,5 +71,25 @@ describe("mergeSlice does not mutate its input", () => {
     const snapshot = structuredClone(before);
     mergeSlice(before, "crew", { jobs: [] });
     expect(before).toEqual(snapshot);
+  });
+});
+
+describe("mergeSlice writes the slice it is given", () => {
+  for (const slice of SLICE_NAMES) {
+    it(`sets ${slice} to the published value`, () => {
+      const merged = mergeSlice(fromTheFuture(), slice, { marker: slice });
+      expect(merged[slice]).toEqual({ marker: slice });
+    });
+  }
+
+  it("keeps an existing version rather than resetting it", () => {
+    const merged = mergeSlice({ kind: "trousseau", version: 7 }, "crew", {});
+    expect(merged["version"]).toBe(7);
+  });
+
+  it("stamps kind and version onto a document that has neither", () => {
+    const merged = mergeSlice({}, "crew", {});
+    expect(merged["kind"]).toBe("trousseau");
+    expect(merged["version"]).toBe(1);
   });
 });
