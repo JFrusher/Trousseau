@@ -889,17 +889,31 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
- * A plain `z.object()` strips unknown keys, which in this package means
+ * A plain object schema strips unknown keys, which in this package means
  * silently deleting a slice belonging to an app nobody has written yet. There
  * is no legitimate use of it here. This test is a tripwire, not a style rule.
  */
 describe("source hygiene", () => {
-  it("never uses z.object", () => {
+  /** Comments explain the ban and therefore name the thing being banned. */
+  const withoutComments = (source: string): string =>
+    source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+
+  it("never uses the stripping object schema", () => {
     const dir = new URL("./", import.meta.url);
     const offenders = readdirSync(dir)
       .filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts"))
-      .filter((name) => /\bz\.object\s*\(/.test(readFileSync(new URL(name, dir), "utf8")));
+      .filter((name) =>
+        /\bz\.object\s*\(/.test(withoutComments(readFileSync(new URL(name, dir), "utf8"))),
+      );
     expect(offenders).toEqual([]);
+  });
+
+  it("catches a real offender", () => {
+    expect(withoutComments("const a = z.object({});")).toMatch(/\bz\.object\s*\(/);
+  });
+
+  it("ignores one that is only mentioned in a comment", () => {
+    expect(withoutComments("// never use z.object() here")).not.toMatch(/\bz\.object\s*\(/);
   });
 });
 ```
@@ -907,8 +921,12 @@ describe("source hygiene", () => {
 - [ ] **Step 11: Run it to verify it passes**
 
 Run: `npx vitest run src/no-strict-object.test.ts`
-Expected: PASS. If it fails, a `z.object(` has been written — replace it with
-`z.looseObject(` rather than weakening the test.
+Expected: PASS, 3 tests.
+
+If the first test fails, a stripping object schema has been written in `src/` —
+replace it with `z.looseObject(` rather than weakening the test. The other two
+tests exist because the tripwire has to ignore the comments that explain it,
+and a comment-stripper that stripped too much would pass while checking nothing.
 
 - [ ] **Step 12: Add to the public surface**
 
