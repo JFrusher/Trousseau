@@ -32,6 +32,29 @@ describe("parse", () => {
     const day = JSON.stringify({ kind: "cadence.day", version: 1 });
     expect(() => parse(day)).toThrow(/not a Trousseau file/);
   });
+
+  it("carries an unknown slice through serialise and back", () => {
+    const doc = { ...emptyTrousseau(), florals: { arch: "peonies", budget: 1200 } };
+    const back = parse(serialise(doc as Parameters<typeof serialise>[0]));
+    expect(back).toMatchObject({ florals: { arch: "peonies", budget: 1200 } });
+  });
+
+  it("parses a document with no kind at all, since kind has a default", () => {
+    expect(parse(JSON.stringify({ version: 1 })).kind).toBe("trousseau");
+  });
+
+  it("refuses a JSON array", () => {
+    expect(() => parse("[]")).toThrow(/not a Trousseau file/);
+  });
+
+  it("refuses JSON null", () => {
+    expect(() => parse("null")).toThrow(/not a Trousseau file/);
+  });
+
+  it("explains a malformed slice rather than dumping a validation error", () => {
+    const bad = JSON.stringify({ kind: "trousseau", version: 1, guests: "oops" });
+    expect(() => parse(bad)).toThrow(/could not be read/);
+  });
 });
 
 describe("suggestedFilename", () => {
