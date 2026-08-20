@@ -131,4 +131,23 @@ describe("daySchema", () => {
     });
     expect(parsed.blocks[0]?.moment).toBe(false);
   });
+
+  it("keeps a team whose arrivalMin is the wrong type rather than dropping it", () => {
+    const parsed = daySchema.parse({
+      ...(fixture("minimal.day.json") as object),
+      teams: [{ tag: "florist", phone: "07700 900000", arrivalMin: "soon" }],
+    });
+    expect(parsed.teams).toHaveLength(1);
+    expect(parsed.teams[0]?.phone).toBe("07700 900000");
+    expect(parsed.teams[0]?.arrivalMin).toBeNull();
+  });
+
+  it("still drops a team with no string tag, as Brigade does", () => {
+    const parsed = daySchema.parse({
+      ...(fixture("minimal.day.json") as object),
+      teams: [{ tag: 7, displayName: "No tag" }, { tag: "florist" }],
+    });
+    expect(parsed.teams).toHaveLength(1);
+    expect(parsed.teams[0]?.tag).toBe("florist");
+  });
 });

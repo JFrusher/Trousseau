@@ -10,7 +10,7 @@ const stringList = () =>
   z
     .unknown()
     .optional()
-    .default([])
+    .default(() => [])
     .transform((value) =>
       Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [],
     );
@@ -52,10 +52,10 @@ export const dayBlockSchema = z.looseObject({
  */
 export const dayTeamSchema = z.looseObject({
   tag: z.string(),
-  displayName: z.string().default(""),
-  phone: z.string().default(""),
-  arrivalMin: z.number().nullable().default(null),
-  notes: z.string().default(""),
+  displayName: z.unknown().optional().default("").transform((value) => (typeof value === "string" ? value : "")),
+  phone: z.unknown().optional().default("").transform((value) => (typeof value === "string" ? value : "")),
+  arrivalMin: z.unknown().optional().default(null).transform((value) => (typeof value === "number" ? value : null)),
+  notes: z.unknown().optional().default("").transform((value) => (typeof value === "string" ? value : "")),
 });
 
 /**
