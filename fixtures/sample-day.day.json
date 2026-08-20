@@ -1,0 +1,467 @@
+{
+  "kind": "cadence.day",
+  "version": 1,
+  "appVersion": "0.1.0",
+  "day": {
+    "date": "2026-06-20",
+    "coupleNames": "Charis & Jacob",
+    "venueName": "Vane House",
+    "curfewMin": 1500,
+    "utcOffsetMin": 60
+  },
+  "lanes": [
+    "Main day",
+    "Suppliers",
+    "Transport"
+  ],
+  "blocks": [
+    {
+      "id": "blk-prep",
+      "label": "Bridal preparations",
+      "lane": "Main day",
+      "location": "Bridal suite",
+      "notes": "Dress on by 10:30.",
+      "tags": [
+        "photographer"
+      ],
+      "startMin": 480,
+      "contentEndMin": 660,
+      "endMin": 660,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-travel",
+      "label": "Travel to ceremony",
+      "lane": "Main day",
+      "location": "Courtyard",
+      "notes": "",
+      "tags": [],
+      "startMin": 660,
+      "contentEndMin": 690,
+      "endMin": 700,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-guests",
+      "label": "Guests arrive",
+      "lane": "Main day",
+      "location": "Orangery",
+      "notes": "",
+      "tags": [],
+      "startMin": 780,
+      "contentEndMin": 810,
+      "endMin": 810,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-rings",
+      "label": "Rings to the best man",
+      "lane": "Main day",
+      "location": "Orangery",
+      "notes": "",
+      "tags": [
+        "registrar"
+      ],
+      "startMin": 795,
+      "contentEndMin": 795,
+      "endMin": 795,
+      "anchored": true,
+      "moment": true
+    },
+    {
+      "id": "blk-ceremony",
+      "label": "Ceremony",
+      "lane": "Main day",
+      "location": "Orangery",
+      "notes": "Registrar will not move this.",
+      "tags": [
+        "registrar",
+        "photographer"
+      ],
+      "startMin": 810,
+      "contentEndMin": 855,
+      "endMin": 855,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-confetti",
+      "label": "Confetti",
+      "lane": "Main day",
+      "location": "Front steps",
+      "notes": "",
+      "tags": [
+        "photographer"
+      ],
+      "startMin": 855,
+      "contentEndMin": 870,
+      "endMin": 870,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-drinks",
+      "label": "Drinks reception",
+      "lane": "Main day",
+      "location": "Lawn",
+      "notes": "",
+      "tags": [
+        "caterer"
+      ],
+      "startMin": 870,
+      "contentEndMin": 945,
+      "endMin": 945,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-groups",
+      "label": "Group photographs",
+      "lane": "Main day",
+      "location": "Lawn",
+      "notes": "Eight groupings, list with the photographer.",
+      "tags": [
+        "photographer"
+      ],
+      "startMin": 945,
+      "contentEndMin": 975,
+      "endMin": 975,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-portraits",
+      "label": "Couple portraits",
+      "lane": "Main day",
+      "location": "Walled garden",
+      "notes": "",
+      "tags": [
+        "photographer",
+        "photo"
+      ],
+      "startMin": 975,
+      "contentEndMin": 1005,
+      "endMin": 1005,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-call",
+      "label": "Call to dinner",
+      "lane": "Main day",
+      "location": "Lawn",
+      "notes": "",
+      "tags": [],
+      "startMin": 1005,
+      "contentEndMin": 1015,
+      "endMin": 1015,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-breakfast",
+      "label": "Wedding breakfast",
+      "lane": "Main day",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [
+        "caterer"
+      ],
+      "startMin": 1015,
+      "contentEndMin": 1105,
+      "endMin": 1105,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-speeches",
+      "label": "Speeches",
+      "lane": "Main day",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [],
+      "startMin": 1105,
+      "contentEndMin": 1150,
+      "endMin": 1150,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-turnaround",
+      "label": "Room turnaround",
+      "lane": "Main day",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [
+        "caterer"
+      ],
+      "startMin": 1150,
+      "contentEndMin": 1180,
+      "endMin": 1190,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-cake",
+      "label": "Cake cutting",
+      "lane": "Main day",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [
+        "photographer"
+      ],
+      "startMin": 1190,
+      "contentEndMin": 1200,
+      "endMin": 1200,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-firstdance",
+      "label": "First dance",
+      "lane": "Main day",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [
+        "band"
+      ],
+      "startMin": 1230,
+      "contentEndMin": 1240,
+      "endMin": 1240,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-evefood",
+      "label": "Evening food",
+      "lane": "Main day",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [
+        "caterer"
+      ],
+      "startMin": 1320,
+      "contentEndMin": 1365,
+      "endMin": 1365,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-lastdance",
+      "label": "Last dance",
+      "lane": "Main day",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [
+        "band"
+      ],
+      "startMin": 1470,
+      "contentEndMin": 1480,
+      "endMin": 1480,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-carriages",
+      "label": "Carriages",
+      "lane": "Main day",
+      "location": "Front drive",
+      "notes": "",
+      "tags": [],
+      "startMin": 1480,
+      "contentEndMin": 1500,
+      "endMin": 1500,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-florist",
+      "label": "Florist install",
+      "lane": "Suppliers",
+      "location": "Orangery",
+      "notes": "",
+      "tags": [
+        "florist"
+      ],
+      "startMin": 420,
+      "contentEndMin": 540,
+      "endMin": 540,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-caterer",
+      "label": "Caterer arrives",
+      "lane": "Suppliers",
+      "location": "Kitchen",
+      "notes": "",
+      "tags": [
+        "caterer"
+      ],
+      "startMin": 660,
+      "contentEndMin": 690,
+      "endMin": 690,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-bandsetup",
+      "label": "Band load in and set up",
+      "lane": "Suppliers",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [
+        "band"
+      ],
+      "startMin": 1080,
+      "contentEndMin": 1170,
+      "endMin": 1170,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-soundcheck",
+      "label": "Sound check",
+      "lane": "Suppliers",
+      "location": "Great hall",
+      "notes": "Before guests return from dinner.",
+      "tags": [
+        "band"
+      ],
+      "startMin": 1170,
+      "contentEndMin": 1200,
+      "endMin": 1200,
+      "anchored": false,
+      "moment": false
+    },
+    {
+      "id": "blk-bandset1",
+      "label": "Band, first set",
+      "lane": "Suppliers",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [
+        "band"
+      ],
+      "startMin": 1245,
+      "contentEndMin": 1290,
+      "endMin": 1290,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-bandset2",
+      "label": "Band, second set",
+      "lane": "Suppliers",
+      "location": "Great hall",
+      "notes": "",
+      "tags": [
+        "band"
+      ],
+      "startMin": 1350,
+      "contentEndMin": 1395,
+      "endMin": 1395,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-cars",
+      "label": "Cars to venue",
+      "lane": "Transport",
+      "location": "Bridal suite",
+      "notes": "",
+      "tags": [
+        "transport"
+      ],
+      "startMin": 690,
+      "contentEndMin": 735,
+      "endMin": 735,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-bus",
+      "label": "Guest coach arrives",
+      "lane": "Transport",
+      "location": "Front drive",
+      "notes": "",
+      "tags": [
+        "transport"
+      ],
+      "startMin": 750,
+      "contentEndMin": 780,
+      "endMin": 780,
+      "anchored": true,
+      "moment": false
+    },
+    {
+      "id": "blk-latebus",
+      "label": "Late coach home",
+      "lane": "Transport",
+      "location": "Front drive",
+      "notes": "",
+      "tags": [
+        "transport"
+      ],
+      "startMin": 1470,
+      "contentEndMin": 1500,
+      "endMin": 1500,
+      "anchored": true,
+      "moment": false
+    }
+  ],
+  "teams": [
+    {
+      "tag": "band",
+      "displayName": "The Wrights",
+      "phone": "07700 900272",
+      "arrivalMin": 1080,
+      "notes": "Two 45 minute sets."
+    },
+    {
+      "tag": "caterer",
+      "displayName": "Smith & Doyle Catering",
+      "phone": "07700 900318",
+      "arrivalMin": 660,
+      "notes": ""
+    },
+    {
+      "tag": "florist",
+      "displayName": "Ivy & Vane",
+      "phone": "07700 900455",
+      "arrivalMin": 420,
+      "notes": ""
+    },
+    {
+      "tag": "photo",
+      "displayName": "",
+      "phone": "",
+      "arrivalMin": null,
+      "notes": ""
+    },
+    {
+      "tag": "photographer",
+      "displayName": "Eleanor Vane Photography",
+      "phone": "07700 900141",
+      "arrivalMin": 465,
+      "notes": "Arrives 07:45, away after the evening food."
+    },
+    {
+      "tag": "registrar",
+      "displayName": "County Registrar",
+      "phone": "07700 900610",
+      "arrivalMin": 780,
+      "notes": ""
+    },
+    {
+      "tag": "transport",
+      "displayName": "County Cars",
+      "phone": "07700 900506",
+      "arrivalMin": 690,
+      "notes": ""
+    }
+  ]
+}

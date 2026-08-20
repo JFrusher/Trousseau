@@ -1,0 +1,14 @@
+{
+  "kind": "cadence.day",
+  "version": 1,
+  "day": {
+    "date": "2026-06-20",
+    "coupleNames": "A & B",
+    "venueName": "Somewhere",
+    "curfewMin": 1440,
+    "utcOffsetMin": 0
+  },
+  "blocks": [
+    { "id": "b1", "label": "Ceremony", "lane": "Main day", "startMin": 780, "endMin": 810 }
+  ]
+}
