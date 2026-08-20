@@ -5,12 +5,15 @@ export const DAY_KIND = "cadence.day";
 /** The export format's version. Not the project file's schema version. */
 export const DAY_VERSION = 1;
 
-/** Brigade filters non-strings out of these arrays rather than refusing the file. */
+/** Brigade coerces by type rather than by presence: a non-array becomes []. */
 const stringList = () =>
   z
-    .array(z.unknown())
-    .default(() => [])
-    .transform((list) => list.filter((value): value is string => typeof value === "string"));
+    .unknown()
+    .optional()
+    .default([])
+    .transform((value) =>
+      Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [],
+    );
 
 /**
  * A block with its clock times already worked out.
@@ -70,8 +73,8 @@ export const dayTeamSchema = z.looseObject({
  */
 export const daySchema = z.looseObject({
   kind: z.literal(DAY_KIND),
-  version: z.number().default(0),
-  appVersion: z.string().default(""),
+  version: z.unknown().optional().default(0).transform((value) => (typeof value === "number" ? value : 0)),
+  appVersion: z.unknown().optional().default("").transform((value) => (typeof value === "string" ? value : "")),
   day: z.looseObject({
     date: z.string(),
     coupleNames: z.string(),
@@ -82,13 +85,16 @@ export const daySchema = z.looseObject({
   lanes: stringList(),
   blocks: z.array(dayBlockSchema),
   teams: z
-    .array(z.unknown())
+    .unknown()
+    .optional()
     .default(() => [])
-    .transform((list) =>
-      list.flatMap((candidate) => {
-        const team = dayTeamSchema.safeParse(candidate);
-        return team.success ? [team.data] : [];
-      }),
+    .transform((value) =>
+      Array.isArray(value)
+        ? value.flatMap((candidate) => {
+            const team = dayTeamSchema.safeParse(candidate);
+            return team.success ? [team.data] : [];
+          })
+        : [],
     ),
 });
 

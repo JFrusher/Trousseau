@@ -98,4 +98,37 @@ describe("daySchema", () => {
     });
     expect(parsed.blocks[0]?.anchored).toBe(false);
   });
+
+  it("coerces a non-number version to 0, as Brigade does", () => {
+    const parsed = daySchema.parse({ ...(fixture("minimal.day.json") as object), version: "1" });
+    expect(parsed.version).toBe(0);
+  });
+
+  it("reads a non-array lanes or tags as empty, as Brigade does", () => {
+    const parsed = daySchema.parse({
+      ...(fixture("minimal.day.json") as object),
+      lanes: "Main day",
+      blocks: [{ id: "b1", label: "L", lane: "M", startMin: 0, endMin: 1, tags: "photographer" }],
+    });
+    expect(parsed.lanes).toEqual([]);
+    expect(parsed.blocks[0]?.tags).toEqual([]);
+  });
+
+  it("reads a non-array teams as empty, as Brigade does", () => {
+    const parsed = daySchema.parse({ ...(fixture("minimal.day.json") as object), teams: "florist" });
+    expect(parsed.teams).toEqual([]);
+  });
+
+  it("coerces a non-string appVersion to empty, as Brigade does", () => {
+    const parsed = daySchema.parse({ ...(fixture("minimal.day.json") as object), appVersion: 7 });
+    expect(parsed.appVersion).toBe("");
+  });
+
+  it("reads a non-boolean moment as false, as Brigade does", () => {
+    const parsed = daySchema.parse({
+      ...(fixture("minimal.day.json") as object),
+      blocks: [{ id: "b1", label: "L", lane: "M", startMin: 0, endMin: 1, moment: "yes" }],
+    });
+    expect(parsed.blocks[0]?.moment).toBe(false);
+  });
 });
