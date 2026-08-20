@@ -31,3 +31,9 @@ export {
   type Seating,
   type Stationery,
 } from "./slices";
+export {
+  TROUSSEAU_EXTENSION,
+  parse,
+  serialise,
+  suggestedFilename,
+} from "./file";
