@@ -10,3 +10,24 @@ export {
   type DayBlock,
   type DayTeam,
 } from "./day";
+export {
+  SLICE_NAMES,
+  TROUSSEAU_KIND,
+  TROUSSEAU_VERSION,
+  emptyTrousseau,
+  mergeSlice,
+  migrate,
+  trousseauSchema,
+  type SliceName,
+  type Trousseau,
+} from "./envelope";
+export {
+  crewSchema,
+  guestsSchema,
+  seatingSchema,
+  stationerySchema,
+  type Crew,
+  type Guests,
+  type Seating,
+  type Stationery,
+} from "./slices";
