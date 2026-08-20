@@ -18,6 +18,42 @@ re-derives its teams from them, Tableaux knows nothing about either.
 This document defines the smallest architecture that closes those gaps and stays
 open to a fifth app nobody has thought of yet.
 
+## Safety constraints
+
+Four working applications already exist and people's guest lists are in them.
+Nothing in this document is worth breaking one of them for. These constraints
+outrank every other goal here, including elegance and including the schedule.
+
+1. **Every app must keep working standalone**, with no launcher, no shared
+   store, no other app installed, and no network — at every commit, not just at
+   the end of a phase. The ecosystem is strictly additive. An app that cannot
+   reach the shared store behaves exactly as it does today.
+2. **Existing file formats do not change.** `.cadence.json`, `.plaque.json`,
+   `.brigade` and `.day.json` keep their current shapes and their current
+   readers. A file saved before any of this work must still open after all of
+   it. `.trousseau.json` is a new, additional format.
+3. **Existing private storage is never migrated, moved or renamed.** Each app's
+   autosave stays exactly where it is, in the key it already uses. The shared
+   store is a separate database and a separate key.
+4. **No app ever writes another app's storage.** The launcher reads other apps'
+   autosaves for export and never writes them back.
+5. **Adoption is behind a flag per app.** Each app gains its ecosystem
+   behaviour behind a build-time flag, defaulting off until that app's phase is
+   verified. A broken store client can be turned off in one line and shipped.
+6. **A failed read is never a failed boot.** Corrupt, absent, blocked or
+   unparseable shared data produces empty state and a notice — never an
+   exception on the path to first paint. This is already the posture in
+   `cadence/src/state/persist.ts` and it is the rule everywhere.
+7. **Validation never repairs and never deletes.** A slice that fails its schema
+   is left byte-for-byte on disk and reported. The system may refuse to use
+   data; it may not discard it.
+8. **Every phase ends with all four existing test suites green**, run against
+   the app as shipped, as a gate on continuing. Phase N+1 does not start on a
+   red Phase N.
+9. **One app per step.** A phase may span several apps, but each step inside it
+   changes exactly one, and that app's suite is run before the next step starts.
+   A regression then has exactly one place it can have come from.
+
 ## The principle
 
 **One owner per slice. Owners publish resolved output. Nobody recomputes.**
@@ -65,11 +101,20 @@ no gain. `event` is authoritative; `day.day.*` is a copy. Cadence pulls `event`
 like any other consumer, on an explicit action, and the launcher shows the two
 as disagreeing when they do rather than silently reconciling them.
 
-`guests` has a wrinkle. Tableaux owns it, but Plaque imports a CSV today and
-many people will use Plaque alone. The rule: **Plaque's CSV import seeds
-`guests` when the slice is absent or empty; once Tableaux has written it,
-Tableaux owns it and Plaque only reads.** Plaque never overwrites a populated
-`guests` slice.
+**Tableaux always owns `guests`. Plaque only ever reads it.** Plaque's CSV
+import stays entirely private to Plaque and never publishes.
+
+An earlier draft let Plaque seed `guests` when the slice was empty. That was the
+only order-dependent rule in the design — its behaviour depended on what had
+happened before rather than on who owns what — and order-dependent rules are
+where data loss lives. A user who imports a CSV into Plaque, then builds a plan
+in Tableaux, then re-imports a corrected CSV would have had a real question
+about whose list wins. Now there is no question. Every rule in this document is
+a flat statement of ownership.
+
+The cost is that a Plaque-only user gets no ecosystem benefit from their CSV.
+That is acceptable: they are using one app, which works exactly as it does
+today.
 
 ## The envelope
 
@@ -148,6 +193,12 @@ deployable.
 Zod is the validation library. Tableaux already depends on it; the other three
 gain one small dependency, which is the cost of validating a format that crosses
 application boundaries.
+
+Hand-written type guards were considered and rejected. They are roughly sixty
+lines and no dependency, but they are also sixty lines of hand-maintained
+validation standing between four applications and a user's guest list, and every
+future slice adds more. A bundle is cheaper to pay for than a validation bug
+that silently drops a field.
 
 ### Public surface
 
@@ -285,13 +336,20 @@ anything above.
 
 ## Build order
 
-| Phase | Work | What it proves |
-| --- | --- | --- |
-| 0 | Contract repo. Schemas, `migrate`, `serialise`/`parse`, `event` and `day` slices. `ResolvedDay` moves in unchanged. Published to npm. | The package builds and publishes; Cadence's tests stay green against the imported type |
-| 1 | Store client. Cadence publishes `day`; Brigade pulls it from the store, keeping its file import. | The mechanism works end to end |
-| 2 | Launcher, manifests, Vite proxy origin, `event` slice adopted by all. | It behaves like one suite, locally |
-| 3 | Tableaux local build. `guests` and `seating`. Plaque prints table numbers. | The reason to do any of this |
-| 4 | Cloudflare Pages per repo, router, real domain. | It is live |
+| Phase | Apps touched | Work | What it proves |
+| --- | --- | --- | --- |
+| 0 | **none** | Contract repo only. Schemas, `migrate`, `serialise`/`parse`, `event` and `day` slices. Published to npm. | The package builds and publishes, and its `day` schema accepts every existing Cadence fixture |
+| 1a | Cadence | Store client. Cadence publishes `day` behind its flag, and switches its own `ResolvedDay` to the package's type. | An owner can publish without changing what it exports to a file |
+| 1b | Brigade | Brigade offers to pull `day` from the store, keeping its file import untouched. | The mechanism works end to end |
+| 2 | launcher, then each app | Launcher, manifests, Vite proxy origin, `event` adopted one app at a time. | It behaves like one suite, locally |
+| 3 | Tableaux, then Plaque | Tableaux local build publishing `guests` and `seating`; then Plaque reads them and prints table numbers. | The reason to do any of this |
+| 4 | none | Cloudflare Pages per repo, router, real domain. | It is live |
+
+Phase 0 deliberately touches no application. `ResolvedDay` is **copied** into the
+package, not moved, and the package carries a test asserting it still accepts
+every fixture in `cadence/fixtures`. Cadence keeps its own copy until Phase 1a,
+when it is already being changed for other reasons. This means Phase 0 cannot
+break anything: nothing depends on it yet.
 
 Phase 1 is the honest test, and it is small — both ends already speak this exact
 data. If the store client is unpleasant there, the design is wrong and the cost
