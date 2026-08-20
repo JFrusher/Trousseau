@@ -17,5 +17,48 @@ rewrites only its own slice and preserves every other key byte-for-byte,
 including keys it has never heard of — which is how a fifth app joins without
 anyone releasing anything.
 
-Nothing is built yet. Start with the
-[design](docs/superpowers/specs/2026-08-20-trousseau-design.md).
+## Install
+
+```sh
+npm install @jfrusher/trousseau
+```
+
+## Use
+
+```ts
+import { emptyTrousseau, mergeSlice, migrate, parse, serialise } from "@jfrusher/trousseau";
+
+// Read a stored document. Never throws away what it does not understand.
+const doc = migrate(rawFromStorage);
+
+// Publish your slice. Every other key is copied untouched, including
+// slices belonging to apps that do not exist yet.
+const next = mergeSlice(rawFromStorage, "day", myResolvedDay);
+
+// The portable file.
+const text = serialise(doc);
+const back = parse(text);
+```
+
+## The rules
+
+1. An app rewrites **only its own slice** and copies every other key
+   byte-for-byte, including keys it has never heard of.
+2. Unknown keys **inside** a slice an app owns are preserved too.
+
+`mergeSlice` enforces both. It takes raw stored data rather than a parsed
+document on purpose: a wrong schema should at worst refuse a read, never destroy
+a write.
+
+| Slice | Owner |
+| --- | --- |
+| `event` | the launcher |
+| `guests`, `seating` | Tableaux |
+| `day` | Cadence |
+| `crew` | Brigade |
+| `stationery` | Plaque |
+
+## Design
+
+[The full design](docs/superpowers/specs/2026-08-20-trousseau-design.md), including
+why there is no shared UI kit and no monorepo.
