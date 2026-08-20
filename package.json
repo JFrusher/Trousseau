@@ -19,7 +19,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run test && npm run build"
+    "verify": "npm run build && tsc -p verify/tsconfig.json",
+    "prepublishOnly": "npm run test && npm run verify"
   },
   "dependencies": {
     "zod": "^4.4.3"
