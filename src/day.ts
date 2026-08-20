@@ -5,6 +5,13 @@ export const DAY_KIND = "cadence.day";
 /** The export format's version. Not the project file's schema version. */
 export const DAY_VERSION = 1;
 
+/** Brigade filters non-strings out of these arrays rather than refusing the file. */
+const stringList = () =>
+  z
+    .array(z.unknown())
+    .default(() => [])
+    .transform((list) => list.filter((value): value is string => typeof value === "string"));
+
 /**
  * A block with its clock times already worked out.
  *
@@ -21,10 +28,10 @@ export const dayBlockSchema = z.looseObject({
   endMin: z.number(),
   location: z.string().default(""),
   notes: z.string().default(""),
-  tags: z.array(z.string()).default(() => []),
+  tags: stringList(),
   contentEndMin: z.number().optional(),
-  anchored: z.boolean().default(false),
-  moment: z.boolean().default(false),
+  anchored: z.unknown().optional().default(false).transform((value) => value === true),
+  moment: z.unknown().optional().default(false).transform((value) => value === true),
 }).transform((block) => ({
   ...block,
   // Brigade's rule: an absent content end means the block has no buffer.
@@ -63,7 +70,7 @@ export const dayTeamSchema = z.looseObject({
  */
 export const daySchema = z.looseObject({
   kind: z.literal(DAY_KIND),
-  version: z.number(),
+  version: z.number().default(0),
   appVersion: z.string().default(""),
   day: z.looseObject({
     date: z.string(),
@@ -72,9 +79,17 @@ export const daySchema = z.looseObject({
     curfewMin: z.number(),
     utcOffsetMin: z.number(),
   }),
-  lanes: z.array(z.string()).default(() => []),
+  lanes: stringList(),
   blocks: z.array(dayBlockSchema),
-  teams: z.array(dayTeamSchema).default(() => []),
+  teams: z
+    .array(z.unknown())
+    .default(() => [])
+    .transform((list) =>
+      list.flatMap((candidate) => {
+        const team = dayTeamSchema.safeParse(candidate);
+        return team.success ? [team.data] : [];
+      }),
+    ),
 });
 
 export type DayBlock = z.infer<typeof dayBlockSchema>;

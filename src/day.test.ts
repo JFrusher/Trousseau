@@ -64,4 +64,38 @@ describe("daySchema", () => {
     };
     expect(daySchema.safeParse(bad).success).toBe(false);
   });
+
+  it("accepts a day with no version at all, as Brigade does", () => {
+    const noVersion = { ...(fixture("minimal.day.json") as Record<string, unknown>) };
+    delete noVersion["version"];
+    const parsed = daySchema.parse(noVersion);
+    expect(parsed.version).toBe(0);
+  });
+
+  it("drops a malformed team rather than refusing the file, as Brigade does", () => {
+    const parsed = daySchema.parse({
+      ...(fixture("minimal.day.json") as object),
+      teams: [{ tag: "florist" }, { displayName: "no tag here" }, "not an object"],
+    });
+    expect(parsed.teams).toHaveLength(1);
+    expect(parsed.teams[0]?.tag).toBe("florist");
+  });
+
+  it("filters non-string tags and lanes rather than refusing the file, as Brigade does", () => {
+    const parsed = daySchema.parse({
+      ...(fixture("minimal.day.json") as object),
+      lanes: ["Main day", 7, null],
+      blocks: [{ id: "b1", label: "L", lane: "M", startMin: 0, endMin: 1, tags: ["a", 3] }],
+    });
+    expect(parsed.lanes).toEqual(["Main day"]);
+    expect(parsed.blocks[0]?.tags).toEqual(["a"]);
+  });
+
+  it("reads a non-boolean anchored as false rather than refusing the file", () => {
+    const parsed = daySchema.parse({
+      ...(fixture("minimal.day.json") as object),
+      blocks: [{ id: "b1", label: "L", lane: "M", startMin: 0, endMin: 1, anchored: "yes" }],
+    });
+    expect(parsed.blocks[0]?.anchored).toBe(false);
+  });
 });
