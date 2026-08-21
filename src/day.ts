@@ -15,6 +15,10 @@ const stringList = () =>
       Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [],
     );
 
+/** Brigade's `text()`: any non-string becomes "". */
+const text = () =>
+  z.unknown().optional().default("").transform((value) => (typeof value === "string" ? value : ""));
+
 /**
  * A block with its clock times already worked out.
  *
@@ -29,16 +33,16 @@ export const dayBlockSchema = z.looseObject({
   lane: z.string(),
   startMin: z.number(),
   endMin: z.number(),
-  location: z.string().default(""),
-  notes: z.string().default(""),
+  location: text(),
+  notes: text(),
   tags: stringList(),
-  contentEndMin: z.number().optional(),
+  contentEndMin: z.unknown().optional(),
   anchored: z.unknown().optional().default(false).transform((value) => value === true),
   moment: z.unknown().optional().default(false).transform((value) => value === true),
 }).transform((block) => ({
   ...block,
-  // Brigade's rule: an absent content end means the block has no buffer.
-  contentEndMin: block.contentEndMin ?? block.startMin,
+  // Brigade's rule: a non-number content end falls back to the start time.
+  contentEndMin: typeof block.contentEndMin === "number" ? block.contentEndMin : block.startMin,
 }));
 
 /**
@@ -52,10 +56,10 @@ export const dayBlockSchema = z.looseObject({
  */
 export const dayTeamSchema = z.looseObject({
   tag: z.string(),
-  displayName: z.unknown().optional().default("").transform((value) => (typeof value === "string" ? value : "")),
-  phone: z.unknown().optional().default("").transform((value) => (typeof value === "string" ? value : "")),
+  displayName: text(),
+  phone: text(),
   arrivalMin: z.unknown().optional().default(null).transform((value) => (typeof value === "number" ? value : null)),
-  notes: z.unknown().optional().default("").transform((value) => (typeof value === "string" ? value : "")),
+  notes: text(),
 });
 
 /**
@@ -74,6 +78,7 @@ export const dayTeamSchema = z.looseObject({
 export const daySchema = z.looseObject({
   kind: z.literal(DAY_KIND),
   version: z.unknown().optional().default(0).transform((value) => (typeof value === "number" ? value : 0)),
+  // Brigade's own reader falls back to "unknown" here; this package falls back to "" (Phase 1b divergence).
   appVersion: z.unknown().optional().default("").transform((value) => (typeof value === "string" ? value : "")),
   day: z.looseObject({
     date: z.string(),

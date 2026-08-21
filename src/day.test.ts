@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { DAY_KIND, DAY_VERSION, daySchema } from "./day";
+import { DAY_KIND, DAY_VERSION, daySchema } from "./day.js";
 
 const fixture = (name: string): unknown =>
   JSON.parse(readFileSync(new URL(`../fixtures/${name}`, import.meta.url), "utf8"));
@@ -149,5 +149,22 @@ describe("daySchema", () => {
     });
     expect(parsed.teams).toHaveLength(1);
     expect(parsed.teams[0]?.tag).toBe("florist");
+  });
+
+  it("coerces a non-string location or notes to empty, as Brigade does", () => {
+    const parsed = daySchema.parse({
+      ...(fixture("minimal.day.json") as object),
+      blocks: [{ id: "b1", label: "L", lane: "M", startMin: 0, endMin: 1, location: null, notes: 7 }],
+    });
+    expect(parsed.blocks[0]?.location).toBe("");
+    expect(parsed.blocks[0]?.notes).toBe("");
+  });
+
+  it("falls back to startMin for a non-number contentEndMin, as Brigade does", () => {
+    const parsed = daySchema.parse({
+      ...(fixture("minimal.day.json") as object),
+      blocks: [{ id: "b1", label: "L", lane: "M", startMin: 480, endMin: 600, contentEndMin: "660" }],
+    });
+    expect(parsed.blocks[0]?.contentEndMin).toBe(480);
   });
 });
