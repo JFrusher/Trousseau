@@ -29,7 +29,17 @@ bundler, no framework, no React.
 - **tsconfig must match the consuming apps' strictness**, or its emitted types
   will not compile inside them: `strict`, `noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`, `verbatimModuleSyntax`, `isolatedModules`,
-  target `ES2022`, `moduleResolution: "bundler"`.
+  target `ES2022`, `moduleResolution: "NodeNext"`.
+- **The package's own tsconfig uses `NodeNext`, and every relative import in
+  `src/` carries a `.js` extension** — `from "./day.js"`, which TypeScript
+  resolves to `day.ts`. This is not a style choice. An earlier version of this
+  plan prescribed `"bundler"`, which lets `tsc` emit extensionless specifiers;
+  with `"type": "module"` Node's resolver rejects those, so the published
+  tarball could not be imported at all. Vite papers over it, so the four
+  consuming apps would not have caught it. The `verify` script now ends with a
+  real `node -e "import('./dist/index.js')"` so the failure cannot return.
+  `verify/tsconfig.json` keeps `"bundler"` on purpose — it simulates a Vite app,
+  which is what the consumers are.
 - **Never use `z.object()`.** In zod 4 it silently strips unknown keys, which is
   the exact data-loss failure this package exists to prevent. Use
   `z.looseObject()` everywhere, without exception. Task 3 adds a test that fails
@@ -134,8 +144,8 @@ Emitting, unlike the apps' configs — this package ships its build.
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,

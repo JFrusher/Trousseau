@@ -383,6 +383,16 @@ planned and built first, on its own.
 - A slice that fails validation is left untouched on disk and reported, not
   deleted or repaired. Losing a guest list to an over-eager validator is the
   worst failure this system can have.
+- **Open, and Phase 1a's to decide: `migrate` is all-or-nothing.** A corrupt
+  `day` makes `event`, `guests` and `seating` unreadable too, so the only
+  degradation available to a caller today is "empty everything". The stored
+  bytes are still safe — nothing writes a parsed document back — so the rule
+  above holds. But the paragraph above wants a failing slice reported while the
+  rest is used, and that needs a per-slice seam in `read()`, something like
+  `{ doc, failedSlices }`. Phase 0 deliberately did not build it: nothing
+  consumes it yet. It must be settled when `read()` is designed in Phase 1a,
+  because adding the seam after four apps depend on `migrate` is a breaking
+  change.
 - A browser blocking IndexedDB degrades to no ecosystem: each app works exactly
   as it does today, and the launcher says so.
 - A manifest that fails to fetch drops that app from the launcher listing and is
