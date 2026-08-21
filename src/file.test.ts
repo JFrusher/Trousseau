@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { emptyTrousseau } from "./envelope";
-import { TROUSSEAU_EXTENSION, parse, serialise, suggestedFilename } from "./file";
+import { emptyTrousseau } from "./envelope.js";
+import { TROUSSEAU_EXTENSION, parse, serialise, suggestedFilename } from "./file.js";
 
 describe("serialise", () => {
   it("ends with a newline, so the file is well-formed on disk", () => {

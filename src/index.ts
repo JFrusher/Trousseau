@@ -1,4 +1,4 @@
-export { eventSchema, type Event } from "./event";
+export { eventSchema, type Event } from "./event.js";
 export {
   DAY_KIND,
   DAY_VERSION,
@@ -9,7 +9,7 @@ export {
   type Day,
   type DayBlock,
   type DayTeam,
-} from "./day";
+} from "./day.js";
 export {
   SLICE_NAMES,
   TROUSSEAU_KIND,
@@ -20,7 +20,7 @@ export {
   trousseauSchema,
   type SliceName,
   type Trousseau,
-} from "./envelope";
+} from "./envelope.js";
 export {
   crewSchema,
   guestsSchema,
@@ -30,10 +30,10 @@ export {
   type Guests,
   type Seating,
   type Stationery,
-} from "./slices";
+} from "./slices.js";
 export {
   TROUSSEAU_EXTENSION,
   parse,
   serialise,
   suggestedFilename,
-} from "./file";
+} from "./file.js";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventSchema } from "./event";
+import { eventSchema } from "./event.js";
 
 describe("eventSchema", () => {
   it("accepts a complete event", () => {

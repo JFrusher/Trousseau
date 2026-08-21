@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { TROUSSEAU_KIND, migrate, type Trousseau } from "./envelope";
+import { TROUSSEAU_KIND, migrate, type Trousseau } from "./envelope.js";
 
 export const TROUSSEAU_EXTENSION = ".trousseau.json";
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { daySchema } from "./day";
-import { eventSchema } from "./event";
-import { crewSchema, guestsSchema, seatingSchema, stationerySchema } from "./slices";
+import { daySchema } from "./day.js";
+import { eventSchema } from "./event.js";
+import { crewSchema, guestsSchema, seatingSchema, stationerySchema } from "./slices.js";
 
 export const TROUSSEAU_KIND = "trousseau";
 export const TROUSSEAU_VERSION = 1;

@@ -13,7 +13,7 @@ describe("source hygiene", () => {
 
   it("never uses the stripping object schema", () => {
     const dir = new URL("./", import.meta.url);
-    const offenders = readdirSync(dir)
+    const offenders = readdirSync(dir, { recursive: true })
       .filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts"))
       .filter((name) =>
         /\bz\.object\s*\(/.test(withoutComments(readFileSync(new URL(name, dir), "utf8"))),

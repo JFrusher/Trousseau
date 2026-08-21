@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SLICE_NAMES, mergeSlice, migrate, trousseauSchema } from "./envelope";
+import { SLICE_NAMES, mergeSlice, migrate, trousseauSchema } from "./envelope.js";
 
 /** A document carrying data from an app that does not exist yet. */
 const fromTheFuture = () => ({

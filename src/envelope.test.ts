@@ -6,7 +6,7 @@ import {
   emptyTrousseau,
   migrate,
   trousseauSchema,
-} from "./envelope";
+} from "./envelope.js";
 
 describe("emptyTrousseau", () => {
   it("is a valid document", () => {
