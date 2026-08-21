@@ -68,6 +68,24 @@ if (day !== null) {
   void mustBeUndefinable;
 }
 
+// Phase 1a will assign an app's own value INTO a package type. This pins what
+// happens when it does: z.looseObject puts `[x: string]: unknown` on every
+// inferred type, and a TypeScript interface gets no implicit index signature,
+// so an interface-typed value is NOT assignable. A type alias or an object
+// literal is. If this ever starts compiling, the constraint has changed and
+// Phase 1a's approach should be revisited.
+interface AppTeam {
+  tag: string;
+  displayName: string;
+  phone: string;
+  arrivalMin: number | null;
+  notes: string;
+}
+const appTeam: AppTeam = { tag: "florist", displayName: "", phone: "", arrivalMin: null, notes: "" };
+// @ts-expect-error an interface has no index signature, so it is not assignable
+const asPackageTeam: DayTeam = appTeam;
+void asPackageTeam;
+
 // The file functions compose.
 const text: string = serialise(doc);
 const back: Trousseau = parse(text);
