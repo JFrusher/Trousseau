@@ -34,9 +34,10 @@ const doc = migrate(rawFromStorage);
 // Publish your slice. Every other key is copied untouched, including
 // slices belonging to apps that do not exist yet.
 const next = mergeSlice(rawFromStorage, "day", myResolvedDay);
+await saveRaw(next); // your storage, raw — mergeSlice never parses
 
-// The portable file.
-const text = serialise(doc);
+// The portable file, from a parsed document.
+const text = serialise(migrate(next));
 const back = parse(text);
 ```
 
@@ -57,8 +58,3 @@ a write.
 | `day` | Cadence |
 | `crew` | Brigade |
 | `stationery` | Plaque |
-
-## Design
-
-[The full design](docs/superpowers/specs/2026-08-20-trousseau-design.md), including
-why there is no shared UI kit and no monorepo.
