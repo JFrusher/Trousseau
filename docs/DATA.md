@@ -45,10 +45,7 @@ machine holding the working documents — not whichever machine set DVC up.
 On the machine with the real files, after the setup above:
 
 ```sh
-npm run data:pack      # reads the four apps' working copies
-npm run data:validate  # fix whatever it names before going further
-npm run data:push
-git add data/*.dvc && git commit -m "seed the wedding data" && git push
+npm run sync           # collect, check, upload, commit, push
 ```
 
 Everywhere else:
@@ -57,9 +54,9 @@ Everywhere else:
 git pull && npm run data:pull
 ```
 
-`data:pack` reads its sources by relative path from sibling repos. If they are
-not all cloned side by side, name the files directly instead — `bundle.mjs`
-takes any paths:
+`data:pack` reads the working folder configured below. To bundle files from
+somewhere else, name them directly — `bundle.mjs` takes any paths, and any
+directory:
 
 ```sh
 node scripts/bundle.mjs pack ~/Desktop/state.json ~/Desktop/day.cadence.json \
@@ -69,28 +66,79 @@ node scripts/bundle.mjs pack ~/Desktop/state.json ~/Desktop/day.cadence.json \
 `dvc pull` only ever writes `data/`. The apps' own working copies are not
 DVC-tracked and are never touched by it.
 
+## The working folder
+
+The four apps write their documents into one folder that syncs between machines
+— OneDrive, in practice. That folder, not any repo, is where the live wedding
+lives day to day.
+
+```
+<OneDrive>/wedding/working/
+  state.json                 <- Tableaux (its server writes here directly)
+  Wedding-day.cadence.json   <- Cadence
+  wedding-day.day.json       <- Brigade / the resolved day
+  cards.plaque.json          <- Plaque
+```
+
+Configured per-device, never committed — it names a path on one machine:
+
+```sh
+echo "<path>/wedding/working" > .working-path    # or set WEDDING_WORKING
+```
+
+Tableaux's server takes the same path from `TABLEAUX_DATA_DIR` in its own
+`server/.env`. Cadence, Brigade and Plaque each have a **Link to file** button:
+press it once, pick the file in that folder, and every autosave writes there as
+well as to the browser. Chromium only — elsewhere the button is absent and you
+export by hand as before.
+
+Because OneDrive syncs the folder, both machines see the same documents without
+anyone running a command. DVC is no longer the transport; it is the history.
+
 ## The daily loop
+
+```sh
+npm run sync
+```
+
+Collect, check, upload, commit, push — in that order, each one a gate. Add
+`-- --dry-run` to do everything except the pushes and the commit.
+
+The individual steps, if you want them:
 
 | Command | What it does |
 |---|---|
 | `npm run data:pull` | Fetch the current data for the checked-out commit |
-| `npm run data:pack` | Rebuild the canonical file from the four apps' working copies |
+| `npm run data:pack` | Rebuild the canonical file from the working folder |
 | `npm run data:unpack` | Explode the canonical file back into per-app files in `unpacked/` |
 | `npm run data:validate` | Every cross-slice invariant. Exit 1 on any error |
-| `npm run data:status` | What has changed since the last `data:push` |
+| `npm run data:status` | What has changed since the last push |
 | `npm run data:push` | Validate, re-hash, upload. Refuses if validation fails |
+
+### Two things pack refuses to do quietly
+
+**Lose a slice.** `pack` rebuilds the bundle from only the files it is given, so
+omitting one deletes that slice. It compares against the bundle it is about to
+overwrite and exits 1 rather than write a smaller wedding over a larger one.
+`--allow-shrink` if you mean it.
+
+**Hide a stale export.** It prints every source file's date and flags any that
+is three or more days behind the newest, because a browser app's file is only as
+fresh as the last time it was written.
 
 Editing on device A, reading on device B:
 
 ```sh
 # A
-npm run data:pack && npm run data:push
-git add data/*.dvc && git commit -m "seating: move the Kellys to table 6" && git push
+npm run sync
 
 # B
-git pull            # post-checkout brings the data across
-npm run data:unpack # then open each file in its own app
+git pull && npm run data:pull
 ```
+
+With the working folder in place, B already has the live documents — OneDrive
+carried them. `data:pull` is only needed to move between *versions*, such as
+checking out a tag.
 
 ## What the validator checks
 
@@ -142,8 +190,8 @@ npm run data:unpack
 - **The apps never write `data/`.** They write their own working copies;
   `data:pack` collects them. One writer means no merge conflicts on a 100 KB
   JSON file.
-- **`data:pack` reads sibling repos by relative path.** It assumes the layout in
-  `Wedding.code-workspace`. Move a repo and the paths in `package.json` move.
+- **`data:pack` reads the configured working folder**, not the repos. Set it in
+  `.working-path` or `WEDDING_WORKING`; it is per-device and never committed.
 - **A conflict is reported, never resolved.** `bundle.mjs` keeps the first claim
   and prints a note; the validator turns that note into a failed build. Two
   dates for one wedding is a decision, and no script gets to make it.

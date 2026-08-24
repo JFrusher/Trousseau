@@ -8,3 +8,6 @@ dist/
 # would match that file too, and `dvc add` refuses a git-ignored path.
 /*.trousseau.json
 unpacked/
+
+# Per-device path to the OneDrive folder the apps write into.
+.working-path
