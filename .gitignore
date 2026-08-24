@@ -11,3 +11,6 @@ unpacked/
 
 # Per-device path to the OneDrive folder the apps write into.
 .working-path
+
+# Session transcripts. Real names end up in these.
+.remember/
