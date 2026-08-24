@@ -1,0 +1,4 @@
+#!/bin/sh
+# Bring the working data into line with the branch or tag just checked out.
+set -e
+exec python -m dvc git-hook post-checkout "$@"

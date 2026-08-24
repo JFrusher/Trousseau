@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "description": "The shared data contract behind Tableaux, Plaque, Cadence and Brigade.",
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/JFrusher/Trousseau.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JFrusher/Trousseau.git"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,15 +16,26 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
-  "engines": { "node": ">=18.17" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "npm run build && tsc -p verify/tsconfig.json && node -e \"import('./dist/index.js')\"",
-    "prepublishOnly": "npm run test && npm run verify"
+    "prepublishOnly": "npm run test && npm run verify",
+    "data:pack": "node scripts/bundle.mjs pack ../Tableaux/server/data/state.json ../cadence/tmp/Wedding-day.cadence.json ../Brigade/fixtures/wedding-day.day.json -o data/wedding.trousseau.json",
+    "data:unpack": "node scripts/bundle.mjs unpack data/wedding.trousseau.json -d unpacked",
+    "data:validate": "npm run build && node scripts/validate-wedding.mjs data/wedding.trousseau.json",
+    "data:status": "python -m dvc status && python -m dvc data status",
+    "data:pull": "python -m dvc pull",
+    "data:push": "npm run data:validate && python -m dvc add data/wedding.trousseau.json data/exports && python -m dvc push"
   },
   "dependencies": {
     "zod": "^4.4.3"

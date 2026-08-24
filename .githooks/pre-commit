@@ -1,0 +1,20 @@
+#!/bin/sh
+# Nothing reaches a commit until the wedding file is internally consistent.
+#
+# Versioned rather than written by `dvc install`, because that writes an
+# absolute path to this machine's sh.exe into .git/hooks, which is neither
+# portable nor reviewable. Enable on a new device with:
+#
+#   git config core.hooksPath .githooks
+set -e
+
+if [ -f data/wedding.trousseau.json ]; then
+  if [ -f dist/index.js ]; then
+    node scripts/validate-wedding.mjs data/wedding.trousseau.json
+  else
+    echo "pre-commit: skipping validation, dist/ is not built (npm run build)"
+  fi
+fi
+
+# Warns when a tracked file changed but its .dvc pointer was not updated.
+exec python -m dvc git-hook pre-commit "$@"

@@ -1,0 +1,5 @@
+outs:
+- md5: a88c55fb2fea2b582da9b79cfd4b6023
+  size: 101158
+  hash: md5
+  path: wedding.trousseau.json

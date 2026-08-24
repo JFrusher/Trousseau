@@ -1,0 +1,5 @@
+#!/bin/sh
+# Push the data before the pointer that names it, so a pointer never reaches
+# GitHub describing a hash that exists on no remote.
+set -e
+exec python -m dvc git-hook pre-push "$@"
