@@ -15,6 +15,42 @@ data/
   .gitignore                    <- written by DVC. Committed.
 ```
 
+## How the pieces fit
+
+The terminal-readable version of the diagram in the README.
+
+```
+  Tableaux        Cadence         Brigade         Plaque
+ guests·seating     day            crew         stationery
+     |               |               |               |
+     +---------------+-------+-------+---------------+
+                             |
+                             v
+                 +-------------------------+
+                 |     working folder      |   a synced directory
+                 |  (OneDrive, in practice)|   both machines see
+                 +-------------------------+
+                             |
+                             |  npm run sync
+                             v
+                    pack  ->  validate
+                             |
+                 fails ------+------ passes
+                   |                   |
+              nothing kept             |
+                             +---------+---------+
+                             |                   |
+                    .dvc pointer            the bytes
+                  md5 + size, 4 lines    content-addressed
+                             |                   |
+                             v                   v
+                     GitHub (public)      private remote
+```
+
+Git carries the pointer; the remote carries the bytes. Because the pointer is a
+four-line text file, Git's history is the data's history — a tag pins code,
+schema and exact bytes together.
+
 ## Setting up a new device
 
 ```sh
