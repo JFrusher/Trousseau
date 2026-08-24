@@ -19,14 +19,6 @@ Built for our own wedding, which is the only reason the constraints are honest:
 real guest names and dietary requirements, four apps that must not overwrite
 each other, two laptops, and a date that does not move.
 
-![License: MIT](https://img.shields.io/badge/License-MIT-7C6F5B)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![zod](https://img.shields.io/badge/schema-zod%204-3E67B1)
-![DVC](https://img.shields.io/badge/data-DVC-13ADC7?logo=dvc&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-83%20passing-4A7C59)
-
----
-
 ## The problem
 
 Four apps, each owning part of one wedding. Seating lives in one, the running
@@ -43,7 +35,7 @@ file forever, which is right for code and wrong for a 100 KB JSON blob rewritten
 whole every time a guest moves. And these repos are public, while the data has
 real people's email addresses in it.
 
-## The shape of the answer
+## How it works
 
 Git carries **pointers**. A private remote carries **bytes**.
 
