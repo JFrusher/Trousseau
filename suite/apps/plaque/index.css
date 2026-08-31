@@ -1,0 +1,48 @@
+/*
+ * Plaque's own measures. Everything else it draws with — colour, type,
+ * spacing, radius, shadow — is decided once in `lib/design/tokens.css` and
+ * mapped onto the names this tool already uses, so every `var(--grey-3)` in its
+ * stylesheets keeps working while the values move with the rest of the suite.
+ */
+.plaque-scope {
+  --sidebar-w: 320px;
+  --header-h: 48px;
+}
+
+.plaque-scope,
+.plaque-scope *,
+.plaque-scope *::before,
+.plaque-scope *::after {
+  box-sizing: border-box;
+}
+
+/*
+ * Was `html, body, #root`. Plaque still wants exactly one screenful — its
+ * sidebar and canvas scroll inside themselves, and a page-level scrollbar would
+ * drag the toolbar off the top. It just no longer gets the whole screen, so it
+ * takes the viewport less the shell's header. The fallback keeps the tool
+ * usable if it is ever rendered outside that shell.
+ */
+.plaque-scope {
+  height: calc(100dvh - var(--shell-header-h, 0px));
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--text);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+.plaque-scope :is(h1, h2, h3) {
+  margin: 0;
+  font-weight: 600;
+}
+
+.plaque-scope :is(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+.plaque-scope :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

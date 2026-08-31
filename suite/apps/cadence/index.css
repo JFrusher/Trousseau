@@ -1,0 +1,64 @@
+/*
+ * Cadence's own measures. Everything else it draws with — colour, type,
+ * spacing, radius, shadow — is decided once in `lib/design/tokens.css` and
+ * mapped onto the names this tool already uses, so every `var(--grey-3)` in its
+ * stylesheets keeps working while the values move with the rest of the suite.
+ */
+.cadence-scope {
+  --sidebar-w: 320px;
+  --header-h: 48px;
+}
+
+.cadence-scope,
+.cadence-scope *,
+.cadence-scope *::before,
+.cadence-scope *::after {
+  box-sizing: border-box;
+}
+
+/*
+ * Was `html, body, #root`. Cadence still wants exactly one screenful — its
+ * sidebar and timeline scroll inside themselves — it just no longer gets the
+ * whole screen, so it takes the viewport less the shell's header.
+ */
+.cadence-scope {
+  height: calc(100dvh - var(--shell-header-h, 0px));
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--text);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+.cadence-scope :is(h1, h2, h3) {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.cadence-scope h1 {
+  font-size: var(--text-xl);
+}
+
+.cadence-scope h2 {
+  font-size: var(--text-lg);
+}
+
+.cadence-scope h3 {
+  font-size: var(--text-md);
+}
+
+.cadence-scope button {
+  font: inherit;
+  color: inherit;
+}
+
+.cadence-scope :is(input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+.cadence-scope :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

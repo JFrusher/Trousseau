@@ -1,0 +1,42 @@
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.clear {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.button {
+  display: block;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  text-align: left;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--grey-1);
+}
+
+.conflict .button {
+  border-left-color: var(--danger);
+  color: var(--danger);
+}
+
+.advisory .button {
+  border-left-color: var(--warn);
+  color: var(--warn);
+}

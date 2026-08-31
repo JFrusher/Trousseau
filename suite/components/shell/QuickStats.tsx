@@ -43,11 +43,6 @@ export function QuickStats() {
 
   return (
     <div className="rounded-lg border border-charcoal/10 bg-stone/60 p-6">
-      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl">{stats.couple || "On this device"}</h2>
-        {stats.date ? <span className="text-sm text-slate">{stats.date}</span> : null}
-      </div>
-
       {empty ? (
         <p className="text-sm text-slate">
           Nothing saved here yet. Open{" "}

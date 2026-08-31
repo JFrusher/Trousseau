@@ -1,0 +1,274 @@
+/*
+ * The one place a Trousseau colour, typeface or measure is decided.
+ *
+ * Four tools arrived here, each with a complete design system of its own.
+ * Plaque, Cadence and Brigade agreed on their variable names to the point that
+ * two of the three files were byte-identical; Tableaux used a different set of
+ * seventy-two. Renaming its way to a single vocabulary would have meant editing
+ * every CSS Module in the suite, which is a great deal of risk to buy a tidier
+ * spelling.
+ *
+ * So the values are unified and the names are not. Everything below `:root` is
+ * canonical and decided once. Below that, each tool's own vocabulary is mapped
+ * onto it: change a colour here and all four move together, while every
+ * `var(--grey-3)` and `var(--ink-soft)` already written keeps working untouched.
+ *
+ * Sizes are deliberately left alone. Tableaux sets 16px body against the other
+ * three at 13px, and that difference is not an inconsistency to be corrected —
+ * it is the difference between a canvas you arrange a room on and a panel of
+ * numbered fields. Unifying the typeface is a face swap; unifying the scale
+ * would be a redesign of tools that are already good at their jobs.
+ */
+
+:root {
+  /*
+   * A warm neutral ramp, anchored on the three colours the suite already had a
+   * view about: the off-white the page sits on, the stone its panels are cut
+   * from, and the charcoal it is written in. The steps between are interpolated
+   * to keep the same warmth rather than sampled from a cool grey scale, which
+   * is what made the tools read as a different application to their own shell.
+   */
+  --t-0: #ffffff; /* raised: inputs, cards, the card itself */
+  --t-1: #fdfbf7; /* ground: the page, warm off-white */
+  --t-2: #f4f1ea; /* sunken: soft stone, panel fills, hover */
+  --t-3: #e9e4da; /* canvas behind the work */
+  --t-4: #d8d2c6; /* borders */
+  --t-5: #a8a29a; /* strong borders, disabled ink */
+  --t-6: #726b67; /* muted text — 4.6:1 on --t-1 */
+  --t-7: #57534e; /* secondary text */
+  --t-8: #44403c; /* muted slate */
+  --t-9: #1c1917; /* deep charcoal, primary text */
+
+  /*
+   * Semantic colour, kept apart from the accents. A warning is a warning in
+   * every tool; it does not change hue because you are on a different tab.
+   */
+  --t-ok: #457353;
+  --t-ok-soft: #e6eee8;
+  --t-warn: #8c6110;
+  --t-warn-soft: #f5ebdc;
+  --t-danger: #a63228;
+  --t-danger-soft: #f1ddd9;
+
+  /*
+   * Typefaces come from the shell, which self-hosts them at build time — no
+   * request leaves the browser, which is the premise of the whole suite.
+   * Tableaux asked for Inter and Cormorant Garamond and was never given either;
+   * it has been quietly falling back to system-ui since before it moved in.
+   */
+  --t-font-ui: var(--font-lato), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --t-font-display: var(--font-marcellus), Georgia, "Times New Roman", serif;
+  --t-font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  --t-radius-sm: 4px;
+  --t-radius-md: 6px;
+  --t-radius-lg: 12px;
+  --t-radius-full: 9999px;
+
+  --t-shadow-sm: 0 1px 3px rgb(28 25 23 / 0.07);
+  --t-shadow-md: 0 1px 2px rgb(28 25 23 / 0.06), 0 4px 12px rgb(28 25 23 / 0.05);
+  --t-shadow-lg: 0 8px 24px rgb(28 25 23 / 0.11);
+  --t-shadow-drag: 0 12px 32px rgb(28 25 23 / 0.17);
+}
+
+/*
+ * Each tool's variables are declared twice: once on the scope that wraps the
+ * whole tool, and once on a `-tokens` class that carries nothing but the
+ * palette. A tool renders some of its controls into the shared header, which
+ * sits outside its own subtree — without somewhere to hang the variables, those
+ * controls land in a header where `--border` and `--sp-1` mean nothing, and
+ * arrive unstyled.
+ */
+
+/*
+ * ── Accents ───────────────────────────────────────────────────────────────
+ *
+ * One hue per tool, so colour answers "where am I" before the tab bar does.
+ *
+ * Each has two values because one cannot do both jobs. `--accent` is the one
+ * text and borders use, chosen to clear 4.5:1 on the ground; `--accent-bright`
+ * is the tool's identity at full strength, for the tab indicator and anywhere
+ * it sits as a block of colour rather than as something to read. Sage and
+ * bronze are the two where this matters: at the strength they were picked they
+ * are handsome and about 2.8:1, which is fine behind a label and not fine as
+ * one. Both were nudged until the identity clears 3:1 and the readable variant
+ * clears 4.5:1 — the numbers are held by `contrast.test.ts`, so a colour picked
+ * by eye later fails there rather than in front of someone trying to read it.
+ */
+
+.plaque-scope,
+.plaque-tokens {
+  --accent: #2f6d5f;
+  --accent-hover: #245448;
+  --accent-soft: #e4efec;
+  --accent-bright: #2f6d5f;
+}
+
+.cadence-scope,
+.cadence-tokens {
+  --accent: #80632f;
+  --accent-hover: #6e5427;
+  --accent-soft: #f1e8d7;
+  --accent-bright: #ac8a55;
+}
+
+.brigade-scope,
+.brigade-tokens {
+  --accent: #566f59;
+  --accent-hover: #4b624e;
+  --accent-soft: #e6ede6;
+  --accent-bright: #7d967f;
+}
+
+.tableaux-scope,
+.tableaux-tokens {
+  --accent: #736755;
+  --accent-hover: #5c5143;
+  --accent-light: #eeeae3;
+  --accent-bright: #736755;
+}
+
+/*
+ * ── Plaque, Cadence and Brigade ───────────────────────────────────────────
+ *
+ * One vocabulary, shared by three tools that were built as siblings. The only
+ * mapping that moved: `--surface` was `--grey-0`, pure white, which left a
+ * visible seam where a tool met the shell's warmer ground. It now takes the
+ * ground itself, and white stays available as the raised step above it.
+ */
+.plaque-scope,
+.cadence-scope,
+.brigade-scope,
+.plaque-tokens,
+.cadence-tokens,
+.brigade-tokens {
+  --grey-0: var(--t-0);
+  --grey-1: var(--t-1);
+  --grey-2: var(--t-2);
+  --grey-3: var(--t-3);
+  --grey-4: var(--t-4);
+  --grey-5: var(--t-5);
+  --grey-6: var(--t-6);
+  --grey-7: var(--t-7);
+  --grey-8: var(--t-8);
+  --grey-9: var(--t-9);
+
+  --surface: var(--t-1);
+  --surface-sunken: var(--t-2);
+  --canvas-bg: var(--t-3);
+  --border: var(--t-4);
+  --border-strong: var(--t-5);
+  --text: var(--t-9);
+  --text-muted: var(--t-6);
+
+  --ok: var(--t-ok);
+  --warn: var(--t-warn);
+  --warn-soft: var(--t-warn-soft);
+  --danger: var(--t-danger);
+  --danger-soft: var(--t-danger-soft);
+
+  --font-ui: var(--t-font-ui);
+  --font-mono: var(--t-font-mono);
+
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 19px;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  --radius: var(--t-radius-sm);
+  --radius-lg: var(--t-radius-md);
+  --shadow: var(--t-shadow-md);
+}
+
+/*
+ * ── Tableaux ──────────────────────────────────────────────────────────────
+ *
+ * A vocabulary of its own, mapped onto the same values. Its dark left panel
+ * stays: it is the one piece of deliberate contrast in the suite, and it is
+ * what makes the room read as the thing you are working on.
+ */
+.tableaux-scope,
+.tableaux-tokens {
+  --ink: var(--t-9);
+  --ink-soft: var(--t-7);
+  --ink-muted: var(--t-6);
+
+  --surface: var(--t-1);
+  --surface-raised: var(--t-0);
+  --surface-subtle: var(--t-2);
+  --border: var(--t-4);
+
+  --ok: var(--t-ok);
+  --ok-light: var(--t-ok-soft);
+  --warn: var(--t-warn);
+  --warn-light: var(--t-warn-soft);
+  --danger: var(--t-danger);
+  --danger-light: var(--t-danger-soft);
+
+  --font-ui: var(--t-font-ui);
+  --font-display: var(--t-font-display);
+
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 16px;
+  --text-ui: 13px;
+  --text-label: 11px;
+  --text-display: 22px;
+  --text-table: 13px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --tracking-label: 0.08em;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius-sm: var(--t-radius-sm);
+  --radius-md: 8px;
+  --radius-lg: var(--t-radius-lg);
+  --radius-full: var(--t-radius-full);
+
+  --shadow-sm: var(--t-shadow-sm);
+  --shadow-md: var(--t-shadow-md);
+  --shadow-lg: var(--t-shadow-lg);
+  --shadow-drag: var(--t-shadow-drag);
+}
+
+/*
+ * ── Headings belong to the tool ───────────────────────────────────────────
+ *
+ * The shell sets `h1, h2, h3` on the bare element, for its own pages. Bare
+ * element selectors do not stop at a boundary, so that rule was reaching every
+ * heading in all four tools and setting them in a display serif — which is
+ * right for a page you read and wrong for an eleven-pixel uppercase panel
+ * label. It predates the shared tokens; the tools never set a family of their
+ * own, so the shell's rule simply won by default.
+ *
+ * Handing headings back means a tool looks like a tool inside its own frame.
+ * What identifies it is the accent and the tab, which was the decision.
+ */
+.plaque-scope :is(h1, h2, h3, h4, h5, h6),
+.cadence-scope :is(h1, h2, h3, h4, h5, h6),
+.brigade-scope :is(h1, h2, h3, h4, h5, h6),
+.tableaux-scope :is(h1, h2, h3, h4, h5, h6) {
+  font-family: inherit;
+  color: inherit;
+}

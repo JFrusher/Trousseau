@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Lato, Marcellus } from "next/font/google";
 import "./globals.css";
+// Before any tool's own stylesheet: each of those maps its vocabulary onto the
+// values decided here, so these have to exist by the time they are read.
+import "@/lib/design/tokens.css";
 
 // Self-hosted at build time — no runtime request leaves the browser, which is
 // the whole premise of these tools.

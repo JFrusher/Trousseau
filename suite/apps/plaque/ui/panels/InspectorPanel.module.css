@@ -1,0 +1,70 @@
+.scope {
+  display: grid;
+  gap: var(--sp-1);
+  padding-bottom: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.clear {
+  justify-self: start;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--grey-6);
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.feature {
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--grey-6);
+  cursor: pointer;
+}
+
+.featureOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--grey-8);
+  font-weight: 600;
+}
+
+/* Sizing shortcuts for image artwork: one press instead of four numbers. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+}
+
+.action {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 3px);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.action:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

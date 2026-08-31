@@ -1,0 +1,181 @@
+.board {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--sp-4);
+  background: var(--canvas-bg);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  flex: 1;
+  padding: var(--sp-6);
+  background: var(--canvas-bg);
+  text-align: center;
+}
+
+.empty h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 600;
+}
+
+.empty p {
+  max-width: 46ch;
+  margin: 0;
+  font-size: var(--text-md);
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.block,
+.orphans {
+  max-width: 780px;
+  margin: 0 auto var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.orphans {
+  border-color: var(--danger);
+}
+
+.orphanHead {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  color: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.time {
+  font-size: var(--text-md);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.moment {
+  width: 6px;
+  height: 6px;
+  background: var(--text-muted);
+  transform: rotate(45deg);
+}
+
+.meta {
+  flex: 1;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.add {
+  flex: none;
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--text-xs);
+}
+
+.add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.none {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.jobs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.job {
+  border-left: 3px solid transparent;
+}
+
+.job + .job {
+  border-top: 1px solid var(--grey-2);
+}
+
+.job:hover {
+  background: var(--grey-1);
+}
+
+.selected {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.conflict {
+  border-left-color: var(--danger);
+}
+
+.advisory {
+  border-left-color: var(--warn);
+}
+
+.pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-2);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.jobLabel {
+  flex: 1 1 auto;
+  min-width: 20ch;
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.who {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.nobody {
+  font-size: var(--text-xs);
+  color: var(--warn);
+}
+
+.warning {
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--danger);
+}

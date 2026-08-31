@@ -1,74 +1,43 @@
-import Link from "next/link";
-import { HardDrive, GitBranch, KeyRound } from "lucide-react";
+import type { Metadata } from "next";
 import { QuickStats } from "@/components/shell/QuickStats";
+import { WhatIsLeft } from "@/components/shell/WhatIsLeft";
+import { Countdown } from "@/components/shell/Countdown";
+import { WeddingPack } from "@/components/shell/WeddingPack";
 
-const PROMISES = [
-  {
-    icon: HardDrive,
-    title: "Nothing is uploaded",
-    body: "Guest names, dietary requirements, phone numbers and addresses stay in this browser. There is no server holding them, because there is no server.",
-  },
-  {
-    icon: KeyRound,
-    title: "Nothing to sign up for",
-    body: "No account, no email, no trial. Open the page and start. Your work is here when you come back, and one button writes it to a file you keep.",
-  },
-  {
-    icon: GitBranch,
-    title: "Nothing is hidden",
-    body: "MIT licensed and open source. Built for one real wedding, which is the only reason the awkward parts work.",
-  },
-];
+export const metadata: Metadata = {
+  title: "Trousseau",
+  description: "Seating, stationery, timeline and crew for one wedding.",
+};
 
+/**
+ * The wedding at a glance.
+ *
+ * This page used to sell the app: a headline, three columns about local-first
+ * storage, a licence. That was written for someone deciding whether to use it.
+ * There is one person using it, they decided, and they now open this page to
+ * find out where things stand — so it answers that instead.
+ *
+ * What was true in the pitch has not been deleted so much as demoted: the
+ * promises about nothing being uploaded are kept where they are actually load
+ * bearing, in the Data panel, next to the buttons they describe.
+ */
 export default function Home() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12 sm:py-20">
-      <section className="max-w-2xl">
-        <p className="mb-4 text-xs tracking-[0.2em] text-gold uppercase">
-          Seating · Stationery · Timeline · Crew
-        </p>
-        <h1 className="font-display text-4xl leading-tight text-charcoal sm:text-5xl">
-          One wedding, four tools, and no arguments about which copy is right.
-        </h1>
-        <p className="mt-5 text-lg text-slate">
-          Seat the room and the place cards already know the table numbers. Move a block of the
-          day and every job hanging off it moves too. One guest list, held once, read by
-          everything.
-        </p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Link
-            href="/seating"
-            className="rounded border border-gold bg-gold/15 px-4 py-2 text-charcoal transition hover:bg-gold/25"
-          >
-            Start with the room
-          </Link>
-          <Link
-            href="/timeline"
-            className="rounded border border-charcoal/15 px-4 py-2 text-slate transition hover:border-charcoal/30 hover:text-charcoal"
-          >
-            Or with the day
-          </Link>
-        </div>
-      </section>
+    <div className="mx-auto max-w-5xl px-4 py-10 sm:py-14">
+      <Countdown />
 
-      <section className="mt-14">
+      <section className="mt-10">
         <QuickStats />
       </section>
 
-      <section className="mt-14 grid gap-8 sm:grid-cols-3">
-        {PROMISES.map(({ icon: Icon, title, body }) => (
-          <div key={title}>
-            <Icon size={20} className="mb-3 text-sage" />
-            <h3 className="mb-2 text-base">{title}</h3>
-            <p className="text-sm text-slate">{body}</p>
-          </div>
-        ))}
+      <section className="mt-12">
+        <h2 className="mb-4 text-sm tracking-[0.14em] text-slate uppercase">What is left</h2>
+        <WhatIsLeft />
       </section>
 
-      <footer className="mt-16 border-t border-charcoal/10 pt-6 text-xs text-slate">
-        Built on the Trousseau data contract — one document, one owner per slice, and every key
-        it does not understand copied through untouched.
-      </footer>
+      <section className="mt-12">
+        <WeddingPack />
+      </section>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PlaceCardsStudio } from "@/components/placecards/PlaceCardsStudio";
+import { PlaqueApp } from "./PlaqueClient";
 
 export const metadata: Metadata = {
   title: "Place cards · Trousseau",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function PlaceCardsPage() {
-  return <PlaceCardsStudio />;
+  return <PlaqueApp />;
 }

@@ -1,6 +1,6 @@
 import type { Trousseau } from "@jfrusher/trousseau";
-import { resolve } from "@/lib/timeline/core/schedule/resolve";
-import { resolvedDay as resolveDaySlice } from "@/lib/timeline/core/project/day";
+import { resolve } from "@/apps/cadence/core/schedule/resolve";
+import { resolvedDay as resolveDaySlice } from "@/apps/cadence/core/project/day";
 import {
   DEFAULT_BLOCK_OUTPUTS,
   DEFAULT_LANES,
@@ -8,7 +8,7 @@ import {
   defaultDay,
   defaultStyles,
   emptyDoc,
-} from "@/lib/timeline/core/model/defaults";
+} from "@/apps/cadence/core/model/defaults";
 import type {
   Constraint,
   Crew,
@@ -584,6 +584,9 @@ export function readCrew(doc: Trousseau): Crew {
           teamId: typeof p["teamId"] === "string" ? p["teamId"] : null,
           phone: str(p["phone"]),
           notes: str(p["notes"]),
+          // Which guest this person is, when they are one. Narrowing this away
+          // would quietly unlink every crew member on the next read.
+          guestId: typeof p["guestId"] === "string" ? p["guestId"] : null,
         };
       }),
       jobs: list(raw["jobs"], (j) => {

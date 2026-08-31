@@ -1,0 +1,34 @@
+.none {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.when,
+.who,
+.nobody,
+.trouble {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--text-sm);
+}
+
+.when {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.who {
+  font-weight: 500;
+}
+
+.nobody {
+  color: var(--warn);
+}
+
+.trouble {
+  padding: var(--sp-2);
+  border-radius: var(--radius);
+  background: var(--danger-soft);
+  color: var(--danger);
+  line-height: 1.45;
+}

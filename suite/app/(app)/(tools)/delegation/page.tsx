@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DelegationBoard } from "@/components/delegation/DelegationBoard";
+import { BrigadeApp } from "./BrigadeClient";
 
 export const metadata: Metadata = {
   title: "Delegation · Trousseau",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function DelegationPage() {
-  return <DelegationBoard />;
+  return <BrigadeApp />;
 }

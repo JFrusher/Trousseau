@@ -1,0 +1,20 @@
+.gate {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-3);
+  max-width: 46ch;
+  height: 100%;
+  margin: 0 auto;
+  padding: var(--sp-6);
+}
+
+.title {
+  font-size: var(--text-xl);
+}
+
+.body {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}

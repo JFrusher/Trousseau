@@ -1,0 +1,64 @@
+/*
+ * Brigade's own measures. Everything else it draws with — colour, type,
+ * spacing, radius, shadow — is decided once in `lib/design/tokens.css` and
+ * mapped onto the names this tool already uses, so every `var(--grey-3)` in its
+ * stylesheets keeps working while the values move with the rest of the suite.
+ */
+.brigade-scope {
+  --sidebar-w: 320px;
+  --header-h: 48px;
+}
+
+.brigade-scope,
+.brigade-scope *,
+.brigade-scope *::before,
+.brigade-scope *::after {
+  box-sizing: border-box;
+}
+
+/*
+ * Was `html, body, #root`. Brigade still wants exactly one screenful — its
+ * sidebar and board scroll inside themselves — it just no longer gets the whole
+ * screen, so it takes the viewport less the shell's header.
+ */
+.brigade-scope {
+  height: calc(100dvh - var(--shell-header-h, 0px));
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--text);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+.brigade-scope :is(h1, h2, h3) {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.brigade-scope h1 {
+  font-size: var(--text-xl);
+}
+
+.brigade-scope h2 {
+  font-size: var(--text-lg);
+}
+
+.brigade-scope h3 {
+  font-size: var(--text-md);
+}
+
+.brigade-scope button {
+  font: inherit;
+  color: inherit;
+}
+
+.brigade-scope :is(input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+.brigade-scope :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

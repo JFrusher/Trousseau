@@ -1,0 +1,200 @@
+/*
+ * ── Reset ──
+ *
+ * Every rule here was written for a tool that owned the whole document, and
+ * several are actively destructive to one that does not: `* { margin: 0 }`
+ * would flatten the shell's typography, and `body { overflow: hidden }` would
+ * take the scrollbar off the other three tools' pages. So the reset applies
+ * inside Tableaux and nowhere else.
+ */
+.tableaux-scope,
+.tableaux-scope *,
+.tableaux-scope *::before,
+.tableaux-scope *::after {
+  box-sizing: border-box;
+}
+
+.tableaux-scope * {
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * Was `html, body, #root { height: 100% }` plus `body { overflow: hidden }`.
+ * Tableaux still wants exactly one screenful, with its canvas and panels
+ * scrolling inside themselves — it just takes the viewport less the shell's
+ * header now instead of all of it.
+ */
+.tableaux-scope {
+  height: calc(100dvh - var(--shell-header-h, 0px));
+  overflow: hidden;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--ink);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.tableaux-scope h1,
+.tableaux-scope h2,
+.tableaux-scope h3,
+.tableaux-scope h4,
+.tableaux-scope h5,
+.tableaux-scope h6 {
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.tableaux-scope button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.tableaux-scope button:disabled {
+  cursor: not-allowed;
+}
+
+.tableaux-scope input,
+.tableaux-scope textarea,
+.tableaux-scope select {
+  font: inherit;
+  color: inherit;
+}
+
+.tableaux-scope textarea {
+  resize: vertical;
+}
+
+.tableaux-scope a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tableaux-scope ul,
+.tableaux-scope ol {
+  list-style: none;
+}
+
+.tableaux-scope img,
+.tableaux-scope svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* ── Focus & selection ── */
+.tableaux-scope :focus {
+  outline: none;
+}
+
+.tableaux-scope :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.tableaux-scope ::selection {
+  background: var(--accent-light);
+  color: var(--ink);
+}
+
+/* ── Scrollbars — slim and unobtrusive ── */
+.tableaux-scope * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-muted) transparent;
+}
+
+.tableaux-scope ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.tableaux-scope ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tableaux-scope ::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.35);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--radius-full);
+}
+
+.tableaux-scope ::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.55);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
+
+/* On the dark left panel, use a lighter thumb. */
+.panel-dark ::-webkit-scrollbar-thumb {
+  background: rgba(231, 229, 228, 0.22);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
+
+/* ── Shared typographic helpers ── */
+.u-display {
+  font-family: var(--font-display);
+}
+
+.u-label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.u-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip link: off-screen until focused, then pinned top-left for keyboard users. */
+.skip-link {
+  position: absolute;
+  left: var(--space-2);
+  top: -48px;
+  z-index: var(--z-toast, 1000);
+  padding: 8px 14px;
+  background: var(--surface, #fff);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  box-shadow: var(--shadow-2, 0 12px 32px rgba(0, 0, 0, 0.12));
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: var(--space-2);
+}
+
+/*
+ * ── Respect reduced-motion preferences ──
+ *
+ * Deliberately left unscoped, unlike everything above it. Someone who has asked
+ * their system to stop animating things means it for the whole page, not for
+ * whichever quarter of it Tableaux happens to own.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

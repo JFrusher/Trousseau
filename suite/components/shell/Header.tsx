@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Database, Redo2, Undo2, Users } from "lucide-react";
+import { Database, Users } from "lucide-react";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
-import { useUndoKeys } from "@/lib/store/useUndoKeys";
 import { TOOLS } from "@/lib/tools";
+import { ChromeSlot } from "./chrome";
 import { DataManager } from "./DataManager";
 
 /**
@@ -21,22 +21,16 @@ export function Header() {
   const pathname = usePathname();
   const guestCount = useTrousseauStore((s) => Object.keys(s.doc.guests).length);
   const dirty = useTrousseauStore((s) => s.status === "error");
-  const undo = useTrousseauStore((s) => s.undo);
-  const redo = useTrousseauStore((s) => s.redo);
-  const undoLabel = useTrousseauStore((s) => s.past[s.past.length - 1]?.label ?? null);
-  const redoLabel = useTrousseauStore((s) => s.future[s.future.length - 1]?.label ?? null);
-
-  useUndoKeys();
 
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-charcoal/10 bg-parchment/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:gap-6">
+        <div className="mx-auto flex h-[var(--shell-header-h)] max-w-7xl items-center gap-2 px-4 sm:gap-6">
           <Link href="/" className="shrink-0 font-display text-lg text-charcoal">
             Trousseau
           </Link>
 
-          <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+          <nav className="flex shrink-0 items-center gap-1">
             {TOOLS.map((tool) => {
               const active = pathname === tool.href;
               return (
@@ -44,10 +38,10 @@ export function Header() {
                   key={tool.href}
                   href={tool.href}
                   aria-current={active ? "page" : undefined}
-                  className={`shrink-0 rounded px-2.5 py-1.5 text-sm whitespace-nowrap transition ${
+                  className={`${tool.tokens} shrink-0 rounded-t border-b-2 px-2.5 py-1.5 text-sm whitespace-nowrap transition ${
                     active
-                      ? "bg-stone text-charcoal"
-                      : "text-slate hover:bg-stone/60 hover:text-charcoal"
+                      ? "border-[var(--accent-bright)] bg-stone text-charcoal"
+                      : "border-transparent text-slate hover:bg-stone/60 hover:text-charcoal"
                   }`}
                 >
                   {tool.name}
@@ -56,27 +50,17 @@ export function Header() {
             })}
           </nav>
 
+          {/*
+            * The tool on screen fills these. Undo belongs to whichever tool you
+            * are editing in — it is the only thing that knows what your last
+            * change was — and its document controls sit beside it rather than
+            * on a second bar of their own.
+            */}
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto">
+            <ChromeSlot name="tool-actions" />
+          </div>
           <div className="hidden shrink-0 items-center sm:flex">
-            <button
-              type="button"
-              onClick={undo}
-              disabled={undoLabel === null}
-              title={undoLabel ? `Undo ${undoLabel}` : "Nothing to undo"}
-              aria-label={undoLabel ? `Undo ${undoLabel}` : "Nothing to undo"}
-              className="rounded p-1.5 text-slate transition hover:bg-stone hover:text-charcoal disabled:pointer-events-none disabled:opacity-30"
-            >
-              <Undo2 size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={redo}
-              disabled={redoLabel === null}
-              title={redoLabel ? `Redo ${redoLabel}` : "Nothing to redo"}
-              aria-label={redoLabel ? `Redo ${redoLabel}` : "Nothing to redo"}
-              className="rounded p-1.5 text-slate transition hover:bg-stone hover:text-charcoal disabled:pointer-events-none disabled:opacity-30"
-            >
-              <Redo2 size={16} />
-            </button>
+            <ChromeSlot name="tool-undo" />
           </div>
 
           <span

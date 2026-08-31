@@ -3,8 +3,7 @@
 import { get as idbGet, set as idbSet, del as idbDel } from "idb-keyval";
 import { SLICE_NAMES } from "@jfrusher/trousseau";
 import { useTrousseauStore, type SuiteSlice } from "@/lib/store/useTrousseauStore";
-import { readStationery } from "@/lib/placecards/stationery";
-import { getBlob, putBlob } from "@/lib/placecards/blobStore";
+import { acceptAsset, collectAssets, heldAssetIds } from "./assets";
 import {
   deriveKeys,
   fingerprint,
@@ -369,16 +368,6 @@ export async function keepMine(conflict: Conflict): Promise<void> {
 
 // blobs -----------------------------------------------------------------------
 
-/** Every uploaded asset the design references, by id. */
-function referencedBlobs(): string[] {
-  const design = readStationery(useTrousseauStore.getState().doc.stationery);
-  const ids = new Set<string>(Object.keys(design.fonts));
-  for (const element of design.template.elements) {
-    if (element.kind === "image" && element.imageId) ids.add(element.imageId);
-  }
-  return [...ids];
-}
-
 /**
  * Fonts and artwork, encrypted like everything else.
  *
@@ -393,29 +382,26 @@ async function syncBlobs(
 
   const { ids } = await body<{ ids: string[] }>(await api(`wedding/${session.weddingId}/blobs`));
   const onServer = new Set(ids);
-  const wanted = referencedBlobs();
 
   let uploaded = 0;
-  for (const id of wanted) {
-    if (onServer.has(id)) continue;
-    const bytes = await getBlob(id);
-    if (!bytes) continue;
+  for (const asset of await collectAssets()) {
+    if (onServer.has(asset.id)) continue;
     await body(
-      await api(`wedding/${session.weddingId}/blob/${id}`, {
+      await api(`wedding/${session.weddingId}/blob/${asset.id}`, {
         method: "POST",
-        body: JSON.stringify({ sealed: await sealBytes(session.contentKey, bytes) }),
+        body: JSON.stringify({ sealed: await sealBytes(session.contentKey, asset.bytes) }),
       }),
     );
-    onServer.add(id);
+    onServer.add(asset.id);
     uploaded += 1;
   }
 
+  const held = new Set(await heldAssetIds());
   let downloaded = 0;
-  for (const id of wanted) {
-    if (await getBlob(id)) continue;
-    if (!onServer.has(id)) continue;
+  for (const id of onServer) {
+    if (held.has(id)) continue;
     const sealed = await body<Sealed>(await api(`wedding/${session.weddingId}/blob/${id}`));
-    await putBlob(id, await unsealBytes(session.contentKey, sealed));
+    await acceptAsset(id, await unsealBytes(session.contentKey, sealed));
     downloaded += 1;
   }
 

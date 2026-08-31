@@ -1,0 +1,84 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+
+
+
+
+.slack,
+.over {
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  padding: 2px var(--sp-2);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.slack {
+  background: var(--grey-2);
+  color: var(--text-muted);
+}
+
+.over {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+
+.zoom {
+  display: flex;
+  gap: 2px;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: var(--text-sm);
+}
+
+.dismiss {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.canvas {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.foot {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex: none;
+  max-height: 34%;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.foot > :first-child {
+  flex: 1;
+  min-width: 0;
+}

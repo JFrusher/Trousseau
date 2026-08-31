@@ -11,10 +11,12 @@ import { StoreHydrator } from "@/lib/store/StoreHydrator";
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    // `--shell-header-h` is read by the header itself and by any tool that wants
+    // to fill what is left of the viewport, so the two can never disagree.
+    <div className="[--shell-header-h:3.5rem]">
       <StoreHydrator />
       <Header />
       {children}
-    </>
+    </div>
   );
 }

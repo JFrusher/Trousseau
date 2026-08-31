@@ -1,0 +1,27 @@
+.none {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--text-sm);
+}
+
+.summary dt {
+  color: var(--text-muted);
+}
+
+.summary dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.file {
+  display: none;
+}

@@ -1,7 +1,5 @@
 import { expect, test } from "vitest";
 import { emptyTrousseau, migrate } from "@jfrusher/trousseau";
-import { brigadeDoc } from "@/lib/crew/bridge";
-import { readStationery } from "@/lib/placecards/stationery";
 import { readCrew, readGuests, readSeating, readTimeline, resolvedDay, timelineDoc } from "./slices";
 
 /**
@@ -30,13 +28,8 @@ test.each([
   ["crew", () => readCrew(doc)],
   ["timelineDoc", () => timelineDoc(doc)],
   ["resolved day", () => resolvedDay(doc)],
-  ["brigade document", () => brigadeDoc(doc)],
 ])("reading %s twice returns the same object", (_name, read) => {
   expect(read()).toBe(read());
-});
-
-test("reading the stationery slice twice returns the same object", () => {
-  expect(readStationery(doc.stationery)).toBe(readStationery(doc.stationery));
 });
 
 test("a different document gets its own reading", () => {

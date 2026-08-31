@@ -1,0 +1,7 @@
+.sidebar {
+  flex: none;
+  width: var(--sidebar-w);
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+}

@@ -238,6 +238,8 @@ export interface Person {
   teamId: string | null;
   phone: string;
   notes: string;
+  /** The guest this person is, when they are one. Null for crew who are not guests. */
+  guestId: string | null;
 }
 
 export interface Job {

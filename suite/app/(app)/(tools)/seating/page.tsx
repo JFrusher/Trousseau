@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SeatingBoard } from "@/components/seating/SeatingBoard";
+import { TableauxApp } from "./TableauxClient";
 
 export const metadata: Metadata = {
   title: "Seating · Trousseau",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function SeatingPage() {
-  return <SeatingBoard />;
+  return <TableauxApp />;
 }

@@ -1,0 +1,145 @@
+.lane + .lane {
+  margin-top: var(--sp-3);
+}
+
+.laneHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.laneName {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.laneName:hover {
+  border-color: var(--border);
+}
+
+.laneName:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  outline: none;
+}
+
+.empty {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.list {
+  margin: var(--sp-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  border-left: 2px solid transparent;
+}
+
+.item:hover {
+  background: var(--grey-1);
+}
+
+.selected {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.conflict .label {
+  color: var(--danger);
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1;
+  min-width: 0;
+  padding: 4px var(--sp-2);
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  flex: none;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pin {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex: none;
+}
+
+.actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+}
+
+.item:hover .actions,
+.selected .actions {
+  opacity: 1;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.icon:hover {
+  background: var(--grey-3);
+  color: var(--text);
+}
+
+.bulk {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border);
+}
+
+/* A moment has no length to show in the list, so it shows its shape instead. */
+.moment {
+  width: 6px;
+  height: 6px;
+  background: var(--text-muted);
+  transform: rotate(45deg);
+  flex: none;
+}

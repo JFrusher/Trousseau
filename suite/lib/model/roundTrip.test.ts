@@ -16,9 +16,9 @@ const { publishDay, readCrew, readGuests, readSeating, readTimeline, resolvedDay
   "./slices"
 );
 const { addTable, seatGuest } = await import("@/lib/seating/actions");
-const { addBlock, patchBlock } = await import("@/lib/timeline/actions");
+const { addBlock, patchBlock } = await import("@/lib/model/timelineActions");
 const { addJob, addPerson, seedTeamsFromTags, toggleAssignment } = await import(
-  "@/lib/crew/actions"
+  "@/lib/model/crewActions"
 );
 
 /**

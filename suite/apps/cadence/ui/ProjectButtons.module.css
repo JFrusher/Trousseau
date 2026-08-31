@@ -1,0 +1,22 @@
+.row {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.button {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--border-strong);
+  background: var(--grey-1);
+}
+
+.file {
+  display: none;
+}
