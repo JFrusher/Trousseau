@@ -1,0 +1,14 @@
+# Test fixtures only. A real export dropped in here must not reach a public
+# repo — the same guard Plaque and Cadence keep on their own fixture folders.
+*.trousseau.json
+*.tableaux.json
+*.plaque.json
+*.cadence.json
+*.day.json
+
+# The ones that belong here, by name.
+!job.plaque.json
+!sample-day.cadence.json
+!sample-day.day.json
+!wedding-day.cadence.json
+!wedding-day.day.json

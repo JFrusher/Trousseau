@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/**
+ * The Trousseau palette, as Tailwind v4 theme tokens.
+ *
+ * Named by role as well as by colour, because the roles are what the UI reads:
+ * a panel is `bg-stone`, not `bg-[#F4F1EA]`. The hexes are the same ones the
+ * four standalone apps already paint with, so a migrated tool keeps its
+ * appearance when its CSS Module is dropped in beside these.
+ */
+@theme {
+  /* Grounds */
+  --color-parchment: #fdfbf7; /* warm off-white — page */
+  --color-stone: #f4f1ea; /* soft stone — panels, wells */
+
+  /* Ink and rules */
+  --color-charcoal: #1c1917; /* deep charcoal — headings, borders */
+  --color-slate: #44403c; /* muted slate — body copy, secondary rules */
+
+  /* Accents */
+  --color-gold: #d4af37; /* warm champagne — primary action, focus */
+  --color-sage: #849e86; /* sage — confirmations, "resolved" states */
+  --color-rose: #c48b8b; /* dusty rose — warnings, clashes */
+
+  --font-display: var(--font-marcellus), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-lato), ui-sans-serif, system-ui, sans-serif;
+}
+
+/**
+ * Painted explicitly rather than left to the browser: the tools render print
+ * previews, and a page that inherits a dark UA background makes a white A4
+ * sheet look like the artwork rather than the paper.
+ */
+html,
+body {
+  background-color: var(--color-parchment);
+  color: var(--color-slate);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--color-charcoal);
+  font-family: var(--font-display);
+}
+
+/**
+ * Print. The role sheets and the place-card preview are the only things meant
+ * to reach paper; everything that frames them on screen is furniture.
+ */
+@media print {
+  header,
+  aside,
+  nav {
+    display: none !important;
+  }
+
+  .break-after-page {
+    break-after: page;
+  }
+}
+
+/**
+ * The variables Plaque's ported renderers reference.
+ *
+ * Its card canvas and sheet preview came across unaltered, and they paint with
+ * a handful of named colours. Mapping those onto the Trousseau palette here is
+ * one block; editing the colour out of every ported file would have been a
+ * hundred small edits and a permanent merge conflict with the original.
+ */
+:root {
+  --accent: var(--color-gold);
+  --surface: var(--color-parchment);
+  --border: color-mix(in srgb, var(--color-charcoal) 15%, transparent);
+  --border-strong: color-mix(in srgb, var(--color-charcoal) 30%, transparent);
+  --grey-5: color-mix(in srgb, var(--color-charcoal) 30%, transparent);
+  --grey-6: var(--color-slate);
+  --grey-8: var(--color-charcoal);
+}

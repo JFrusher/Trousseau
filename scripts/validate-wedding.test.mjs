@@ -115,3 +115,51 @@ describe("the event date", () => {
     expect(check(doc).errors).toEqual([]);
   });
 });
+
+describe("the suite's own slices", () => {
+  /** The same wedding, published as `guests` and `seating` rather than sources. */
+  const asSlices = (table, guests) => ({
+    event: { date: "2026-06-20" },
+    day: null,
+    guests: Object.fromEntries(guests.map((g) => [g.id, g])),
+    seating: { tables: { [table.id]: table } },
+    sources: {},
+  });
+
+  it("checks the slices the suite writes, not only sources.tableaux", () => {
+    const doc = asSlices(
+      { id: "t1", label: "Table 8", capacity: 8, assignedGuestIds: ["g1", null] },
+      [guest("g1", { assignedTableId: "t1" })],
+    );
+    const result = check(doc);
+    expect(result.errors).toEqual([]);
+    // Proof it looked, rather than finding nothing because it read nothing.
+    expect(result.facts).toContainEqual(expect.stringContaining("(slices)"));
+  });
+
+  it("catches a guest and their table disagreeing, in the slices", () => {
+    const doc = asSlices(
+      { id: "t1", label: "Table 8", capacity: 8, assignedGuestIds: [] },
+      [guest("g1", { assignedTableId: "t1" })],
+    );
+    expect(check(doc).errors).toEqual([expect.stringContaining("does not list them")]);
+  });
+
+  it("catches a table over its own capacity, in the slices", () => {
+    const doc = asSlices(
+      { id: "t1", label: "Table 8", capacity: 1, assignedGuestIds: ["g1", "g2"] },
+      [guest("g1", { assignedTableId: "t1" }), guest("g2", { assignedTableId: "t1" })],
+    );
+    expect(check(doc).errors).toEqual([expect.stringContaining("but has 1 seats")]);
+  });
+
+  it("still reads a pre-suite bundle that only has sources.tableaux", () => {
+    const doc = withTable(
+      { id: "t1", label: "Table 8", capacity: 8, assignedGuestIds: ["g1"] },
+      [guest("g1", { assignedTableId: "t1" })],
+    );
+    const result = check(doc);
+    expect(result.errors).toEqual([]);
+    expect(result.facts).toContainEqual(expect.stringContaining("(sources.tableaux)"));
+  });
+});

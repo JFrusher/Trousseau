@@ -54,11 +54,23 @@ export function check(doc) {
   }
 
   // ------------------------------------------------------------ seating slice
-  // Read from sources.tableaux until Tableaux publishes a resolved `seating`
-  // slice; then this switches to doc.seating and the shape below stops moving.
-  if (tableaux && isObj(tableaux.guests) && isObj(tableaux.tables)) {
-    const guests = Object.values(tableaux.guests);
-    const tables = Object.values(tableaux.tables);
+  // The suite publishes resolved `guests` and `seating` slices, which is what
+  // this reads. `sources.tableaux` is the fallback, for a bundle the collector
+  // built from the four standalone apps before the suite existed — those files
+  // still have to validate, and their interior shape is the same.
+  const seated = (() => {
+    if (isObj(doc.guests) && isObj(doc.seating?.tables)) {
+      return { guests: doc.guests, tables: doc.seating.tables, from: "slices" };
+    }
+    if (tableaux && isObj(tableaux.guests) && isObj(tableaux.tables)) {
+      return { guests: tableaux.guests, tables: tableaux.tables, from: "sources.tableaux" };
+    }
+    return null;
+  })();
+
+  if (seated) {
+    const guests = Object.values(seated.guests);
+    const tables = Object.values(seated.tables);
     const guestIds = new Set(guests.map((g) => g.id));
     const tableById = new Map(tables.map((t) => [t.id, t]));
     const name = (g) => g.fullName || `${g.firstName ?? ""} ${g.lastName ?? ""}`.trim() || g.id;
@@ -116,7 +128,7 @@ export function check(doc) {
       );
     }
 
-    facts.push(`seating: ${guests.length} guests, ${tables.length} tables`);
+    facts.push(`seating: ${guests.length} guests, ${tables.length} tables (${seated.from})`);
   }
 
   // ---------------------------------------------------------------- day slice

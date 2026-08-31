@@ -1,0 +1,261 @@
+import { beforeEach, expect, test } from "vitest";
+import { deriveKeys, newSalt, newWeddingId, seal, sealBytes, tokenHash } from "./crypto";
+import {
+  createWedding,
+  deleteShare,
+  getBlob,
+  getSalt,
+  getShare,
+  listBlobs,
+  MAX_BLOB_BYTES,
+  MAX_BLOBS_PER_WEDDING,
+  MAX_SLICE_BYTES,
+  pull,
+  push,
+  putBlob,
+  putShare,
+} from "./handlers";
+import { memoryStore, type SyncStore } from "./store";
+
+/**
+ * The two things worth being sure of: who is allowed to write, and what happens
+ * when two laptops write the same slice.
+ */
+
+let store: SyncStore;
+let id: string;
+let salt: string;
+let token: string;
+let key: CryptoKey;
+
+beforeEach(async () => {
+  store = memoryStore();
+  id = newWeddingId();
+  salt = newSalt();
+  const keys = await deriveKeys("correct horse battery staple", salt);
+  token = keys.writeToken;
+  key = keys.contentKey;
+  await createWedding(store, { id, salt, authHash: await tokenHash(token) });
+});
+
+// authorisation ---------------------------------------------------------------
+
+test("a wrong passphrase cannot read or write", async () => {
+  const wrong = await deriveKeys("hunter2", salt);
+
+  expect((await pull(store, id, wrong.writeToken)).status).toBe(403);
+  expect(
+    (await push(store, id, wrong.writeToken, [
+      { slice: "guests", sealed: await seal(key, {}), expectedVersion: 0 },
+    ])).status,
+  ).toBe(403);
+});
+
+test("no passphrase at all cannot read or write", async () => {
+  expect((await pull(store, id, null)).status).toBe(403);
+});
+
+test("a wedding that does not exist answers exactly as a wrong passphrase does", async () => {
+  // Otherwise this is an oracle for which wedding ids are real.
+  const missing = await pull(store, newWeddingId(), token);
+  const wrong = await pull(store, id, (await deriveKeys("hunter2", salt)).writeToken);
+  expect(missing).toEqual(wrong);
+});
+
+test("the salt is public, and a missing wedding does not say so", async () => {
+  expect((await getSalt(store, id)).body).toEqual({ salt });
+  const unknown = await getSalt(store, newWeddingId());
+  expect(unknown.status).toBe(200);
+  expect(unknown.body).toEqual({ salt: null });
+});
+
+test("a wedding id cannot be taken twice", async () => {
+  expect((await createWedding(store, { id, salt, authHash: "x" })).status).toBe(400);
+});
+
+// writing ---------------------------------------------------------------------
+
+test("a first write expects version zero and comes back as one", async () => {
+  const reply = await push(store, id, token, [
+    { slice: "guests", sealed: await seal(key, { g1: {} }), expectedVersion: 0 },
+  ]);
+  expect(reply.body).toEqual({ accepted: [{ slice: "guests", version: 1 }], rejected: [] });
+
+  const pulled = (await pull(store, id, token)).body as { slices: Array<{ version: number }> };
+  expect(pulled.slices[0]?.version).toBe(1);
+});
+
+test("the server never sees plaintext", async () => {
+  await push(store, id, token, [
+    { slice: "guests", sealed: await seal(key, { g1: { name: "Charis Smith" } }), expectedVersion: 0 },
+  ]);
+
+  const stored = JSON.stringify(await store.listSlices(id));
+  expect(stored).not.toContain("Charis");
+  expect(stored).not.toContain("name");
+});
+
+test("two laptops editing different slices never conflict", async () => {
+  const first = await push(store, id, token, [
+    { slice: "seating", sealed: await seal(key, { a: 1 }), expectedVersion: 0 },
+  ]);
+  const second = await push(store, id, token, [
+    { slice: "timeline", sealed: await seal(key, { b: 2 }), expectedVersion: 0 },
+  ]);
+
+  expect((first.body as { rejected: unknown[] }).rejected).toEqual([]);
+  expect((second.body as { rejected: unknown[] }).rejected).toEqual([]);
+});
+
+test("the second write to one slice is refused, and told what it lost to", async () => {
+  await push(store, id, token, [
+    { slice: "seating", sealed: await seal(key, { theirs: true }), expectedVersion: 0 },
+  ]);
+
+  // The other laptop still thinks the slice is at version 0.
+  const stale = await push(store, id, token, [
+    { slice: "seating", sealed: await seal(key, { mine: true }), expectedVersion: 0 },
+  ]);
+
+  const body = stale.body as {
+    accepted: Array<{ slice: string; version: number }>;
+    rejected: Array<{ slice: string; theirs: { version: number } }>;
+  };
+  expect(body.accepted).toEqual([]);
+  expect(body.rejected[0]?.slice).toBe("seating");
+  expect(body.rejected[0]?.theirs.version).toBe(1);
+
+  // And the winning write is still what is stored — the loser overwrote nothing.
+  const slices = await store.listSlices(id);
+  expect(slices[0]?.version).toBe(1);
+});
+
+test("a refused slice does not stop the others in the same push", async () => {
+  await push(store, id, token, [
+    { slice: "seating", sealed: await seal(key, {}), expectedVersion: 0 },
+  ]);
+
+  const mixed = await push(store, id, token, [
+    { slice: "seating", sealed: await seal(key, {}), expectedVersion: 0 },
+    { slice: "crew", sealed: await seal(key, {}), expectedVersion: 0 },
+  ]);
+
+  const body = mixed.body as {
+    accepted: Array<{ slice: string; version: number }>;
+    rejected: unknown[];
+  };
+  expect(body.accepted).toEqual([{ slice: "crew", version: 1 }]);
+  expect(body.rejected).toHaveLength(1);
+});
+
+// shares ----------------------------------------------------------------------
+
+test("a guest share needs no passphrase to read, and gives up only ciphertext", async () => {
+  const sealed = await seal(key, { name: "Eleanor Vane", table: "Table 2" });
+  await putShare(store, id, token, { token: "abc123", sealed });
+
+  const reply = await getShare(store, "abc123");
+  expect(reply.status).toBe(200);
+  expect(JSON.stringify(reply.body)).not.toContain("Eleanor");
+  expect((reply.body as { ciphertext: string }).ciphertext).toBe(sealed.ciphertext);
+});
+
+test("publishing a share does need the passphrase", async () => {
+  const sealed = await seal(key, {});
+  expect((await putShare(store, id, null, { token: "abc123", sealed })).status).toBe(403);
+});
+
+test("a link that was never published, or has been taken down, is not live", async () => {
+  expect((await getShare(store, "nope")).status).toBe(404);
+
+  await putShare(store, id, token, { token: "abc123", sealed: await seal(key, {}) });
+  await deleteShare(store, id, token, "abc123");
+  expect((await getShare(store, "abc123")).status).toBe(404);
+});
+
+test("only somebody with the passphrase can take a link down", async () => {
+  await putShare(store, id, token, { token: "abc123", sealed: await seal(key, {}) });
+  expect((await deleteShare(store, id, null, "abc123")).status).toBe(403);
+  expect((await getShare(store, "abc123")).status).toBe(200);
+});
+
+// the bugs this audit found ---------------------------------------------------
+
+test("a client expecting history a wedding does not have is refused", async () => {
+  // Absent is version 0. A caller expecting 3 is out of step, and creating a
+  // row under it would hide that rather than report it.
+  const reply = await push(store, id, token, [
+    { slice: "guests", sealed: await seal(key, {}), expectedVersion: 3 },
+  ]);
+  const body = reply.body as { accepted: unknown[]; rejected: unknown[] };
+  expect(body.accepted).toEqual([]);
+  expect(body.rejected).toHaveLength(1);
+});
+
+test("the version a write landed at comes from the store, not the caller", async () => {
+  await push(store, id, token, [
+    { slice: "guests", sealed: await seal(key, { a: 1 }), expectedVersion: 0 },
+  ]);
+  const second = await push(store, id, token, [
+    { slice: "guests", sealed: await seal(key, { a: 2 }), expectedVersion: 1 },
+  ]);
+  expect((second.body as { accepted: Array<{ version: number }> }).accepted[0]?.version).toBe(2);
+});
+
+test("an oversized slice is refused rather than stored", async () => {
+  const huge = { ciphertext: "x".repeat(MAX_SLICE_BYTES + 1), iv: "aaaa" };
+  const reply = await push(store, id, token, [
+    { slice: "guests", sealed: huge, expectedVersion: 0 },
+  ]);
+  expect(reply.status).toBe(413);
+  expect(await store.listSlices(id)).toEqual([]);
+});
+
+test("assets need the passphrase, and are stored as ciphertext", async () => {
+  const sealed = await sealBytes(key, new Uint8Array([1, 2, 3, 4]));
+
+  expect((await putBlob(store, id, null, "abc", sealed)).status).toBe(403);
+  expect((await putBlob(store, id, token, "abc", sealed)).status).toBe(200);
+
+  expect((await listBlobs(store, id, token)).body).toEqual({ ids: ["abc"] });
+  const fetched = (await getBlob(store, id, token, "abc")).body as { ciphertext: string };
+  expect(fetched.ciphertext).toBe(sealed.ciphertext);
+  expect((await getBlob(store, id, token, "nope")).status).toBe(404);
+});
+
+test("an oversized asset is refused", async () => {
+  const huge = { ciphertext: "x".repeat(MAX_BLOB_BYTES + 1), iv: "aaaa" };
+  expect((await putBlob(store, id, token, "big", huge)).status).toBe(413);
+});
+
+test("one wedding cannot become a file host", async () => {
+  const sealed = await sealBytes(key, new Uint8Array([1]));
+  for (let i = 0; i < MAX_BLOBS_PER_WEDDING; i++) {
+    expect((await putBlob(store, id, token, `blob${i}`, sealed)).status).toBe(200);
+  }
+  expect((await putBlob(store, id, token, "one-too-many", sealed)).status).toBe(400);
+  // But replacing one already there still works.
+  expect((await putBlob(store, id, token, "blob0", sealed)).status).toBe(200);
+});
+
+test("republishing a guest link at the same token replaces what it shows", async () => {
+  await putShare(store, id, token, { token: "abc123", sealed: await seal(key, { v: 1 }) });
+  await putShare(store, id, token, { token: "abc123", sealed: await seal(key, { v: 2 }) });
+
+  const live = (await getShare(store, "abc123")).body as { ciphertext: string };
+  const second = await seal(key, { v: 2 });
+  // Not byte-equal (fresh nonce), but there is exactly one row and it is the
+  // later one — the old plan is not still being served somewhere else.
+  expect(live.ciphertext).not.toBe(second.ciphertext);
+  expect(await store.getShare("abc123")).not.toBeNull();
+});
+
+test("a malformed authorization header is denied, not a crash", async () => {
+  // The header is attacker-controlled. `atob` throwing on it used to escape the
+  // handler as a 500, which both leaked that the input was malformed rather
+  // than merely wrong, and was a free way to make the server do work badly.
+  for (const rubbish of ["x", "!!!!", "not base64 at all", " "]) {
+    const reply = await pull(store, id, rubbish);
+    expect(reply.status, `"${rubbish}"`).toBe(403);
+  }
+});

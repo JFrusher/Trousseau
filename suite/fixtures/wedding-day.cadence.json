@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "appVersion": "0.1.0",
+  "day": {
+    "date": "2026-09-12",
+    "coupleNames": "",
+    "venueName": "",
+    "latitude": 51.5074,
+    "longitude": -0.1278,
+    "utcOffsetMin": 60,
+    "curfewMin": 1500,
+    "logoKey": null
+  },
+  "lanes": [
+    "Main day",
+    "Suppliers",
+    "Transport"
+  ],
+  "blocks": [
+    {
+      "id": "blk-067da9af",
+      "label": "Ceremony",
+      "durationMin": 60,
+      "anchorMin": null,
+      "gapMin": 780,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet",
+        "order-of-day"
+      ]
+    },
+    {
+      "id": "blk-55a6c73e",
+      "label": "Sandwiches+canepes",
+      "durationMin": 30,
+      "anchorMin": null,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet",
+        "order-of-day"
+      ]
+    },
+    {
+      "id": "blk-8f553029",
+      "label": "Group Photos",
+      "durationMin": 60,
+      "anchorMin": null,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet",
+        "order-of-day"
+      ]
+    },
+    {
+      "id": "blk-84ca669c",
+      "label": "Cake Cutting + Speeches",
+      "durationMin": 30,
+      "anchorMin": null,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet",
+        "order-of-day"
+      ]
+    },
+    {
+      "id": "blk-0864b341",
+      "label": "Hall Transfer",
+      "durationMin": 30,
+      "anchorMin": null,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet",
+        "order-of-day"
+      ]
+    },
+    {
+      "id": "blk-8ea97c8b",
+      "label": "Cocktail hour",
+      "durationMin": 60,
+      "anchorMin": 990,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet",
+        "order-of-day"
+      ]
+    },
+    {
+      "id": "blk-80f92591",
+      "label": "Food",
+      "durationMin": 120,
+      "anchorMin": null,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet",
+        "order-of-day"
+      ]
+    },
+    {
+      "id": "blk-101de73d",
+      "label": "Speeches",
+      "durationMin": 30,
+      "anchorMin": null,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet",
+        "order-of-day"
+      ]
+    },
+    {
+      "id": "blk-bc702d97",
+      "label": "Dancing",
+      "durationMin": 120,
+      "anchorMin": null,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet"
+      ]
+    },
+    {
+      "id": "blk-2497afb9",
+      "label": "Disco Dancing",
+      "durationMin": 90,
+      "anchorMin": null,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet"
+      ]
+    },
+    {
+      "id": "blk-68864c3d",
+      "label": "Leave",
+      "durationMin": 30,
+      "anchorMin": 1410,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Main day",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet"
+      ]
+    },
+    {
+      "id": "blk-dc998881",
+      "label": "Mcdonalds",
+      "durationMin": 30,
+      "anchorMin": 1320,
+      "gapMin": 0,
+      "bufferMin": 0,
+      "lane": "Suppliers",
+      "tags": [],
+      "location": "",
+      "notes": "",
+      "outputs": [
+        "run-sheet",
+        "order-of-day"
+      ]
+    }
+  ],
+  "tagDetails": [],
+  "outputs": [
+    {
+      "id": "run-sheet",
+      "label": "Master run-sheet",
+      "pageSize": "A4"
+    },
+    {
+      "id": "call-sheet",
+      "label": "Call sheets",
+      "pageSize": "A4"
+    },
+    {
+      "id": "order-of-day",
+      "label": "Order of the day",
+      "pageSize": "A5"
+    },
+    {
+      "id": "contact-sheet",
+      "label": "Contact sheet",
+      "pageSize": "A4"
+    }
+  ],
+  "styles": {
+    "run-sheet": {
+      "fontFamily": "Lato",
+      "typeScale": 1,
+      "ruleWeightPt": 0.5,
+      "accentHex": "#37548a",
+      "showLogo": true
+    },
+    "call-sheet": {
+      "fontFamily": "Lato",
+      "typeScale": 1,
+      "ruleWeightPt": 0.5,
+      "accentHex": "#37548a",
+      "showLogo": true
+    },
+    "order-of-day": {
+      "fontFamily": "Crimson Text",
+      "typeScale": 1.15,
+      "ruleWeightPt": 0.5,
+      "accentHex": "#37548a",
+      "showLogo": true
+    },
+    "contact-sheet": {
+      "fontFamily": "Lato",
+      "typeScale": 1,
+      "ruleWeightPt": 0.5,
+      "accentHex": "#37548a",
+      "showLogo": true
+    }
+  },
+  "fonts": []
+}
