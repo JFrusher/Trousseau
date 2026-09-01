@@ -103,7 +103,8 @@ export interface CreateInput {
 export async function createWedding(store: SyncStore, input: CreateInput): Promise<Reply> {
   if (!input.id || !input.salt || !input.authHash) return bad("Incomplete.");
   if (await store.getWedding(input.id)) return bad("That wedding already exists.");
-  await store.createWedding({ ...input, createdAt: new Date().toISOString() });
+  const now = new Date().toISOString();
+  await store.createWedding({ ...input, createdAt: now, updatedAt: now });
   return ok({ id: input.id });
 }
 
@@ -292,4 +293,36 @@ export async function deleteWedding(
   if (!auth.ok) return auth.reply;
   await store.deleteWedding(id);
   return ok({ id, deleted: true });
+}
+
+/**
+ * How long an untouched wedding is kept.
+ *
+ * Long enough to clear an engagement, the wedding, and a year of wanting the
+ * seating plan back. The number is stated in the Privacy Policy and the two
+ * must not drift apart — change one and change the other.
+ */
+export const RETENTION_MONTHS = 24;
+
+export function retentionCutoff(now: Date = new Date()): string {
+  const cutoff = new Date(now);
+  cutoff.setMonth(cutoff.getMonth() - RETENTION_MONTHS);
+  return cutoff.toISOString();
+}
+
+/**
+ * Delete weddings nobody has written to inside the retention period.
+ *
+ * The backstop for the case deletion cannot cover. Erasure needs the write
+ * token, and the server cannot issue a new one — so a wedding whose passphrase
+ * was lost can never be deleted on request, and this is the only thing that
+ * eventually removes it.
+ */
+export async function sweepAbandoned(
+  store: SyncStore,
+  now: Date = new Date(),
+): Promise<{ deleted: string[] }> {
+  const stale = await store.staleWeddings(retentionCutoff(now));
+  for (const id of stale) await store.deleteWedding(id);
+  return { deleted: stale };
 }

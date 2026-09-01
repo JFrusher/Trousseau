@@ -41,6 +41,13 @@ const schema = z
     /** Public by design — a DSN identifies a project, it does not authorise. */
     NEXT_PUBLIC_SENTRY_DSN: absent(z.url()),
 
+    /**
+     * Shared secret for the retention sweep, which Vercel Cron presents as a
+     * bearer token. Unset means the endpoint refuses everything — the safe
+     * direction for a route whose whole job is deleting.
+     */
+    CRON_SECRET: absent(z.string().min(16)),
+
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   })
   .superRefine((env, ctx) => {

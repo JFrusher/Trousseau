@@ -16,6 +16,14 @@ import type { BlobRecord, ShareRecord, SliceRecord, SyncStore, WeddingRecord } f
  * no backend at all. Sharing is the only thing that needs one.
  */
 
+/**
+ * How many abandoned weddings one sweep will remove.
+ *
+ * Bounded so a first run against a long-neglected database cannot time out the
+ * function that calls it; the sweep runs daily and catches up.
+ */
+const SWEEP_BATCH = 100;
+
 let client: SupabaseClient | null = null;
 
 function supabase(): SupabaseClient | null {
@@ -42,6 +50,7 @@ export function supabaseStore(): SyncStore | null {
         salt: record.salt,
         auth_hash: record.authHash,
         created_at: record.createdAt,
+        updated_at: record.updatedAt,
       });
       if (error) throw new Error(error.message);
     },
@@ -49,7 +58,7 @@ export function supabaseStore(): SyncStore | null {
     getWedding: async (id) => {
       const { data, error } = await db
         .from("weddings")
-        .select("id, salt, auth_hash, created_at")
+        .select("id, salt, auth_hash, created_at, updated_at")
         .eq("id", id)
         .maybeSingle();
       if (error) throw new Error(error.message);
@@ -59,6 +68,7 @@ export function supabaseStore(): SyncStore | null {
         salt: data.salt as string,
         authHash: data.auth_hash as string,
         createdAt: data.created_at as string,
+        updatedAt: (data.updated_at as string) ?? (data.created_at as string),
       };
     },
 
@@ -177,6 +187,19 @@ export function supabaseStore(): SyncStore | null {
         .eq("token", token)
         .eq("wedding_id", weddingId);
       if (error) throw new Error(error.message);
+    },
+
+    staleWeddings: async (before) => {
+      // `put_slice` keeps `updated_at` current, in the same transaction as the
+      // write it records.
+      const { data, error } = await db
+        .from("weddings")
+        .select("id")
+        .lt("updated_at", before)
+        .order("updated_at", { ascending: true })
+        .limit(SWEEP_BATCH);
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((row) => row.id as string);
     },
 
     deleteWedding: async (id) => {

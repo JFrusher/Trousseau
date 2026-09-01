@@ -23,6 +23,13 @@ export interface WeddingRecord {
   /** SHA-256 of the write token. Never the token itself. */
   authHash: string;
   createdAt: string;
+  /**
+   * When a slice was last accepted for this wedding.
+   *
+   * The retention sweep reads this and nothing else. Kept on the wedding row so
+   * "abandoned" is one indexable predicate rather than a max() across slices.
+   */
+  updatedAt: string;
 }
 
 export interface ShareRecord extends Sealed {
@@ -68,6 +75,8 @@ export interface SyncStore {
   deleteShare: (weddingId: string, token: string) => Promise<void>;
   /** Takes the slices, blobs and shares with it. */
   deleteWedding: (id: string) => Promise<void>;
+  /** Weddings whose last accepted write predates `before`, oldest first. */
+  staleWeddings: (before: string) => Promise<string[]>;
 }
 
 /** For tests, and for running the whole thing with no database at all. */
@@ -113,6 +122,12 @@ export function memoryStore(): SyncStore {
         updatedAt: new Date().toISOString(),
       };
       group.set(slice, record);
+
+      // What the SQL does inside `put_slice`, and only for an accepted write: a
+      // rejected one is a client out of step, not activity.
+      const wedding = weddings.get(id);
+      if (wedding) weddings.set(id, { ...wedding, updatedAt: record.updatedAt });
+
       return { accepted: true, record };
     },
     listBlobs: async (id) => [...(blobs.get(id)?.keys() ?? [])],
@@ -127,6 +142,11 @@ export function memoryStore(): SyncStore {
     deleteShare: async (weddingId, token) => {
       if (shares.get(token)?.weddingId === weddingId) shares.delete(token);
     },
+    staleWeddings: async (before) =>
+      [...weddings.values()]
+        .filter((wedding) => wedding.updatedAt < before)
+        .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+        .map((wedding) => wedding.id),
     deleteWedding: async (id) => {
       weddings.delete(id);
       slices.delete(id);

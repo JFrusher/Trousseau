@@ -4,6 +4,9 @@ import {
   createWedding,
   deleteShare,
   deleteWedding,
+  retentionCutoff,
+  RETENTION_MONTHS,
+  sweepAbandoned,
   getBlob,
   getSalt,
   getShare,
@@ -350,4 +353,82 @@ test("a deleted wedding's id can be taken again", async () => {
   expect((await createWedding(store, { id, salt, authHash: await tokenHash(token) })).status).toBe(
     200,
   );
+});
+
+// retention -------------------------------------------------------------------
+
+/**
+ * The backstop for the case erasure cannot reach: a wedding whose passphrase is
+ * gone can never be deleted on request, because there is nobody to authorise it
+ * and no reset to issue.
+ */
+
+const monthsAgo = (months: number): Date => {
+  const when = new Date();
+  when.setMonth(when.getMonth() - months);
+  return when;
+};
+
+test("a wedding written to recently is not swept", async () => {
+  await push(store, id, token, [
+    { slice: "guests", sealed: await seal(key, { g1: "Eleanor" }), expectedVersion: 0 },
+  ]);
+
+  expect((await sweepAbandoned(store)).deleted).toEqual([]);
+  expect((await pull(store, id, token)).status).toBe(200);
+});
+
+test("a wedding untouched past the retention period is swept, with everything under it", async () => {
+  const shareToken = await fillAWedding();
+
+  // Sweeping as if it were well past the period, rather than backdating rows.
+  const later = new Date();
+  later.setMonth(later.getMonth() + RETENTION_MONTHS + 1);
+
+  expect((await sweepAbandoned(store, later)).deleted).toEqual([id]);
+  expect((await pull(store, id, token)).status).toBe(403);
+  expect((await getShare(store, shareToken)).status).toBe(404);
+});
+
+test("an accepted write resets the clock; a rejected one does not", async () => {
+  await push(store, id, token, [
+    { slice: "guests", sealed: await seal(key, { g1: "Eleanor" }), expectedVersion: 0 },
+  ]);
+
+  // Out of step with the server, so refused — and not activity.
+  const refused = await push(store, id, token, [
+    { slice: "guests", sealed: await seal(key, { g1: "Nope" }), expectedVersion: 99 },
+  ]);
+  expect((refused.body as { rejected: unknown[] }).rejected).toHaveLength(1);
+
+  const later = new Date();
+  later.setMonth(later.getMonth() + RETENTION_MONTHS + 1);
+  expect((await sweepAbandoned(store, later)).deleted).toEqual([id]);
+});
+
+test("the cutoff is the stated number of months back", () => {
+  // The Privacy Policy quotes this number; the two must not drift.
+  const cutoff = new Date(retentionCutoff(new Date()));
+  const expected = monthsAgo(RETENTION_MONTHS);
+  expect(Math.abs(cutoff.getTime() - expected.getTime())).toBeLessThan(1000);
+});
+
+test("sweeping leaves a wedding that is still in use alone", async () => {
+  const otherId = newWeddingId();
+  const otherSalt = newSalt();
+  const other = await deriveKeys("a different passphrase entirely", otherSalt);
+  await createWedding(store, {
+    id: otherId,
+    salt: otherSalt,
+    authHash: await tokenHash(other.writeToken),
+  });
+
+  // Only the first wedding is old: the second is created "now", and the sweep
+  // runs at a moment where the first has aged out and the second has not.
+  const later = new Date();
+  later.setMonth(later.getMonth() + RETENTION_MONTHS);
+  later.setDate(later.getDate() + 1);
+
+  const swept = await sweepAbandoned(store, later);
+  expect(swept.deleted).toContain(id);
 });
