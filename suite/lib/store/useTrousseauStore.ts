@@ -302,13 +302,22 @@ function schedulePersist(raw: Record<string, unknown>): void {
   if (typeof window === "undefined") return;
   clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
-    void idbSet(STORAGE_KEY, raw).then(
-      () => useTrousseauStore.setState({ savedAt: new Date().toISOString(), error: null }),
+    const noted = (cause: unknown) =>
       // A save the user believes happened and did not is the worst outcome
       // here, so it goes on screen rather than into the console.
-      (cause: unknown) =>
-        useTrousseauStore.setState({ error: `The wedding could not be saved: ${message(cause)}` }),
-    );
+      useTrousseauStore.setState({ error: `The wedding could not be saved: ${message(cause)}` });
+    try {
+      // `idbSet` opens the database synchronously, so a browser that refuses
+      // one throws here rather than rejecting. Outside a promise chain and
+      // inside a timer, that escapes to the top as an uncaught exception and
+      // takes the message below with it.
+      void idbSet(STORAGE_KEY, raw).then(
+        () => useTrousseauStore.setState({ savedAt: new Date().toISOString(), error: null }),
+        noted,
+      );
+    } catch (cause) {
+      noted(cause);
+    }
   }, PERSIST_DELAY_MS);
 }
 
