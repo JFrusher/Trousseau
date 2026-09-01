@@ -102,45 +102,72 @@ deliberately stripped from the share snapshot and never leave the device.
 
 ---
 
-## Progress
+## Progress — all eleven steps done
 
 | Step | State | Notes |
 | --- | --- | --- |
-| 0 — Refused IndexedDB reported, not thrown past | **Done** | Not in the original plan. Found in the baseline run: a live bug, and it failed the suite. |
-| 1 — Env schema, fail-fast at build | **Done** | `CREATE_GATE_SECRET` dropped — open creation was chosen, so a gate secret was speculative. |
-| 2 — Runtime validation on every API body | **Done** | Path segments covered too. |
-| 3 — Security response headers | **Done, changed** | The nonce did not work. See below. |
+| 0 — Refused IndexedDB reported, not thrown past | **Done** | Not in the plan. Found in the baseline run: a live bug that also failed the suite. |
+| 1 — Env schema, fail-fast at build | **Done** | `CREATE_GATE_SECRET` dropped; open creation was chosen. |
+| 2 — Runtime validation on every API body | **Done** | Path segments too. |
+| 3 — Security response headers | **Done, changed** | The nonce does not work in Next 16. See below. |
 | 4 — Error pages and boundaries | **Done** | |
-| 5 — Cascading deletion | **Done** | Found a second fault: cross-wedding share takedown. Migration is destructive. |
-| 6 — Retention | **Done** | TypeScript half verified; SQL half needs a scratch project. |
-| 7 — Create endpoint hardening | Not started | Worth re-scoping — see below. |
-| 8 — Legal pages and footer | Not started | |
-| 9 — SEO and metadata | Not started | |
-| 10 — Observability | Not started | |
-| 11 — UX and accessibility pass | Not started | |
+| 5 — Cascading deletion | **Done** | Also found cross-wedding share takedown. Migration is destructive. |
+| 6 — Retention | **Done** | Backfill bug found by the migration tests and fixed. |
+| 7 — Create endpoint hardening | **Done, rescoped** | See below. |
+| 8 — Legal pages and footer | **Done** | Effective date held to the text by a digest test. |
+| 9 — SEO and metadata | **Done** | `/seat` excluded three ways. |
+| 10 — Observability | **Done** | Sentry, with fragment scrubbing as the load-bearing part. |
+| 11 — UX and accessibility pass | **Done** | Focus ring was entirely absent. |
+| Reported 500 on save | **Fixed** | Schema drift, plus a route with no error handling at all. |
 
 ### Step 3 did not go to plan
 
 The plan called for a per-request nonce from middleware plus `strict-dynamic`.
-That was built, and then removed. Next 16 emits fourteen inline bootstrap
-scripts and stamps a nonce onto none of them — checked against a production
-server twice, once with the pages prerendered and once with the whole tree
-forced dynamic. The policy would have blocked every script in the document.
+That was built, then removed. Next 16 emits fourteen inline bootstrap scripts
+and stamps a nonce onto none of them — checked against a production server
+twice, once prerendered and once with the whole tree forced dynamic. The policy
+would have blocked every script in the document.
 
-What shipped instead is the static policy: `script-src` keeps `'unsafe-inline'`,
-and `connect-src 'self'` is the directive doing the real work, because the
-threat here is a guest list leaving for another origin rather than a defaced
-page. The reasoning is written into `next.config.ts` beside the policy.
+What shipped is the static policy. `script-src` keeps `'unsafe-inline'`, and
+`connect-src 'self'` is the directive doing the real work: the threat here is a
+guest list leaving for another origin, not a defaced page.
 
-### Step 7 should be re-scoped before it is built
+### Step 7 was rescoped, and the rescope mattered
 
-It was written to move the rate-limit counter into Postgres. That is still
-correct, but two things have changed since: the create endpoint now has a
-retention sweep behind it, so abandoned rows are no longer permanent, and the
-validation layer refuses malformed creates before they reach the database. The
-remaining exposure is a stranger burning through create quota from rotating
-addresses. Worth doing, but no longer the most valuable thing left — the legal
-pages are, because the app is now multi-tenant in public.
+Planned as moving the rate-limit counter into Postgres. Measuring the exposure
+first found something larger: every individual limit was in place and none of
+them added up to anything. Sixty-four assets at 8MB plus sixteen slices at 4MB
+is 576MB per wedding, and anyone may create a wedding and choose its own
+passphrase. Rate limiting creation bounds how many weddings a stranger makes
+per hour and says nothing about how large each one gets.
+
+A 64MB per-wedding budget shipped instead. The Postgres-backed limiter is
+deliberately **not** done: retention now removes abandoned weddings, validation
+refuses malformed creates before the database sees them, and the per-wedding
+ceiling bounds the cost of each one. What remains is a stranger burning create
+quota from rotating addresses, which Vercel's own edge protection is better
+placed to absorb than an application-level counter.
+
+### The SQL is now tested
+
+There was no way to verify migrations — no Docker, no psql, no credentials.
+PGlite is Postgres compiled to WebAssembly, so the migrations now run in the
+ordinary test suite: clean installs, the destructive share upgrade, the
+retention backfill, grants and row-level security.
+
+It immediately found a bug in the retention migration. `add column … default
+now()` stamps every existing row with the moment the migration runs, so a
+backfill guarded on `where updated_at < created_at` never matched — dead code
+that looked right, which would have handed every abandoned wedding a fresh two
+years.
+
+### What the reported 500 turned out to be
+
+Two faults, and the schema was only one. The code writes columns the applied
+migrations do not have, so every write failed; and the route had no error
+handling whatsoever, so a Postgres error reached the client as a bare 500 with
+nothing in it. Both fixed, the second being the one that would have bitten again
+for a different reason later.
 
 ## Roadmap
 
@@ -378,6 +405,16 @@ npm run build     -w suite
 
 Steps 5, 6 and 7 also need a scratch Supabase project — migrations get applied
 and rolled back there before they go near the one holding a real wedding.
+
+## Still open
+
+- **Migrations are not applied.** There are no Supabase credentials on this
+  machine, so this could not be done here. Apply all three, in filename order,
+  **before** deploying — the code writes columns they add, and a deploy that
+  lands first fails every write.
+- **`20260901000001` is destructive.** It deletes share rows it cannot
+  attribute. Any guest link published before it must be published again; the
+  client mints the same token, so the URL is unchanged.
 
 ## Carried forward, deliberately not done
 
