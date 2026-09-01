@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { env } from "@/lib/env";
 import {
   createWedding,
   deleteShare,
@@ -43,7 +44,7 @@ export const dynamic = "force-dynamic";
 function store(): SyncStore | null {
   const configured = supabaseStore();
   if (configured) return configured;
-  if (process.env["SYNC_IN_MEMORY"] === "1") return devStore();
+  if (env().SYNC_IN_MEMORY === "1") return devStore();
   return null;
 }
 

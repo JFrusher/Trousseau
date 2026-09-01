@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { env } from "@/lib/env";
 import type { Sealed } from "./crypto";
 import type { BlobRecord, ShareRecord, SliceRecord, SyncStore, WeddingRecord } from "./store";
 
@@ -19,8 +20,8 @@ let client: SupabaseClient | null = null;
 
 function supabase(): SupabaseClient | null {
   if (client) return client;
-  const url = process.env["SUPABASE_URL"];
-  const key = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+  const { SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key } = env();
+  // Both or neither — the schema has already refused the half-configured case.
   if (!url || !key) return null;
   client = createClient(url, key, { auth: { persistSession: false } });
   return client;
