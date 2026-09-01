@@ -9,6 +9,23 @@ env();
 const development = process.env.NODE_ENV === "development";
 
 /**
+ * Sentry's ingest origin, when there is one.
+ *
+ * `connect-src 'self'` would silently block every report — the browser refuses
+ * the request and the SDK has nowhere to complain to, so error reporting would
+ * appear to be configured and send nothing. Derived from the DSN rather than
+ * written out, so the two cannot disagree.
+ */
+export function sentryOrigin(dsn: string | undefined): string | null {
+  if (!dsn) return null;
+  try {
+    return new URL(dsn).origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Content Security Policy, without a nonce, and deliberately.
  *
  * The strict form — a per-request nonce from middleware plus `strict-dynamic` —
@@ -47,8 +64,9 @@ const contentSecurityPolicy = [
   "img-src 'self' blob: data:",
   "font-src 'self' data:",
   // The one that earns its place. Nothing the page holds can be sent anywhere
-  // but here.
-  "connect-src 'self'",
+  // but here — and to Sentry, when it is configured, which is the whole reason
+  // that integration is scrubbed as carefully as it is.
+  ["connect-src 'self'", sentryOrigin(env().NEXT_PUBLIC_SENTRY_DSN)].filter(Boolean).join(" "),
   // jsPDF and pdf-lib start workers from blob URLs.
   "worker-src 'self' blob:",
   "object-src 'none'",

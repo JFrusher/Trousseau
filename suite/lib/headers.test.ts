@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { contentSecurityPolicy, securityHeaders } from "../next.config";
+import { contentSecurityPolicy, securityHeaders, sentryOrigin } from "../next.config";
 
 const value = (key: string) => securityHeaders.find((header) => header.key === key)?.value;
 
@@ -37,6 +37,30 @@ test("blob and data URLs are allowed only where the tools need them", () => {
   expect(contentSecurityPolicy).toContain("img-src 'self' blob: data:");
   expect(contentSecurityPolicy).toContain("worker-src 'self' blob:");
   expect(contentSecurityPolicy).not.toContain("default-src 'self' blob:");
+});
+
+test("connect-src names Sentry only when a DSN is configured", () => {
+  // No DSN in the test environment, so the policy must not carry an ingest
+  // origin — and must not be widened "just in case".
+  expect(contentSecurityPolicy).toContain("connect-src 'self'");
+  expect(contentSecurityPolicy).not.toContain("sentry.io");
+  expect(contentSecurityPolicy).not.toContain("connect-src *");
+});
+
+test("a DSN contributes its origin, and only its origin", () => {
+  // Without this the browser refuses every report and the SDK has nowhere to
+  // complain to: error reporting would look configured and send nothing.
+  expect(sentryOrigin("https://abc123@o44.ingest.sentry.io/456")).toBe(
+    "https://o44.ingest.sentry.io",
+  );
+  // The public key and project id are path and userinfo, and must not travel
+  // into a header.
+  expect(sentryOrigin("https://abc123@o44.ingest.sentry.io/456")).not.toContain("abc123");
+});
+
+test("an absent or unparseable DSN adds nothing rather than breaking the policy", () => {
+  expect(sentryOrigin(undefined)).toBeNull();
+  expect(sentryOrigin("not a url")).toBeNull();
 });
 
 test("eval is never allowed in a production build", () => {
