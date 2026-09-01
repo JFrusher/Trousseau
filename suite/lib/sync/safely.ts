@@ -19,10 +19,31 @@ import type { Reply } from "./handlers";
  * server log and to Sentry, because it is for whoever runs this, and a database
  * error can name columns and constraints that a public endpoint should not.
  */
-/** Postgres' wording when a migration has not been applied. */
+/**
+ * The database and this code disagree about what columns exist.
+ *
+ * Two quite different wordings, because there are two layers. Postgres itself
+ * says `column "x" of relation "y" does not exist`, which means the migrations
+ * have not been applied. PostgREST — which is what Supabase actually puts in
+ * front of the database — says `Could not find the 'x' column of 'y' in the
+ * schema cache`, which usually means they *have* been applied and PostgREST is
+ * still holding the schema it read before.
+ *
+ * The second is the one that catches people out, because every check they can
+ * run against the database says the column is there.
+ */
 export function schemaIsBehind(cause: unknown): boolean {
   const message = cause instanceof Error ? cause.message : String(cause);
-  return /(column|relation) .* does not exist/i.test(message);
+  return (
+    /(column|relation) .* does not exist/i.test(message) ||
+    /could not find .* in the schema cache/i.test(message)
+  );
+}
+
+/** Whether it is PostgREST's cache rather than the database that is stale. */
+export function schemaCacheIsStale(cause: unknown): boolean {
+  const message = cause instanceof Error ? cause.message : String(cause);
+  return /could not find .* in the schema cache/i.test(message);
 }
 
 export async function safely(work: () => Promise<Reply>): Promise<NextResponse> {
@@ -33,7 +54,14 @@ export async function safely(work: () => Promise<Reply>): Promise<NextResponse> 
     // The one failure worth naming, because it has a specific fix and is
     // otherwise a mystery: the code is deployed ahead of its migrations, so
     // every write fails on a column that does not exist yet.
-    if (schemaIsBehind(cause)) {
+    if (schemaCacheIsStale(cause)) {
+      console.error(
+        "[Trousseau] PostgREST is serving a stale schema. The migrations are " +
+          "probably applied and its cache has not caught up — run " +
+          "NOTIFY pgrst, 'reload schema'; in the SQL editor, or restart the " +
+          "Supabase project. Every write fails until it reloads.",
+      );
+    } else if (schemaIsBehind(cause)) {
       console.error(
         "[Trousseau] the database is missing a column this code writes. " +
           "Apply supabase/migrations before deploying — every write fails until you do.",

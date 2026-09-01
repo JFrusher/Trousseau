@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, test, vi } from "vitest";
-import { safely, schemaIsBehind } from "./safely";
+import { safely, schemaCacheIsStale, schemaIsBehind } from "./safely";
 
 /**
  * What a failing database looks like from the outside.
@@ -82,4 +82,19 @@ test("a missing column is recognised as migrations being behind", () => {
 test("an ordinary failure is not blamed on migrations", () => {
   expect(schemaIsBehind(new Error("fetch failed"))).toBe(false);
   expect(schemaIsBehind(new Error("duplicate key value violates unique constraint"))).toBe(false);
+});
+
+test("PostgREST's stale-cache wording is recognised too", () => {
+  // What Supabase actually returns after a migration, while every check run
+  // against the database itself says the column is there.
+  const stale = new Error("Could not find the 'updated_at' column of 'weddings' in the schema cache");
+  expect(schemaIsBehind(stale)).toBe(true);
+  expect(schemaCacheIsStale(stale)).toBe(true);
+});
+
+test("a missing column is not mistaken for a stale cache", () => {
+  // Different cause, different fix: apply the migrations rather than reload.
+  const missing = new Error('column "updated_at" of relation "weddings" does not exist');
+  expect(schemaIsBehind(missing)).toBe(true);
+  expect(schemaCacheIsStale(missing)).toBe(false);
 });
