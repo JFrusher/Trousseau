@@ -20,10 +20,9 @@ export default function AppShell() {
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      {/* TODO(ux-audit): Toolbar has no ErrorBoundary, unlike GuestPanel/
-          RoomCanvas below — a render error here takes the whole app down to
-          a white screen. See tmp/ux-audit.md #A12. */}
-      <Toolbar />
+      <ErrorBoundary label="The toolbar hit a snag">
+        <Toolbar />
+      </ErrorBoundary>
       <div className={styles.body}>
         <aside
           className={clsx('panel-dark', styles.left, !panels.left && styles.collapsedLeft)}
@@ -39,10 +38,10 @@ export default function AppShell() {
           </ErrorBoundary>
         </main>
 
-        {/* TODO(ux-audit): RightSidebar has no ErrorBoundary either — same
-            gap as Toolbar above. See tmp/ux-audit.md #A12. */}
         <aside className={clsx(styles.right, !panels.right && styles.collapsedRight)}>
-          <RightSidebar />
+          <ErrorBoundary label="The inspector hit a snag">
+            <RightSidebar />
+          </ErrorBoundary>
         </aside>
       </div>
     </div>

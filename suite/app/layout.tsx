@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Lato, Marcellus } from "next/font/google";
+import { ReportUnhandled } from "@/components/shell/ReportUnhandled";
 import "./globals.css";
 // Before any tool's own stylesheet: each of those maps its vocabulary onto the
 // values decided here, so these have to exist by the time they are read.
@@ -29,7 +30,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${marcellus.variable} ${lato.variable}`}>
       {/* Nothing but the page here. The header and the local document belong to
           the (app) group; /seat deliberately gets neither. */}
-      <body>{children}</body>
+      <body>
+        <ReportUnhandled />
+        {children}
+      </body>
     </html>
   );
 }
