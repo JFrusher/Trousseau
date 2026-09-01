@@ -3,6 +3,7 @@ import { deriveKeys, newSalt, newWeddingId, seal, sealBytes, tokenHash } from ".
 import {
   createWedding,
   deleteShare,
+  deleteWedding,
   getBlob,
   getSalt,
   getShare,
@@ -258,4 +259,95 @@ test("a malformed authorization header is denied, not a crash", async () => {
     const reply = await pull(store, id, rubbish);
     expect(reply.status, `"${rubbish}"`).toBe(403);
   }
+});
+
+// erasure ---------------------------------------------------------------------
+
+/**
+ * A public deployment holds other people's guest lists, encrypted. Holding them
+ * with no way to remove them is the gap these cover.
+ */
+
+async function fillAWedding(): Promise<string> {
+  await push(store, id, token, [
+    { slice: "guests", sealed: await seal(key, { g1: "Eleanor" }), expectedVersion: 0 },
+  ]);
+  await putBlob(store, id, token, "img:monogram.png:12", await sealBytes(key, new Uint8Array([1, 2])));
+  const shareToken = "sharetoken1";
+  await putShare(store, id, token, { token: shareToken, sealed: await seal(key, { tables: [] }) });
+  return shareToken;
+}
+
+test("deleting a wedding takes its slices, assets and guest link with it", async () => {
+  const shareToken = await fillAWedding();
+
+  const reply = await deleteWedding(store, id, token);
+  expect(reply.status).toBe(200);
+
+  // The wedding itself is gone, and says so exactly as a wrong passphrase does.
+  expect((await pull(store, id, token)).status).toBe(403);
+  // The salt endpoint is public and must not become an existence oracle.
+  expect((await getSalt(store, id)).body).toEqual({ salt: null });
+  // The guest link is the one that used to survive, because nothing cascaded.
+  expect((await getShare(store, shareToken)).status).toBe(404);
+});
+
+test("deleting a wedding needs the passphrase, and deletes nothing without it", async () => {
+  const shareToken = await fillAWedding();
+  const wrong = await deriveKeys("hunter2", salt);
+
+  expect((await deleteWedding(store, id, wrong.writeToken)).status).toBe(403);
+  expect((await deleteWedding(store, id, null)).status).toBe(403);
+
+  expect((await pull(store, id, token)).status).toBe(200);
+  expect((await getShare(store, shareToken)).status).toBe(200);
+});
+
+test("one wedding cannot take down another wedding's guest link", async () => {
+  // Both tokens are valid; neither is valid for the other's share. Before
+  // `shares` carried a wedding id this matched on token alone and succeeded.
+  const shareToken = await fillAWedding();
+
+  const otherId = newWeddingId();
+  const otherSalt = newSalt();
+  const other = await deriveKeys("a different passphrase entirely", otherSalt);
+  await createWedding(store, {
+    id: otherId,
+    salt: otherSalt,
+    authHash: await tokenHash(other.writeToken),
+  });
+
+  await deleteShare(store, otherId, other.writeToken, shareToken);
+
+  expect((await getShare(store, shareToken)).status).toBe(200);
+});
+
+test("deleting one wedding leaves another alone", async () => {
+  const shareToken = await fillAWedding();
+
+  const otherId = newWeddingId();
+  const otherSalt = newSalt();
+  const other = await deriveKeys("a different passphrase entirely", otherSalt);
+  await createWedding(store, {
+    id: otherId,
+    salt: otherSalt,
+    authHash: await tokenHash(other.writeToken),
+  });
+  await push(store, otherId, other.writeToken, [
+    { slice: "guests", sealed: await seal(other.contentKey, { g9: "Someone" }), expectedVersion: 0 },
+  ]);
+
+  await deleteWedding(store, id, token);
+
+  expect((await pull(store, otherId, other.writeToken)).status).toBe(200);
+  expect((await getShare(store, shareToken)).status).toBe(404);
+});
+
+test("a deleted wedding's id can be taken again", async () => {
+  await fillAWedding();
+  await deleteWedding(store, id, token);
+  // Nothing is reserved after erasure, which is what "deleted" has to mean.
+  expect((await createWedding(store, { id, salt, authHash: await tokenHash(token) })).status).toBe(
+    200,
+  );
 });

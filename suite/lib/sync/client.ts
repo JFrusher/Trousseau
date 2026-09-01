@@ -442,6 +442,24 @@ export async function publishShare(sealed: Sealed): Promise<string> {
   return token;
 }
 
+/**
+ * Erase the wedding from the server, and forget it here.
+ *
+ * The whole of it: slices, uploaded fonts and artwork, and the guest link. The
+ * server cascades from the wedding row, so there is nothing to delete in order
+ * and nothing left behind if one call fails halfway.
+ *
+ * What stays is the copy in this browser, deliberately. Someone withdrawing
+ * their wedding from a server is not asking to lose their seating plan, and
+ * "delete everything everywhere" is a different button with a different
+ * confirmation.
+ */
+export async function deleteFromServer(): Promise<void> {
+  if (!session) throw new Error("Not signed in to a shared wedding.");
+  await body(await api(`wedding/${session.weddingId}`, { method: "DELETE" }));
+  await forget();
+}
+
 export async function takeDownShare(): Promise<void> {
   if (!session) throw new Error("Not signed in to a shared wedding.");
   const known = await membership();

@@ -141,6 +141,7 @@ export function supabaseStore(): SyncStore | null {
     putShare: async (record) => {
       const { error } = await db.from("shares").upsert({
         token: record.token,
+        wedding_id: record.weddingId,
         ciphertext: record.ciphertext,
         iv: record.iv,
         created_at: record.createdAt,
@@ -152,13 +153,14 @@ export function supabaseStore(): SyncStore | null {
     getShare: async (token) => {
       const { data, error } = await db
         .from("shares")
-        .select("token, ciphertext, iv, created_at, updated_at")
+        .select("token, wedding_id, ciphertext, iv, created_at, updated_at")
         .eq("token", token)
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!data) return null;
       return {
         token: data.token as string,
+        weddingId: data.wedding_id as string,
         ciphertext: data.ciphertext as string,
         iv: data.iv as string,
         createdAt: data.created_at as string,
@@ -166,8 +168,21 @@ export function supabaseStore(): SyncStore | null {
       };
     },
 
-    deleteShare: async (token) => {
-      const { error } = await db.from("shares").delete().eq("token", token);
+    deleteShare: async (weddingId, token) => {
+      // Scoped to the wedding: the caller has been authorised against that
+      // wedding, not against whichever one happens to own this token.
+      const { error } = await db
+        .from("shares")
+        .delete()
+        .eq("token", token)
+        .eq("wedding_id", weddingId);
+      if (error) throw new Error(error.message);
+    },
+
+    deleteWedding: async (id) => {
+      // Slices, blobs and shares all reference this row `on delete cascade`,
+      // so this one statement is the whole deletion.
+      const { error } = await db.from("weddings").delete().eq("id", id);
       if (error) throw new Error(error.message);
     },
   };

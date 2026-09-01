@@ -236,7 +236,13 @@ export async function putShare(
   if (input.sealed.ciphertext.length > MAX_SLICE_BYTES) return tooBig("share", MAX_SLICE_BYTES);
 
   const now = new Date().toISOString();
-  await store.putShare({ token: input.token, ...input.sealed, createdAt: now, updatedAt: now });
+  await store.putShare({
+    token: input.token,
+    weddingId: id,
+    ...input.sealed,
+    createdAt: now,
+    updatedAt: now,
+  });
   return ok({ token: input.token });
 }
 
@@ -261,6 +267,29 @@ export async function deleteShare(
 ): Promise<Reply> {
   const auth = await authorise(store, id, writeToken);
   if (!auth.ok) return auth.reply;
-  await store.deleteShare(token);
+  await store.deleteShare(id, token);
   return ok({ token });
+}
+
+/**
+ * Erasure, for real.
+ *
+ * The wedding row is the parent of its slices, its blobs and its share, so
+ * removing it removes all of them — there is no second call to forget and no
+ * order to get wrong.
+ *
+ * Requires the write token, like every other write. That is the honest
+ * consequence of a server that cannot read what it stores: there is nobody to
+ * appeal to and no reset link, so a passphrase that has been lost cannot be
+ * used to delete either. The retention sweep is the backstop for that case.
+ */
+export async function deleteWedding(
+  store: SyncStore,
+  id: string,
+  writeToken: string | null,
+): Promise<Reply> {
+  const auth = await authorise(store, id, writeToken);
+  if (!auth.ok) return auth.reply;
+  await store.deleteWedding(id);
+  return ok({ id, deleted: true });
 }

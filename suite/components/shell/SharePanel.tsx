@@ -7,6 +7,7 @@ import {
   Copy,
   Link2,
   LogOut,
+  Trash2,
   RefreshCw,
   Unlink,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { shareSnapshot } from "@/lib/sync/shareSnapshot";
 import {
   createShared,
   currentSession,
+  deleteFromServer,
   forget,
   join,
   keepMine,
@@ -52,6 +54,8 @@ export function SharePanel({ onProblem }: { onProblem: (message: string | null) 
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [showPlan, setShowPlan] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [erasing, setErasing] = useState(false);
+  const [erasePhrase, setErasePhrase] = useState("");
 
   const refresh = useCallback(async () => {
     const m = await membership();
@@ -149,6 +153,64 @@ export function SharePanel({ onProblem }: { onProblem: (message: string | null) 
                 Sign out
               </Button>
             </div>
+
+            {/*
+              Erasure, kept behind a typed confirmation rather than a second
+              click. Signing out is reversible from the passphrase; this is not
+              reversible from anything.
+            */}
+            {erasing ? (
+              <div className="space-y-2 rounded border border-rose/50 bg-rose/10 p-2">
+                <p className="text-xs text-charcoal">
+                  This removes the wedding from the server for good — every slice, every uploaded
+                  font and picture, and the guest link. Anyone holding that link will find nothing
+                  there. The copy on this device is untouched.
+                </p>
+                <TextField
+                  label='Type "delete" to confirm'
+                  value={erasePhrase}
+                  onChange={setErasePhrase}
+                  placeholder="delete"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    icon={Trash2}
+                    tone="danger"
+                    disabled={erasePhrase.trim().toLowerCase() !== "delete" || busy !== null}
+                    onClick={() =>
+                      void run("erase", async () => {
+                        await deleteFromServer();
+                        setSignedIn(false);
+                        setConflicts([]);
+                        setShareLink(null);
+                        setErasing(false);
+                        setErasePhrase("");
+                        await refresh();
+                        return "Erased from the server. The wedding is still here on this device.";
+                      })
+                    }
+                  >
+                    {busy === "erase" ? "Erasing…" : "Erase from server"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setErasing(false);
+                      setErasePhrase("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="text-xs text-slate underline underline-offset-2 hover:text-charcoal"
+                onClick={() => setErasing(true)}
+              >
+                Erase this wedding from the server
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-2">

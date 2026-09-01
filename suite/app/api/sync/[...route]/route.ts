@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import {
   createWedding,
   deleteShare,
+  deleteWedding,
   getBlob,
   getSalt,
   getShare,
@@ -211,6 +212,12 @@ export async function DELETE(request: Request, context: { params: Promise<{ rout
   if (!db) return unconfigured();
   const { route } = await context.params;
   const [head, id, tail, shareToken] = route;
+
+  if (head === "wedding" && id && !tail) {
+    const weddingId = check(params.weddingId, id);
+    if (!weddingId.ok) return malformed(weddingId.error);
+    return guarded(request, () => deleteWedding(db, weddingId.value, tokenOf(request)));
+  }
 
   if (head === "wedding" && id && tail === "share" && shareToken) {
     const weddingId = check(params.weddingId, id);

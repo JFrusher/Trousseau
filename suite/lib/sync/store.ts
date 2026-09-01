@@ -27,6 +27,13 @@ export interface WeddingRecord {
 
 export interface ShareRecord extends Sealed {
   token: string;
+  /**
+   * Which wedding published it.
+   *
+   * Absent originally, which meant nothing cascaded to a share when its wedding
+   * was deleted, and a takedown matched on token alone — across weddings.
+   */
+  weddingId: string;
   createdAt: string;
   /** Republishing a share replaces it, so a stale plan cannot linger. */
   updatedAt: string;
@@ -55,8 +62,12 @@ export interface SyncStore {
   putBlob: (id: string, record: BlobRecord) => Promise<void>;
   getBlob: (id: string, blobId: string) => Promise<BlobRecord | null>;
   putShare: (record: ShareRecord) => Promise<void>;
+  /** Public: a guest has the token and nothing else. */
   getShare: (token: string) => Promise<ShareRecord | null>;
-  deleteShare: (token: string) => Promise<void>;
+  /** Scoped to the wedding, so one wedding cannot take down another's link. */
+  deleteShare: (weddingId: string, token: string) => Promise<void>;
+  /** Takes the slices, blobs and shares with it. */
+  deleteWedding: (id: string) => Promise<void>;
 }
 
 /** For tests, and for running the whole thing with no database at all. */
@@ -113,6 +124,16 @@ export function memoryStore(): SyncStore {
     getBlob: async (id, blobId) => blobs.get(id)?.get(blobId) ?? null,
     putShare: async (record) => void shares.set(record.token, record),
     getShare: async (token) => shares.get(token) ?? null,
-    deleteShare: async (token) => void shares.delete(token),
+    deleteShare: async (weddingId, token) => {
+      if (shares.get(token)?.weddingId === weddingId) shares.delete(token);
+    },
+    deleteWedding: async (id) => {
+      weddings.delete(id);
+      slices.delete(id);
+      blobs.delete(id);
+      for (const [token, share] of shares) {
+        if (share.weddingId === id) shares.delete(token);
+      }
+    },
   };
 }
