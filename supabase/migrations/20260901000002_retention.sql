@@ -22,8 +22,22 @@
 alter table public.weddings
   add column if not exists updated_at timestamptz not null default now();
 
--- Existing rows: the only honest starting point is when they were created.
-update public.weddings set updated_at = created_at where updated_at < created_at;
+-- Backfill from the newest slice, falling back to when the wedding was created.
+--
+-- `add column … default now()` stamps every existing row with the moment this
+-- migration runs, which would hand every abandoned wedding a fresh two years —
+-- the migration that introduces the retention clock would have been the thing
+-- that reset it. Nor is `created_at` alone right: a wedding made a year ago and
+-- synced yesterday is in active use, and dating it from creation would age it
+-- wrongly in the other direction.
+--
+-- The slices know. This is the one moment their timestamps have to be consulted;
+-- from here `put_slice` keeps the column current.
+update public.weddings w
+   set updated_at = coalesce(
+     (select max(s.updated_at) from public.slices s where s.wedding_id = w.id),
+     w.created_at
+   );
 
 create index if not exists weddings_updated_at_idx on public.weddings (updated_at);
 
