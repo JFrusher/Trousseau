@@ -1,4 +1,5 @@
 import { get as idbGet, set as idbSet } from "idb-keyval";
+import { promoteSources } from "@/lib/model/promote";
 import { migrateLegacyKeys } from "./migrateKeys";
 import { create } from "zustand";
 import {
@@ -210,7 +211,11 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
 
   replaceDocument: (next) => {
     const state = get();
-    const raw = asRecord(next);
+    // A collected document keeps each tool's export under `sources` and leaves
+    // the slices empty. Both shapes are valid and both are called
+    // `.trousseau.json`, so accepting either here is the difference between a
+    // restore that works and one that reports success over an empty app.
+    const raw = promoteSources(asRecord(next)).raw;
     set({
       status: "ready",
       error: null,

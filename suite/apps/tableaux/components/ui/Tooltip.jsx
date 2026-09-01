@@ -41,7 +41,7 @@ export default function Tooltip({ label, placement = 'top', delay = 350, childre
       {coords &&
         createPortal(
           <div
-            className={clsx(styles.tip, styles[placement])}
+            className={clsx('tableaux-tokens', styles.tip, styles[placement])}
             style={{ left: coords.x, top: coords.y }}
             role="tooltip"
           >

@@ -44,7 +44,7 @@ export default function ToastViewport() {
   const toasts = useStore((s) => s.toasts)
   if (!toasts.length) return null
   return createPortal(
-    <div className={styles.viewport} aria-live="polite" aria-atomic="false">
+    <div className={clsx('tableaux-tokens', styles.viewport)} aria-live="polite" aria-atomic="false">
       {toasts.map((t) => (
         <Toast key={t.id} toast={t} />
       ))}

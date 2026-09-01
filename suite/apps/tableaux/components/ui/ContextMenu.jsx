@@ -48,7 +48,7 @@ export default function ContextMenu({ x, y, items, onClose }) {
   }, [x, y])
 
   return createPortal(
-    <div ref={ref} className={styles.menu} style={{ left: x, top: y }} role="menu">
+    <div ref={ref} className={clsx('tableaux-tokens', styles.menu)} style={{ left: x, top: y }} role="menu">
       {items.filter(Boolean).map((it, i) =>
         it.separator ? (
           <div key={`sep-${i}`} className={styles.separator} />

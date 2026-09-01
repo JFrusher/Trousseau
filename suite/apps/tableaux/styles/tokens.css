@@ -8,8 +8,14 @@
  * What stays here is what nothing else has a view about: the dark left panel,
  * which is the one piece of deliberate contrast in the suite; the canvas grid;
  * the widths of its two side panels; its motion; and its elevation order.
+ *
+ * Declared on `.tableaux-tokens` as well. The modals, tooltips, toasts and
+ * context menus are portalled to `document.body`, which is outside the tool, so
+ * anything they read has to be reachable from that class too — the motion and
+ * the elevation order among it, or a modal opens beneath the toolbar.
  */
-.tableaux-scope {
+.tableaux-scope,
+.tableaux-tokens {
   --panel-bg: #1e1c1a; /* left sidebar background */
   --panel-text: #e7e5e4; /* text on dark sidebar */
   --grid-dot: rgba(28, 25, 23, 0.11);

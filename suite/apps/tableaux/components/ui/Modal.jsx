@@ -59,7 +59,7 @@ export default function Modal({
 
   return createPortal(
     <div
-      className={styles.backdrop}
+      className={clsx('tableaux-tokens', styles.backdrop)}
       onMouseDown={(e) => {
         if (closeOnBackdrop && e.target === e.currentTarget) onClose?.()
       }}
