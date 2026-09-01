@@ -7,7 +7,8 @@ import { serialise } from "./core/project/file";
 import { formatDuration } from "./core/time/minutes";
 import { restoreFonts } from "./state/fontLoader";
 import { createPersister, restore } from "./state/persist";
-import { getDoc, selectSchedule, useStore } from "./state/store";
+import { spanOf } from "./render/screen/ticks";
+import { getDoc, selectSchedule, useStore, ZOOM_STEP } from "./state/store";
 import { useKeyboard } from "./state/useKeyboard";
 import { Announcer } from "./ui/Announcer";
 import { Button } from "@/components/ui/fields";
@@ -28,10 +29,11 @@ export function App() {
   const doc = useStore(getDoc);
   const schedule = useStore(selectSchedule);
   const presentation = useStore((state) => state.ui.presentation);
-  const pxPerMin = useStore((state) => state.ui.pxPerMin);
   const notice = useStore((state) => state.notice);
   const setUi = useStore((state) => state.setUi);
   const setNotice = useStore((state) => state.setNotice);
+  const zoomBy = useStore((state) => state.zoomBy);
+  const fitDay = useStore((state) => state.fitDay);
   useKeyboard();
 
   // Bring back the last session once, on boot.
@@ -115,11 +117,22 @@ export function App() {
           </span>
         )}
         <span className={styles.zoom}>
-          <Button variant="quiet" onClick={() => setUi({ pxPerMin: Math.max(0.2, pxPerMin - 0.2) })} title="Zoom out">
+          <Button variant="quiet" onClick={() => zoomBy(1 / ZOOM_STEP)} title="Zoom out">
             −
           </Button>
-          <Button variant="quiet" onClick={() => setUi({ pxPerMin: Math.min(6, pxPerMin + 0.2) })} title="Zoom in">
+          <Button variant="quiet" onClick={() => zoomBy(ZOOM_STEP)} title="Zoom in">
             +
+          </Button>
+          <Button
+            variant="quiet"
+            title="Fit the whole day in view"
+            onClick={() => {
+              const span = spanOf(schedule.resolved, doc.day.curfewMin);
+              const viewport = document.querySelector("[data-timeline]")?.clientHeight ?? 0;
+              fitDay(viewport - 40, span.toMin - span.fromMin);
+            }}
+          >
+            Fit day
           </Button>
         </span>
         <Button onClick={() => setUi({ presentation: true })}>Present</Button>

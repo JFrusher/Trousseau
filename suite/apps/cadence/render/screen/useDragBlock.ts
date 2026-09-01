@@ -4,10 +4,10 @@ import { useStore } from "../../state/store";
 /** Drags land on five-minute marks; a wedding is not planned to the second. */
 export const SNAP_MIN = 5;
 
-/** Pixels dragged to minutes moved, snapped. */
-export function minutesFromDelta(dx: number, pxPerMin: number, snapMin = SNAP_MIN): number {
+/** Pixels dragged down the page to minutes moved, snapped. */
+export function minutesFromDelta(dPx: number, pxPerMin: number, snapMin = SNAP_MIN): number {
   if (pxPerMin <= 0) return 0;
-  return Math.round(dx / pxPerMin / snapMin) * snapMin;
+  return Math.round(dPx / pxPerMin / snapMin) * snapMin;
 }
 
 export interface DragState {
@@ -16,7 +16,7 @@ export interface DragState {
 }
 
 /**
- * Horizontal drag on a block. Every pointer move runs a what-if against a copy
+ * Vertical drag on a block. Every pointer move runs a what-if against a copy
  * of the document; nothing is committed until the pointer comes up, and Escape
  * throws the whole thing away.
  */
@@ -31,7 +31,7 @@ export function useDragBlock(pxPerMin: number) {
     if (!drag) return;
 
     const onMove = (event: PointerEvent) => {
-      const deltaMin = minutesFromDelta(event.clientX - origin.current, pxPerMin);
+      const deltaMin = minutesFromDelta(event.clientY - origin.current, pxPerMin);
       setDrag((current) => (current ? { ...current, deltaMin } : current));
       previewChange({ type: "shift", blockId: drag.blockId, deltaMin });
     };
@@ -57,8 +57,8 @@ export function useDragBlock(pxPerMin: number) {
     };
   }, [drag, pxPerMin, previewChange, commitPreview, cancelPreview]);
 
-  const start = (blockId: string, clientX: number) => {
-    origin.current = clientX;
+  const start = (blockId: string, clientY: number) => {
+    origin.current = clientY;
     setDrag({ blockId, deltaMin: 0 });
   };
 

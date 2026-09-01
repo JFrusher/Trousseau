@@ -1,9 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { MIN_LABEL_PX, tickInterval, ticks } from "./ticks";
+import { MIN_LABEL_PX, MIN_LABEL_PITCH_PX, tickInterval, ticks } from "./ticks";
 
 describe("tickInterval", () => {
   it("opens up as the zoom closes in", () => {
     expect(tickInterval(0.2)).toBeGreaterThan(tickInterval(2));
+  });
+});
+
+describe("vertical pitch", () => {
+  it("lands on half hours at the default vertical scale", () => {
+    // 1.3 px/min: a 15 minute interval is 19.5px, under the 24px a line of
+    // type needs. 30 minutes is 39px, which clears it.
+    expect(tickInterval(1.3, MIN_LABEL_PITCH_PX)).toBe(30);
+  });
+
+  it("never lets two labels collide anywhere in the supported zoom range", () => {
+    for (let pxPerMin = 0.4; pxPerMin <= 6; pxPerMin += 0.1) {
+      const interval = tickInterval(pxPerMin, MIN_LABEL_PITCH_PX);
+      expect(interval * pxPerMin).toBeGreaterThanOrEqual(MIN_LABEL_PITCH_PX);
+    }
+  });
+
+  it("opens up as the day is zoomed out", () => {
+    expect(tickInterval(0.4, MIN_LABEL_PITCH_PX)).toBeGreaterThan(
+      tickInterval(2, MIN_LABEL_PITCH_PX),
+    );
+  });
+
+  it("labels only the ticks the pitch allows", () => {
+    const labelled = ticks(600, 780, 1.3, MIN_LABEL_PITCH_PX).filter((tick) => tick.label);
+    expect(labelled.map((tick) => tick.min)).toEqual([600, 630, 660, 690, 720, 750, 780]);
   });
 });
 

@@ -104,6 +104,30 @@ export function TextArea({
   );
 }
 
+/**
+ * What a typed number should commit to, or null to put the old one back.
+ * Empty and out-of-range text is held rather than committed — clearing a box on
+ * the way to a new figure must not land a 0.
+ */
+export function commitNumber(
+  text: string,
+  min?: number,
+  max?: number,
+): number | null {
+  if (text.trim() === "") return null;
+  const next = Number(text);
+  if (Number.isNaN(next)) return null;
+  if (min !== undefined && next < min) return null;
+  if (max !== undefined && next > max) return null;
+  return next;
+}
+
+/**
+ * A number, typed the way a person types one: the box is theirs until they
+ * leave it or press Enter. Half-typed text — an emptied box on the way to a new
+ * figure — is held, never committed, so clearing "30" cannot land a 0 that
+ * turns the block into a moment before the new number is in.
+ */
 export function NumberField({
   label,
   value,
@@ -121,22 +145,36 @@ export function NumberField({
   step?: number;
   suffix?: string;
 }) {
+  const [text, setText] = useState(() => String(value));
+  const id = useId();
+
+  useEffect(() => {
+    setText(String(value));
+  }, [value, id]);
+
+  const commit = () => {
+    const next = commitNumber(text, min, max);
+    if (next === null) {
+      setText(String(value));
+      return;
+    }
+    if (next !== value) onChange(next);
+  };
+
   return (
     <Field label={label}>
       <span className={styles.withSuffix}>
         <input
           className={styles.input}
           type="number"
-          value={value}
+          value={text}
           step={step}
           {...(min === undefined ? {} : { min })}
           {...(max === undefined ? {} : { max })}
-          onChange={(event) => {
-            const next = Number(event.target.value);
-            if (Number.isNaN(next)) return;
-            if (min !== undefined && next < min) return;
-            if (max !== undefined && next > max) return;
-            onChange(next);
+          onChange={(event) => setText(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") commit();
           }}
         />
         {suffix && <span className={styles.suffix}>{suffix}</span>}

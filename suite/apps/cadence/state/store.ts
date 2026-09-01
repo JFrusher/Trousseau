@@ -2,6 +2,15 @@ import { create } from "zustand";
 import { emptyDoc, DEFAULT_BLOCK_OUTPUTS } from "../core/model/defaults";
 import { newId } from "../core/model/ids";
 import type { Block, DaySettings, OutputId, StyleSpec, TagDetail, TimelineDoc } from "../core/model/types";
+
+/** The zoom range, in pixels per minute, and the ratio each press moves it by. */
+export const ZOOM_MIN = 0.4;
+export const ZOOM_MAX = 6;
+export const ZOOM_STEP = 1.25;
+
+function clampZoom(pxPerMin: number): number {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, pxPerMin));
+}
 import {
   conflicts as computeConflicts,
   conflictsByBlock,
@@ -101,6 +110,8 @@ export interface StoreState {
   select: (id: string | null) => void;
   setUi: (patch: Partial<UiState>) => void;
   setNotice: (notice: string | null) => void;
+  zoomBy: (factor: number) => void;
+  fitDay: (viewportPx: number, spanMin: number) => void;
 
   previewChange: (change: Change) => void;
   commitPreview: () => void;
@@ -139,7 +150,7 @@ export const useStore = create<StoreState>((set, get) => {
     history: initHistory(emptyDoc()),
     selectedId: null,
     preview: null,
-    ui: { pxPerMin: 1.1, presentation: false, sheetOutput: "run-sheet" },
+    ui: { pxPerMin: 1.3, presentation: false, sheetOutput: "run-sheet" },
     notice: null,
 
     addBlock: (lane, seed = {}) => {
@@ -295,6 +306,17 @@ export const useStore = create<StoreState>((set, get) => {
     select: (id) => set({ selectedId: id }),
     setUi: (patch) => set((state) => ({ ui: { ...state.ui, ...patch } })),
     setNotice: (notice) => set({ notice }),
+
+    zoomBy: (factor) =>
+      set((state) => ({ ui: { ...state.ui, pxPerMin: clampZoom(state.ui.pxPerMin * factor) } })),
+
+    // A day that will not fit is not a reason to divide by nothing.
+    fitDay: (viewportPx, spanMin) =>
+      set((state) =>
+        viewportPx <= 0 || spanMin <= 0
+          ? state
+          : { ui: { ...state.ui, pxPerMin: clampZoom(viewportPx / spanMin) } },
+      ),
 
     previewChange: (change) => {
       const doc = getDoc(get());

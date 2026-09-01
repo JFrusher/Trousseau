@@ -13,9 +13,12 @@ const INTERVALS = [5, 10, 15, 30, 60, 120, 180, 360];
 /** A label is about this wide at the ruler's type size, plus breathing room. */
 export const MIN_LABEL_PX = 58;
 
+/** A line of clock type is about this tall, plus breathing room, running down. */
+export const MIN_LABEL_PITCH_PX = 24;
+
 /** The smallest interval whose labels will not collide at this zoom. */
-export function tickInterval(pxPerMin: number): number {
-  const fits = INTERVALS.find((interval) => interval * pxPerMin >= MIN_LABEL_PX);
+export function tickInterval(pxPerMin: number, minLabelPx = MIN_LABEL_PX): number {
+  const fits = INTERVALS.find((interval) => interval * pxPerMin >= minLabelPx);
   return fits ?? (INTERVALS[INTERVALS.length - 1] as number);
 }
 
@@ -24,10 +27,15 @@ export function tickInterval(pxPerMin: number): number {
  * between them, unlabelled hairlines at a quarter of the interval keep the eye
  * honest without crowding.
  */
-export function ticks(fromMin: number, toMin: number, pxPerMin: number): Tick[] {
+export function ticks(
+  fromMin: number,
+  toMin: number,
+  pxPerMin: number,
+  minLabelPx = MIN_LABEL_PX,
+): Tick[] {
   if (toMin <= fromMin || pxPerMin <= 0) return [];
 
-  const interval = tickInterval(pxPerMin);
+  const interval = tickInterval(pxPerMin, minLabelPx);
   const minor = interval >= 60 ? interval / 4 : interval / (interval % 3 === 0 ? 3 : 5);
   const step = Math.max(1, Math.round(minor));
 

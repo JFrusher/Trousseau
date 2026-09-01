@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { emptyDoc, sampleDoc } from "../core/model/defaults";
-import { getDoc, scheduleComputeCount, scheduleFor, selectSchedule, useStore } from "./store";
+import { getDoc, scheduleComputeCount, scheduleFor, selectSchedule, useStore, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from "./store";
 
 function state() {
   return useStore.getState();
@@ -184,5 +184,45 @@ describe("what-if preview", () => {
     expect(state().preview).toBeNull();
     state().undo();
     expect(doc().blocks.find((b) => b.id === "blk-ceremony")?.anchorMin).toBe(810);
+  });
+});
+
+describe("zoom", () => {
+  beforeEach(() => {
+    useStore.getState().loadDoc(sampleDoc());
+  });
+
+  it("opens at a scale that shows a half hour as a readable box", () => {
+    expect(useStore.getState().ui.pxPerMin).toBe(1.3);
+  });
+
+  it("steps by a ratio, not a fixed amount", () => {
+    const before = useStore.getState().ui.pxPerMin;
+    useStore.getState().zoomBy(ZOOM_STEP);
+    expect(useStore.getState().ui.pxPerMin).toBeCloseTo(before * ZOOM_STEP, 5);
+  });
+
+  it("stays inside the range however hard it is pushed", () => {
+    for (let i = 0; i < 40; i += 1) useStore.getState().zoomBy(ZOOM_STEP);
+    expect(useStore.getState().ui.pxPerMin).toBe(ZOOM_MAX);
+    for (let i = 0; i < 40; i += 1) useStore.getState().zoomBy(1 / ZOOM_STEP);
+    expect(useStore.getState().ui.pxPerMin).toBe(ZOOM_MIN);
+  });
+
+  it("fits the day to the viewport it is given", () => {
+    useStore.getState().fitDay(1000, 500);
+    expect(useStore.getState().ui.pxPerMin).toBe(2);
+  });
+
+  it("will not fit a day into no room at all", () => {
+    const before = useStore.getState().ui.pxPerMin;
+    useStore.getState().fitDay(0, 500);
+    useStore.getState().fitDay(1000, 0);
+    expect(useStore.getState().ui.pxPerMin).toBe(before);
+  });
+
+  it("does not put zoom in the undo history", () => {
+    useStore.getState().zoomBy(ZOOM_STEP);
+    expect(useStore.getState().canUndo()).toBe(false);
   });
 });

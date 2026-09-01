@@ -5,7 +5,8 @@ import { getDoc, useStore } from "../../state/store";
 import { minutesFromDelta, SNAP_MIN } from "./useDragBlock";
 
 describe("minutesFromDelta", () => {
-  it("converts pixels to minutes at the current zoom", () => {
+  it("converts pixels dragged down the page to minutes", () => {
+    // Down the page is later, so a positive delta is a later time.
     expect(minutesFromDelta(60, 1)).toBe(60);
     expect(minutesFromDelta(60, 2)).toBe(30);
     expect(minutesFromDelta(-60, 2)).toBe(-30);
@@ -46,5 +47,13 @@ describe("drag through the store", () => {
     expect(useStore.getState().canUndo()).toBe(true);
     useStore.getState().undo();
     expect(getDoc(useStore.getState()).blocks.find((b) => b.id === "blk-ceremony")?.anchorMin).toBe(810);
+  });
+
+  it("moves a block to a later time when dragged downward", () => {
+    useStore.getState().loadDoc(sampleDoc());
+    const downward = minutesFromDelta(26, 1.3);
+    useStore.getState().previewChange({ type: "shift", blockId: "blk-ceremony", deltaMin: downward });
+    useStore.getState().commitPreview();
+    expect(getDoc(useStore.getState()).blocks.find((b) => b.id === "blk-ceremony")?.anchorMin).toBe(830);
   });
 });

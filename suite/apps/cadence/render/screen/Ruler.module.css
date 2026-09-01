@@ -1,43 +1,47 @@
+/* Sits behind the lanes and spans the whole scrolling body. */
 .ruler {
-  position: relative;
-  height: 26px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .major,
-.minor {
+.minor,
+.sunset,
+.curfew {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
+  left: 0;
+  right: 0;
+  height: 1px;
 }
 
 .major {
-  background: var(--border-strong);
-}
-
-.minor {
-  top: 60%;
   background: var(--border);
 }
 
-.label {
+.minor {
+  left: 56px;
+  background: var(--grey-3);
+}
+
+.label,
+.labelAnchored {
   position: absolute;
-  left: 4px;
-  top: 4px;
+  left: 0;
+  top: -6px;
+  width: 52px;
+  text-align: right;
   font-size: var(--text-xs);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  background: var(--surface);
 }
 
-.sunset,
-.curfew {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
+/* Something is pinned to this minute: the clock says so. */
+.labelAnchored {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .sunset {
@@ -50,13 +54,13 @@
 
 .marker {
   position: absolute;
-  left: 3px;
-  bottom: 2px;
+  left: 0;
+  top: -14px;
   font-size: var(--text-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: inherit;
   white-space: nowrap;
+  background: var(--surface);
 }
 
 .sunset .marker {

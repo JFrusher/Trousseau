@@ -56,7 +56,7 @@ export function Header() {
             * change was — and its document controls sit beside it rather than
             * on a second bar of their own.
             */}
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto [&_button]:whitespace-nowrap [&>*]:shrink-0">
             <ChromeSlot name="tool-actions" />
           </div>
           <div className="hidden shrink-0 items-center sm:flex">
