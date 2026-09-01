@@ -252,17 +252,15 @@ machines disagree are in [docs/DATA.md](docs/DATA.md).
 
 ### Bringing an existing wedding in
 
-If you have a document built by the collector, its work sits under `sources`,
-which is the right shape for keeping a record and not the shape the tools read.
-Promote it into the slices first:
+Restore any `.trousseau.json` through the **Data** button — the one with the
+wedding in its slices, or the one the collector writes with each tool's export
+under `sources`. The app fills empty slices from the sources on the way in, and
+rebuilds an editable day from the published one.
 
-```sh
-node scripts/promote-sources.mjs
-# → data/wedding.trousseau.import.json
-```
-
-Then import that file through the **Data** button. The script never touches the
-input, and it prints what it moved and what it could not.
+That rebuild pins every block to the time it already has. What produced those
+times — which block was anchored, which followed after a gap — was never part
+of the export and cannot be worked back out, so the day reads exactly as it did
+but will not ripple until those anchors are cleared.
 
 ---
 
