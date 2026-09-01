@@ -1,3 +1,4 @@
+import { Footer } from "@/components/shell/Footer";
 import { Header } from "@/components/shell/Header";
 import { StoreHydrator } from "@/lib/store/StoreHydrator";
 
@@ -17,6 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <StoreHydrator />
       <Header />
       {children}
+      <Footer />
     </div>
   );
 }
