@@ -48,6 +48,13 @@ const schema = z
      */
     CRON_SECRET: absent(z.string().min(16)),
 
+    /**
+     * Set by Vercel to the project's production hostname, without a scheme.
+     * Canonical URLs, the sitemap and OpenGraph tags are all derived from it,
+     * so no hostname is written into the source.
+     */
+    VERCEL_PROJECT_PRODUCTION_URL: absent(z.string().min(1)),
+
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   })
   .superRefine((env, ctx) => {
@@ -106,4 +113,16 @@ export function env(): Env {
 export function syncConfigured(): boolean {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env();
   return Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+}
+
+/**
+ * Where this deployment lives, as an absolute origin.
+ *
+ * Vercel supplies the hostname; everything else derives from it. Falls back to
+ * localhost so a development build produces valid absolute URLs rather than
+ * `undefined/privacy` in an OpenGraph tag.
+ */
+export function siteUrl(): string {
+  const host = env().VERCEL_PROJECT_PRODUCTION_URL;
+  return host ? `https://${host}` : "http://localhost:3000";
 }

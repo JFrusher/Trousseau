@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Lato, Marcellus } from "next/font/google";
 import { ReportUnhandled } from "@/components/shell/ReportUnhandled";
+import { siteUrl } from "@/lib/env";
 import "./globals.css";
 // Before any tool's own stylesheet: each of those maps its vocabulary onto the
 // values decided here, so these have to exist by the time they are read.
@@ -19,10 +20,30 @@ const lato = Lato({
   variable: "--font-lato",
 });
 
+const description =
+  "Seating, stationery, timeline and crew for one wedding. Free, open source, and entirely on your own device.";
+
 export const metadata: Metadata = {
-  title: "Trousseau",
-  description:
-    "Seating, stationery, timeline and crew for one wedding. Free, open source, and entirely on your own device.",
+  // Absolute URLs for canonical links and OpenGraph tags are built from this.
+  // Without it Next emits relative ones, which crawlers and link previews
+  // resolve against whatever host they happened to fetch from.
+  metadataBase: new URL(siteUrl()),
+  title: {
+    default: "Trousseau",
+    // Pages set their own; this keeps the suffix in one place for the rest.
+    template: "%s · Trousseau",
+  },
+  description,
+  applicationName: "Trousseau",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "Trousseau",
+    title: "Trousseau",
+    description,
+    locale: "en_GB",
+  },
+  twitter: { card: "summary_large_image", title: "Trousseau", description },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
