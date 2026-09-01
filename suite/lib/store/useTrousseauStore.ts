@@ -76,6 +76,18 @@ export interface WriteOptions {
 }
 
 export interface TrousseauState {
+  /**
+   * Bumped whenever the whole document is swapped rather than edited — a
+   * restore from file, or a shared wedding opened from another machine.
+   *
+   * The tools each keep a store of their own, seeded once when they mount, so
+   * replacing the document underneath a tool leaves it holding the previous
+   * wedding with no idea anything happened. It shows the old guest list, and
+   * then autosaves it over the new one. This is how anything that read the
+   * document can tell that what it read has been thrown away.
+   */
+  generation: number;
+
   status: StoreStatus;
   /** Set when the stored bytes could not be read. Writes are refused while it is. */
   error: string | null;
@@ -113,6 +125,7 @@ function freshDoc(): { raw: Record<string, unknown>; doc: Trousseau } {
 }
 
 export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
+  generation: 0,
   status: "idle",
   error: null,
   savedAt: null,
@@ -203,6 +216,7 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
       error: null,
       raw,
       doc: migrate(raw),
+      generation: state.generation + 1,
       // A restore is undoable: opening the wrong file should not cost the work.
       past: state.status === "ready" ? pushHistory(state.past, state.raw, "restore") : [],
       future: [],

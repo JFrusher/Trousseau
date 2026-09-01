@@ -1,3 +1,4 @@
+import { mayWrite, noteRead } from "@/lib/store/toolGeneration";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import type { Persisted } from "./persist";
 
@@ -20,6 +21,7 @@ import type { Persisted } from "./persist";
 
 /** The autosave, or null when this wedding has no stationery yet. */
 export function readSlice(): Persisted | null {
+  noteRead("plaque");
   const raw = useTrousseauStore.getState().raw["stationery"];
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
   // A slice with no version was written by something other than Plaque's
@@ -29,6 +31,9 @@ export function readSlice(): Persisted | null {
 }
 
 export function writeSlice(record: Persisted | null): void {
+  // Refused when the document has been replaced since this was read — see
+  // `toolGeneration`. Writing here would put the previous wedding back.
+  if (!mayWrite("plaque")) return;
   useTrousseauStore
     .getState()
     .setSlice("stationery", record ?? {}, { label: "the stationery", silent: true });

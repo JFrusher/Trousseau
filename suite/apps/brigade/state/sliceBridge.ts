@@ -1,4 +1,5 @@
 import { guestName, readCrew, readGuests } from "@/lib/model/slices";
+import { mayWrite, noteRead } from "@/lib/store/toolGeneration";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { parseDay } from "../core/import/day";
 import { emptyDoc } from "../core/model/defaults";
@@ -26,6 +27,7 @@ import type { BrigadeDoc } from "../core/model/types";
 
 /** The crew and the day as Brigade wants them, from the shared wedding. */
 export function readSlice(): BrigadeDoc {
+  noteRead("brigade");
   const { doc } = useTrousseauStore.getState();
   const crew = readCrew(doc);
   const base = emptyDoc();
@@ -66,6 +68,8 @@ export function readSlice(): BrigadeDoc {
  * create a second version of the timings that could disagree with the first.
  */
 export function writeSlice(doc: BrigadeDoc): void {
+  // Refused when the document has been replaced since this was read.
+  if (!mayWrite("brigade")) return;
   useTrousseauStore
     .getState()
     .setSlice(

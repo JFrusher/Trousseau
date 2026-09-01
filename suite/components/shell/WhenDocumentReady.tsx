@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 
 /**
@@ -19,10 +20,18 @@ import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
  * A gate rather than a fix inside each tool, because all four have the same
  * shape — read the document on mount, autosave on change — and none of them
  * should have to know that the thing they are reading arrives late.
+ *
+ * It also handles the document arriving *twice*. Restoring from a file, or
+ * opening a wedding shared from another machine, swaps the whole document while
+ * a tool is on screen — and a tool only reads on mount, so it carries on
+ * showing the previous wedding. Keying the children on the generation remounts
+ * the tool, which sends it back down the path that already works rather than
+ * teaching each of the four to re-read.
  */
 export function WhenDocumentReady({ children }: { children: React.ReactNode }) {
   const status = useTrousseauStore((s) => s.status);
   const error = useTrousseauStore((s) => s.error);
+  const generation = useTrousseauStore((s) => s.generation);
 
   if (status === "error") {
     return (
@@ -36,5 +45,5 @@ export function WhenDocumentReady({ children }: { children: React.ReactNode }) {
   // over in a frame or two, and a flash of loading text is worse than nothing.
   if (status !== "ready") return null;
 
-  return <>{children}</>;
+  return <Fragment key={generation}>{children}</Fragment>;
 }

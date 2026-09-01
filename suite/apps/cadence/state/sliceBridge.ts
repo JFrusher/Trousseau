@@ -1,4 +1,5 @@
 import { publishDay, readTimeline } from "@/lib/model/slices";
+import { mayWrite, noteRead } from "@/lib/store/toolGeneration";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import type { TimelineDoc } from "../core/model/types";
 
@@ -31,10 +32,13 @@ import type { TimelineDoc } from "../core/model/types";
 
 /** The day as Cadence wants it, with the envelope's own fields already applied. */
 export function readSlice(): TimelineDoc {
+  noteRead("cadence");
   return readTimeline(useTrousseauStore.getState().doc);
 }
 
 export function writeSlice(next: TimelineDoc): void {
+  // Refused when the document has been replaced since this was read.
+  if (!mayWrite("cadence")) return;
   const store = useTrousseauStore.getState();
   const { doc } = store;
 

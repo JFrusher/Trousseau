@@ -1,3 +1,4 @@
+import { mayWrite, noteRead } from '@/lib/store/toolGeneration'
 import { useTrousseauStore } from '@/lib/store/useTrousseauStore'
 
 /**
@@ -60,6 +61,7 @@ const UNNAMED = 'Our Wedding'
 
 /** The plan as Tableaux's store wants it, assembled from the shared wedding. */
 export function readDoc() {
+  noteRead('tableaux')
   const { raw, doc } = useTrousseauStore.getState()
   const seating = isRecord(raw.seating) ? raw.seating : {}
   const guests = isRecord(raw.guests) ? raw.guests : {}
@@ -84,6 +86,9 @@ export function isEmpty() {
 }
 
 export function writeDoc(doc) {
+  // Refused when the document has been replaced since this was read — see
+  // `toolGeneration`. Writing here would put the previous wedding back.
+  if (!mayWrite('tableaux')) return
   const seating = {}
   for (const key of SEATING_KEYS) {
     if (doc[key] !== undefined) seating[key] = doc[key]

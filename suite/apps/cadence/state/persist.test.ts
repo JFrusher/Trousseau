@@ -23,6 +23,11 @@ beforeEach(() => {
   // then. Starting from an unread store would test a situation that cannot
   // happen and quietly pass, because every write would be dropped.
   useTrousseauStore.getState().replaceDocument({});
+  // Replacing the document is what a restore from file does, and a tool always
+  // re-reads after one — it is remounted so that it does. Without that read
+  // here, the writes below are correctly refused as coming from a tool holding
+  // a wedding that has been thrown away.
+  restore();
 });
 
 describe("restore", () => {
