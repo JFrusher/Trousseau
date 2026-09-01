@@ -129,6 +129,18 @@ See [`.env.example`](.env.example). The schema is in
 
 ## Deploying
 
+**Apply the migrations before you deploy the code, not after.** Every write
+this app makes names columns the migrations add, so a deploy that lands first
+fails every write with a 503 until the database catches up — creating a wedding,
+which is the first thing anyone does with a passphrase, included. The server log
+says so explicitly when it happens.
+
+Migrations are in [`../supabase/migrations`](../supabase/migrations), applied in
+filename order. `lib/sync/migrations.test.ts` runs them against a real Postgres
+— PGlite, no Docker or credentials needed — including the upgrade paths, so a
+migration that only works on an empty database fails there rather than in
+production.
+
 Vercel, with **Root Directory set to `suite`**. `vercel.json` cannot set that —
 it is a project setting. npm walks up to the workspace root from here, so the
 install picks up the contract package's dependencies and `npm run build` can

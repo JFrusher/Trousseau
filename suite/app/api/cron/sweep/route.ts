@@ -32,9 +32,16 @@ export async function GET(request: Request) {
   const db = supabaseStore();
   if (!db) return NextResponse.json({ error: "No backend." }, { status: 501 });
 
-  const { deleted } = await sweepAbandoned(db);
-  // Ids only. They identify a row, not a person, and the server could not say
-  // whose wedding it was even if it wanted to.
-  console.info(`[Trousseau] retention sweep removed ${deleted.length} wedding(s)`);
-  return NextResponse.json({ deleted: deleted.length });
+  try {
+    const { deleted } = await sweepAbandoned(db);
+    // Ids only. They identify a row, not a person, and the server could not say
+    // whose wedding it was even if it wanted to.
+    console.info(`[Trousseau] retention sweep removed ${deleted.length} wedding(s)`);
+    return NextResponse.json({ deleted: deleted.length });
+  } catch (cause) {
+    // A failed sweep must be loud: it deletes, it runs unattended, and silence
+    // here means data kept past the period the Privacy Policy states.
+    console.error("[Trousseau] retention sweep failed:", cause);
+    return NextResponse.json({ error: "The sweep failed." }, { status: 503 });
+  }
 }

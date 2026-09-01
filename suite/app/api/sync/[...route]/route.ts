@@ -30,6 +30,7 @@ import {
   pushSchema,
   shareSchema,
 } from "@/lib/sync/schemas";
+import { safely } from "@/lib/sync/safely";
 import { memoryStore, type SyncStore } from "@/lib/sync/store";
 import { supabaseStore } from "@/lib/sync/supabaseStore";
 
@@ -90,6 +91,7 @@ const throttled = () =>
     { status: 429 },
   );
 
+
 /** The passphrase-derived write token. Never the passphrase, never the content key. */
 function tokenOf(request: Request): string | null {
   const header = request.headers.get("authorization") ?? "";
@@ -108,9 +110,11 @@ async function guarded(request: Request, work: () => Promise<Reply>): Promise<Ne
   if (!authAttemptsRemain(caller)) return throttled();
   if (!allow(`rw:${caller}`, WRITE_LIMIT)) return throttled();
 
-  const reply = await work();
-  if (reply.status === 403) noteAuthFailure(caller);
-  return send(reply);
+  return safely(async () => {
+    const reply = await work();
+    if (reply.status === 403) noteAuthFailure(caller);
+    return reply;
+  });
 }
 
 export async function GET(request: Request, context: { params: Promise<{ route: string[] }> }) {
@@ -126,7 +130,7 @@ export async function GET(request: Request, context: { params: Promise<{ route: 
     if (!allow(`salt:${callerKey(request)}`, WRITE_LIMIT)) return throttled();
     const weddingId = check(params.weddingId, id);
     if (!weddingId.ok) return malformed(weddingId.error);
-    return send(await getSalt(db, weddingId.value));
+    return safely(() => getSalt(db, weddingId.value));
   }
   if (head === "wedding" && id && tail === "slices") {
     const weddingId = check(params.weddingId, id);
@@ -149,7 +153,7 @@ export async function GET(request: Request, context: { params: Promise<{ route: 
     if (!allow(`share:${callerKey(request)}`, WRITE_LIMIT)) return throttled();
     const token = check(params.shareToken, id);
     if (!token.ok) return malformed(token.error);
-    return send(await getShare(db, token.value));
+    return safely(() => getShare(db, token.value));
   }
 
   return NextResponse.json({ error: "No such endpoint." }, { status: 404 });
@@ -173,7 +177,7 @@ export async function POST(request: Request, context: { params: Promise<{ route:
     if (!allow(`create:${callerKey(request)}`, CREATE_LIMIT)) return throttled();
     const input = check(createSchema, body);
     if (!input.ok) return malformed(input.error);
-    return send(await createWedding(db, input.value));
+    return safely(() => createWedding(db, input.value));
   }
 
   if (head === "wedding" && id && tail === "slices") {
