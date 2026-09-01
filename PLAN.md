@@ -102,6 +102,46 @@ deliberately stripped from the share snapshot and never leave the device.
 
 ---
 
+## Progress
+
+| Step | State | Notes |
+| --- | --- | --- |
+| 0 — Refused IndexedDB reported, not thrown past | **Done** | Not in the original plan. Found in the baseline run: a live bug, and it failed the suite. |
+| 1 — Env schema, fail-fast at build | **Done** | `CREATE_GATE_SECRET` dropped — open creation was chosen, so a gate secret was speculative. |
+| 2 — Runtime validation on every API body | **Done** | Path segments covered too. |
+| 3 — Security response headers | **Done, changed** | The nonce did not work. See below. |
+| 4 — Error pages and boundaries | **Done** | |
+| 5 — Cascading deletion | **Done** | Found a second fault: cross-wedding share takedown. Migration is destructive. |
+| 6 — Retention | **Done** | TypeScript half verified; SQL half needs a scratch project. |
+| 7 — Create endpoint hardening | Not started | Worth re-scoping — see below. |
+| 8 — Legal pages and footer | Not started | |
+| 9 — SEO and metadata | Not started | |
+| 10 — Observability | Not started | |
+| 11 — UX and accessibility pass | Not started | |
+
+### Step 3 did not go to plan
+
+The plan called for a per-request nonce from middleware plus `strict-dynamic`.
+That was built, and then removed. Next 16 emits fourteen inline bootstrap
+scripts and stamps a nonce onto none of them — checked against a production
+server twice, once with the pages prerendered and once with the whole tree
+forced dynamic. The policy would have blocked every script in the document.
+
+What shipped instead is the static policy: `script-src` keeps `'unsafe-inline'`,
+and `connect-src 'self'` is the directive doing the real work, because the
+threat here is a guest list leaving for another origin rather than a defaced
+page. The reasoning is written into `next.config.ts` beside the policy.
+
+### Step 7 should be re-scoped before it is built
+
+It was written to move the rate-limit counter into Postgres. That is still
+correct, but two things have changed since: the create endpoint now has a
+retention sweep behind it, so abandoned rows are no longer permanent, and the
+validation layer refuses malformed creates before they reach the database. The
+remaining exposure is a stranger burning through create quota from rotating
+addresses. Worth doing, but no longer the most valuable thing left — the legal
+pages are, because the app is now multi-tenant in public.
+
 ## Roadmap
 
 Eleven commits, ordered so each is independently revertable and nothing depends
