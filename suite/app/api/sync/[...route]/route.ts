@@ -21,6 +21,14 @@ import {
   noteAuthFailure,
   WRITE_LIMIT,
 } from "@/lib/sync/rateLimit";
+import {
+  blobSchema,
+  check,
+  createSchema,
+  params,
+  pushSchema,
+  shareSchema,
+} from "@/lib/sync/schemas";
 import { memoryStore, type SyncStore } from "@/lib/sync/store";
 import { supabaseStore } from "@/lib/sync/supabaseStore";
 
@@ -66,6 +74,15 @@ const unconfigured = () =>
     { status: 501 },
   );
 
+/**
+ * A 400 for anything that is not the right shape.
+ *
+ * Path segments are as attacker-controlled as bodies are — an id out of the URL
+ * used to reach a primary key with neither length nor shape checked — so both
+ * go through `lib/sync/schemas` before a handler sees them.
+ */
+const malformed = (error: string) => NextResponse.json({ error }, { status: 400 });
+
 const throttled = () =>
   NextResponse.json(
     { error: "Too many requests. Wait a minute and try again." },
@@ -102,23 +119,36 @@ export async function GET(request: Request, context: { params: Promise<{ route: 
   const [head, id, tail, extra] = route;
 
   if (head === "wedding" && id && tail === "salt") {
+    // Counted before it is parsed, so a malformed id is not a free request.
     // Public, but still counted: the salt endpoint is the first step of a
     // guessing run, and it is the cheapest place to slow one down.
     if (!allow(`salt:${callerKey(request)}`, WRITE_LIMIT)) return throttled();
-    return send(await getSalt(db, id));
+    const weddingId = check(params.weddingId, id);
+    if (!weddingId.ok) return malformed(weddingId.error);
+    return send(await getSalt(db, weddingId.value));
   }
   if (head === "wedding" && id && tail === "slices") {
-    return guarded(request, () => pull(db, id, tokenOf(request)));
+    const weddingId = check(params.weddingId, id);
+    if (!weddingId.ok) return malformed(weddingId.error);
+    return guarded(request, () => pull(db, weddingId.value, tokenOf(request)));
   }
   if (head === "wedding" && id && tail === "blobs") {
-    return guarded(request, () => listBlobs(db, id, tokenOf(request)));
+    const weddingId = check(params.weddingId, id);
+    if (!weddingId.ok) return malformed(weddingId.error);
+    return guarded(request, () => listBlobs(db, weddingId.value, tokenOf(request)));
   }
   if (head === "wedding" && id && tail === "blob" && extra) {
-    return guarded(request, () => getBlob(db, id, tokenOf(request), extra));
+    const weddingId = check(params.weddingId, id);
+    if (!weddingId.ok) return malformed(weddingId.error);
+    const asset = check(params.blobId, extra);
+    if (!asset.ok) return malformed(asset.error);
+    return guarded(request, () => getBlob(db, weddingId.value, tokenOf(request), asset.value));
   }
   if (head === "share" && id) {
     if (!allow(`share:${callerKey(request)}`, WRITE_LIMIT)) return throttled();
-    return send(await getShare(db, id));
+    const token = check(params.shareToken, id);
+    if (!token.ok) return malformed(token.error);
+    return send(await getShare(db, token.value));
   }
 
   return NextResponse.json({ error: "No such endpoint." }, { status: 404 });
@@ -140,23 +170,37 @@ export async function POST(request: Request, context: { params: Promise<{ route:
   if (head === "wedding" && !id) {
     // The one unauthenticated write there is, so it gets the tightest limit.
     if (!allow(`create:${callerKey(request)}`, CREATE_LIMIT)) return throttled();
-    const input = body as { id: string; salt: string; authHash: string };
-    return send(await createWedding(db, input));
+    const input = check(createSchema, body);
+    if (!input.ok) return malformed(input.error);
+    return send(await createWedding(db, input.value));
   }
 
   if (head === "wedding" && id && tail === "slices") {
-    const input = body as { writes: Parameters<typeof push>[3] };
-    return guarded(request, () => push(db, id, tokenOf(request), input?.writes ?? []));
+    const weddingId = check(params.weddingId, id);
+    if (!weddingId.ok) return malformed(weddingId.error);
+    const input = check(pushSchema, body);
+    if (!input.ok) return malformed(input.error);
+    return guarded(request, () => push(db, weddingId.value, tokenOf(request), input.value.writes));
   }
 
   if (head === "wedding" && id && tail === "blob" && extra) {
-    const input = body as { sealed: Parameters<typeof putBlob>[4] };
-    return guarded(request, () => putBlob(db, id, tokenOf(request), extra, input?.sealed));
+    const weddingId = check(params.weddingId, id);
+    if (!weddingId.ok) return malformed(weddingId.error);
+    const asset = check(params.blobId, extra);
+    if (!asset.ok) return malformed(asset.error);
+    const input = check(blobSchema, body);
+    if (!input.ok) return malformed(input.error);
+    return guarded(request, () =>
+      putBlob(db, weddingId.value, tokenOf(request), asset.value, input.value.sealed),
+    );
   }
 
   if (head === "wedding" && id && tail === "share") {
-    const input = body as Parameters<typeof putShare>[3];
-    return guarded(request, () => putShare(db, id, tokenOf(request), input));
+    const weddingId = check(params.weddingId, id);
+    if (!weddingId.ok) return malformed(weddingId.error);
+    const input = check(shareSchema, body);
+    if (!input.ok) return malformed(input.error);
+    return guarded(request, () => putShare(db, weddingId.value, tokenOf(request), input.value));
   }
 
   return NextResponse.json({ error: "No such endpoint." }, { status: 404 });
@@ -169,7 +213,13 @@ export async function DELETE(request: Request, context: { params: Promise<{ rout
   const [head, id, tail, shareToken] = route;
 
   if (head === "wedding" && id && tail === "share" && shareToken) {
-    return guarded(request, () => deleteShare(db, id, tokenOf(request), shareToken));
+    const weddingId = check(params.weddingId, id);
+    if (!weddingId.ok) return malformed(weddingId.error);
+    const token = check(params.shareToken, shareToken);
+    if (!token.ok) return malformed(token.error);
+    return guarded(request, () =>
+      deleteShare(db, weddingId.value, tokenOf(request), token.value),
+    );
   }
 
   return NextResponse.json({ error: "No such endpoint." }, { status: 404 });
