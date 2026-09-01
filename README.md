@@ -1,193 +1,296 @@
 # Trousseau
 
-**One wedding, four apps, and no arguments about which copy is right.**
+**One wedding, four tools, and no arguments about which copy is right.**
 
-A trousseau is the collection carried into a marriage. A `.trousseau.json` is
-the same idea: one file holding the whole wedding, which any of the tools can
-read and none of them can damage.
+A trousseau is the collection carried into a marriage. A `.trousseau.json` is the
+same idea: one file holding the whole wedding, which any of the tools can read
+and none of them can damage.
 
-This repo is where that file lives — the data hub for
-[Tableaux](https://github.com/JFrusher/Tableaux) (seating),
-[Cadence](https://github.com/JFrusher/cadence) (timeline),
-[Brigade](https://github.com/JFrusher/Brigade) (crew) and
-[Plaque](https://github.com/JFrusher/Plaque) (stationery). It holds the schema
-they agree on, the tool that collects their work into one document, the checks
-that run before anything is kept, and the version history of every state the
-wedding has been in.
+This repo holds both halves of that. `suite/` is the web application — four
+planning tools sharing one document, running on Vercel. The rest is the data:
+the schema they agree on, the checks that run before anything is kept, and the
+version history of every state the wedding has been in.
 
 Built for our own wedding, which is the only reason the constraints are honest:
-real guest names and dietary requirements, four apps that must not overwrite
+real guest names and dietary requirements, four tools that must not overwrite
 each other, two laptops, and a date that does not move.
+
+---
 
 ## The problem
 
-Four apps, each owning part of one wedding. Seating lives in one, the running
-order in another, the crew in a third, the place cards in a fourth. Every one of
-them can export a file. None of them agrees with the others for long.
+Four apps, each owning part of one wedding. Seating in one, the running order in
+another, the crew in a third, the place cards in a fourth. Every one of them can
+export a file. None of them agrees with the others for long.
 
 You find out at the worst possible moment: the place cards say table 6 and the
 seating plan says table 8, or two apps quietly disagree about what day you are
 getting married. That last one is not hypothetical — it happened here, and the
-system in this repo is what caught it.
+checks in this repo are what caught it.
 
-Git is the obvious answer and the wrong one. It keeps every version of every
-file forever, which is right for code and wrong for a 100 KB JSON blob rewritten
-whole every time a guest moves. And these repos are public, while the data has
-real people's email addresses in it.
-
-## How it works
-
-Git carries **pointers**. A private remote carries **bytes**.
+So the four became one application over one document.
 
 ```mermaid
-flowchart TB
-    subgraph apps [The four apps, each owning one slice]
-        T[Tableaux<br/>guests · seating]
-        C[Cadence<br/>day]
-        B[Brigade<br/>crew]
-        P[Plaque<br/>stationery]
-    end
+flowchart LR
+  S["Seating<br/>the room"]
+  P["Place cards<br/>the stationery"]
+  T["Timeline<br/>the day"]
+  D["Delegation<br/>the crew"]
 
-    W[("Working folder<br/>a synced directory<br/>both machines see")]
-    T --> W
-    C --> W
-    B --> W
-    P --> W
+  DOC[("wedding.trousseau.json<br/>one document")]
 
-    W -->|"pack"| D["wedding.trousseau.json<br/>one document, all slices"]
-    D -->|"validate"| V{"Invariants<br/>that span slices"}
-    V -->|"fails"| STOP[Nothing is kept]
-    V -->|"passes"| PTR["<b>.dvc pointer</b><br/>md5 + size, 4 lines<br/>→ GitHub, public"]
-    V -->|"passes"| BYTES["<b>the bytes</b><br/>content-addressed<br/>→ private remote"]
+  S -->|guests, seating| DOC
+  P -->|stationery| DOC
+  T -->|timeline, day| DOC
+  D -->|crew| DOC
 
-    style STOP fill:#8B3A3A,color:#fff
-    style PTR fill:#4A7C59,color:#fff
-    style BYTES fill:#2D5F7C,color:#fff
-    style W fill:#7C6F5B,color:#fff
+  DOC -.->|table numbers| P
+  DOC -.->|the resolved day| D
+  DOC -.->|the guest list| D
+  DOC -.->|room spaces| T
 ```
 
-The pointer is a four-line text file, so Git versions it like any other. That
-means Git's history *is* the data's history — a tag pins code, schema and the
-exact bytes together, and checking out that tag six months later brings the
-matching data back. No second version-control system was built; Git's was
-borrowed.
+Solid lines are what a tool writes. Dotted lines are what it reads from the
+others — and those are the point. Seat someone and the place cards already know
+their table. Move a block of the day and every job hanging off it moves too.
 
-A terminal-friendly version of this diagram is in
-[docs/DATA.md](docs/DATA.md).
+---
 
-## One owner per slice
+## The four tools
+
+| Tool | Does | Writes | Reads from the others |
+| --- | --- | --- | --- |
+| **Seating** | Builds the room to scale and puts people in it | `guests`, `seating` | — |
+| **Place cards** | Print-ready cards and table signs | `stationery` | the guest list and their tables |
+| **Timeline** | The running order, and what collides | `timeline`, `day` | the room's named spaces |
+| **Delegation** | The jobs, and the hands doing them | `crew` | the resolved day, the guest list |
+
+Each was a standalone application before this, and each keeps its own store, its
+own undo history and its own stylesheets. Only the file that decides where its
+work is saved was redirected into the shared document.
+
+---
+
+## A short guide
+
+### 1. Start with the room
+
+Open **Seating**. Import a guest list as CSV — the column mapper handles exports
+from Joy, Zola, or a spreadsheet you have been keeping yourself. Drag table
+shapes from the toolbar onto the canvas, then drag guests onto seats.
+
+The room is drawn to scale in real units, so a table that does not fit is a
+table that will not fit on the day.
+
+### 2. Plan the day
+
+Open **Timeline**. Add blocks in lanes — the main day, suppliers, transport,
+whatever the day needs. Give a block a duration and either pin it to a time or
+let it follow whatever comes before it.
+
+The Location field offers the names of spaces you drew in the room, so
+"Orangery" on the run sheet is the same Orangery on the floor plan. It still
+takes free text; a church nobody is going to draw a plan of is a real place.
+
+Anything that collides, or runs past your curfew, is flagged as you work.
+
+### 3. Hand out the jobs
+
+Open **Delegation**. Every block of the day is a row you can hang jobs off.
+Add teams and people, then click a job and click who is doing it.
+
+Someone already on the guest list is added by picking them, not by typing their
+name again — their name is then read from the guest list, so it is only ever
+corrected in one place.
+
+### 4. Print the cards
+
+Open **Place cards**. Press **Use the room** and the guest list arrives with the
+table numbers already on it. Design the card by binding `{{First Name}}`,
+`{{Table}}` and the rest to text on the artwork.
+
+```
+┌─────────────────────────────┐
+│                             │
+│        Charis Smith         │   85 × 55mm, 9 per A4 sheet
+│                             │
+│           Table 1           │
+│                             │
+└─────────────────────────────┘
+```
+
+Print two test cards on plain paper first and hold them against your real stock.
+The export refuses to print a card with a missing font or a hole where a
+monogram should be, which is cheaper than finding out after the card stock has
+gone through.
+
+### 5. Take the pack
+
+The front page has one button that produces the floor plan, the run sheet and
+the job list as a single PDF, printed from the wedding as it stands.
+
+Place cards are deliberately not in it — they go on card stock, and an A4 binder
+and a tray of card are two different trips to the printer.
+
+### 6. Send guests their table
+
+A share link shows a guest their own seat and nothing else. The key travels in
+the URL fragment, which browsers never send to a server, so the link works
+without anyone holding a decryptable copy of your guest list.
+
+---
+
+## One document, one owner per slice
 
 The rule the whole design rests on:
 
-> An app rewrites **only its own slice** and copies every other key
-> byte-for-byte — including keys belonging to apps that do not exist yet.
+> A tool rewrites **only its own slice** and copies every other key
+> byte-for-byte — including keys belonging to tools that do not exist yet.
 
-| Slice | Owner |
-| --- | --- |
-| `event` | the launcher |
-| `guests`, `seating` | Tableaux |
-| `day` | Cadence |
-| `crew` | Brigade |
-| `stationery` | Plaque |
+```mermaid
+flowchart TD
+  E["event<br/>couple, venue, date, curfew"]
+  G["guests"]
+  SE["seating"]
+  TL["timeline<br/>anchors and gaps"]
+  DY["day<br/>the times they work out to"]
+  CR["crew"]
+  ST["stationery"]
 
-Owners publish resolved output; nobody recomputes. Tableaux publishes who sits
-where and Plaque prints the table number on the card. Cadence publishes the
-clock times it worked out and Brigade reads them, never running a scheduler.
+  TL -->|resolved by Timeline| DY
+  DY -->|read by Delegation| CR
+  G -->|read by Place cards| ST
+  SE -->|read by Place cards| ST
+  E -.->|owns the date| TL
+```
 
-`mergeSlice` enforces this, and takes *raw stored data* rather than a parsed
+`timeline` holds the source — which block is anchored, which follows after a
+gap. `day` holds what those work out to. Delegation reads the second and never
+runs a scheduler of its own, which is why a ceremony moving by ten minutes moves
+every job hanging off it without anybody recalculating anything.
+
+`mergeSlice` enforces the rule, and takes *raw stored data* rather than a parsed
 document on purpose: a wrong schema should at worst refuse a read, never destroy
-a write. Unknown keys survive at every level — which is how a fifth app joins
-without anyone releasing a new version of anything.
+a write. Unknown keys survive at every level, which is how a fifth tool could
+join without a release of anything.
 
-## Checks that span slices
+### Checks no single tool can run
 
-The zod schema validates the envelope and stops there. Slice interiors belong to
-the owning app, deliberately: encoding what a guest is here would mean a Tableaux
-feature could not ship without a release of this package.
-
-So the interesting checks are the ones **no single app can perform**, because an
-app only ever sees its own slice:
+A tool only ever sees its own slice, so the interesting checks are the ones that
+span them. These run as a pre-commit hook; errors exit 1 and stop the commit.
 
 | | |
 | --- | --- |
 | error | two slices claiming different wedding dates |
 | error | one seat holding two people |
 | error | a table holding a guest who does not exist |
-| error | the same guest seated twice at one table |
 | error | a table over its own capacity |
 | error | a guest and their table disagreeing about where they sit |
 | error | a day block in a lane that does not exist |
 | warning | confirmed guests with no table, or no dietary answer |
 
-Errors exit 1 and block the commit. They run as a pre-commit hook, so nothing
-inconsistent can be recorded in the first place.
+The application has its own version of this on the front page: cards printed
+from a file rather than the room, a dietary requirement recorded for someone
+whose card has nowhere to show it, a block happening somewhere that is not on
+the floor plan. Only the gaps between tools — anything one tool can already see
+for itself, it reports itself.
 
-Two more refusals live in the collector. It rebuilds the bundle from only the
-files it is handed, so omitting one silently deleted that slice — packing with
-just the seating file once dropped a thirteen-block timeline and reported
-success. It now compares against what it is about to overwrite and refuses.
-It also prints every source file's date and flags any that has fallen days
-behind, because a browser app's file is only as fresh as the last write to it.
+---
 
-## The contract, as code
-
-The schema is a TypeScript package in [`src/`](src), built with zod 4 and
-covered by 83 tests.
-
-```ts
-import { emptyTrousseau, mergeSlice, migrate, parse, serialise } from "@jfrusher/trousseau";
-
-// Read stored data. Never throws away what it does not understand.
-const doc = migrate(rawFromStorage);
-
-// Publish your slice. Every other key is copied untouched.
-const next = mergeSlice(rawFromStorage, "day", myResolvedDay);
-await saveRaw(next); // your storage, raw — mergeSlice never parses
-
-// The portable file, from a parsed document.
-const back = parse(serialise(migrate(next)));
-```
-
-**The apps do not import this yet.** The package is built and tested, but not
-published, and the collector reads each app's native export instead. Having the
-apps consume the contract directly is the next step, not a finished one.
-
-## Using it
-
-Everything operational — first-time setup, the daily loop, moving between
-machines, milestones, and what to do when two machines disagree — is in
-**[docs/DATA.md](docs/DATA.md)**.
-
-The short version, once configured:
+## Running it
 
 ```sh
-npm run sync
+cd suite
+npm install
+npm run dev
 ```
 
-Collect, check, upload the bytes, commit the pointer, push — in that order, each
-one a gate. `npm run sync -- --dry-run` stops before anything leaves the machine.
+Everything is local-first. There is no account, and nothing leaves the browser
+unless you turn on sync.
 
-## Where this is
+```sh
+npm test          # 1,233 tests
+npm run build
+```
 
-**Working:** the schema and its 83 tests; the collector, with its staleness and
-slice-loss guards; the cross-slice validator; DVC tracking to a private remote;
-versioned Git hooks that validate before a commit and send bytes before
-pointers; a single `sync` command.
+### Deploying
 
-**Not yet:** the apps do not import the package — the collector reads their
-native files. Cadence, Brigade and Plaque need a file linked by hand once, from
-a button, before their work reaches the working folder automatically; that
-button is Chromium-only. Nothing writes a `stationery` slice yet.
+Vercel, with **Root Directory** set to `suite`. Pushes to `main` deploy.
 
-## A note on what is not in this repo
+Sharing and sync are the only features that need a backend. Leave these unset
+and the suite is exactly what it was — local-first, no account, nothing leaving
+the device:
 
-Every repo here is public, and the data has real guests in it. No name, email
-address or dietary requirement is committed anywhere — Git holds only md5
-hashes and byte counts. Machine-specific paths (the remote URL, the working
-folder) live in files Git ignores, because they name one person's computer.
+```sh
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Everything stored server-side is ciphertext. The credentials give access to
+bytes that cannot be decrypted without a passphrase the server never sees. Full
+setup is in [scratch/docs/SETUP.md](scratch/docs/SETUP.md).
+
+---
+
+## Working across two laptops
+
+Two arrangements, for two different jobs.
+
+**In the browser**, turn on sync and the wedding travels end-to-end encrypted.
+Each slice carries a version and a fingerprint; a slice edited in two places at
+once is reported rather than silently resolved, and you choose which wins.
+
+**On disk**, Git carries pointers and a private remote carries bytes:
+
+```sh
+npm run sync              # collect, check, upload, commit the pointer, push
+npm run sync -- --dry-run # stops before anything leaves the machine
+```
+
+Each step is a gate. The daily loop, milestones, and what to do when two
+machines disagree are in [docs/DATA.md](docs/DATA.md).
+
+### Bringing an existing wedding in
+
+If you have a document built by the collector, its work sits under `sources`,
+which is the right shape for keeping a record and not the shape the tools read.
+Promote it into the slices first:
+
+```sh
+node scripts/promote-sources.mjs
+# → data/wedding.trousseau.import.json
+```
+
+Then import that file through the **Data** button. The script never touches the
+input, and it prints what it moved and what it could not.
+
+---
+
+## What is in here
+
+```
+suite/           the web application
+  apps/          the four tools, near enough as they were standalone
+  lib/           the shared document, sync, design tokens
+  components/    the shell around the tools
+src/             the data contract, as a TypeScript package
+scripts/         collect, validate, promote
+data/            pointers only — see below
+```
+
+---
+
+## What is not in here
+
+This repo is public, and the data has real guests in it. No name, email address
+or dietary requirement is committed anywhere — Git holds only md5 hashes and
+byte counts. Machine-specific paths live in files Git ignores, because they name
+one person's computer.
 
 If you fork this, keep that arrangement. It is the only reason the rest of it
 can be public.
+
+---
 
 ## Licence
 
