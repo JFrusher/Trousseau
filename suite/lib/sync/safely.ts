@@ -58,6 +58,15 @@ export function schemaCacheIsStale(cause: unknown): boolean {
   return /could not find .* in the schema cache/i.test(message);
 }
 
+export type Failure = "unreachable" | "schema-cache" | "schema-behind" | "unknown";
+
+export function categorise(cause: unknown): Failure {
+  if (backendUnreachable(cause)) return "unreachable";
+  if (schemaCacheIsStale(cause)) return "schema-cache";
+  if (schemaIsBehind(cause)) return "schema-behind";
+  return "unknown";
+}
+
 export async function safely(work: () => Promise<Reply>): Promise<NextResponse> {
   try {
     const reply = await work();
@@ -92,6 +101,12 @@ export async function safely(work: () => Promise<Reply>): Promise<NextResponse> 
         error:
           "Sharing is temporarily unavailable. Your wedding is safe on this device — " +
           "nothing was lost, and nothing was half-written.",
+        // Which of the three it was, as a fixed word rather than the database's
+        // own message. Whoever is trying to fix this should not have to go and
+        // find a log to learn which branch fired, and a category from a closed
+        // set leaks nothing — unlike an error that names columns and
+        // constraints.
+        cause: categorise(cause),
       },
       { status: 503 },
     );

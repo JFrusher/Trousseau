@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { expect, test, vi } from "vitest";
-import { backendUnreachable, safely, schemaCacheIsStale, schemaIsBehind } from "./safely";
+import {
+  backendUnreachable,
+  categorise,
+  safely,
+  schemaCacheIsStale,
+  schemaIsBehind,
+} from "./safely";
 
 /**
  * What a failing database looks like from the outside.
@@ -111,4 +117,26 @@ test("an unreachable backend is recognised, and not blamed on the schema", () =>
 test("a schema error is not mistaken for the backend being down", () => {
   const missing = new Error('column "updated_at" of relation "weddings" does not exist');
   expect(backendUnreachable(missing)).toBe(false);
+});
+
+test("the 503 names which failure it was, without the database's words", async () => {
+  const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+  const response = await safely(async () => {
+    throw new Error("fetch failed");
+  });
+  const body = (await response.json()) as { cause: string; error: string };
+
+  // A category from a closed set: enough to act on, and it names nothing.
+  expect(body.cause).toBe("unreachable");
+  expect(body.error).toContain("safe on this device");
+  quiet.mockRestore();
+});
+
+test("each cause is categorised distinctly", () => {
+  expect(categorise(new Error("fetch failed"))).toBe("unreachable");
+  expect(categorise(new Error("Could not find the 'x' column of 'y' in the schema cache"))).toBe(
+    "schema-cache",
+  );
+  expect(categorise(new Error('column "x" of relation "y" does not exist'))).toBe("schema-behind");
+  expect(categorise(new Error("something else entirely"))).toBe("unknown");
 });
