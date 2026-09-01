@@ -59,3 +59,39 @@ test("a malformed Supabase URL is rejected", () => {
     /SUPABASE_URL/,
   );
 });
+
+/**
+ * What a real deployment actually got wrong. The build failed with "Invalid
+ * URL", which named neither the mistake nor the fix.
+ */
+
+test("a bare Supabase host is refused, and the message says why", () => {
+  // What the Supabase dashboard displays, and therefore what gets pasted.
+  expect(() => parseEnv({ ...supabase, SUPABASE_URL: "xyz.supabase.co" })).toThrow(
+    "must be a full URL including https://",
+  );
+});
+
+test("a pasted trailing newline does not break an otherwise correct value", () => {
+  // Invisible in every dashboard field, and fatal without trimming.
+  // Written as a char code: a literal escape in this position is exactly the
+  // invisible character the test is about, and does not survive editing well.
+  const newline = String.fromCharCode(10);
+  const env = parseEnv({
+    SUPABASE_URL: `https://project.supabase.co${newline}`,
+    SUPABASE_SERVICE_ROLE_KEY: "  service-role-key  ",
+  });
+  expect(env.SUPABASE_URL).toBe("https://project.supabase.co");
+  expect(env.SUPABASE_SERVICE_ROLE_KEY).toBe("service-role-key");
+});
+
+test("whitespace alone reads as absent, not as a value", () => {
+  const tab = String.fromCharCode(9);
+  expect(() => parseEnv({ SUPABASE_URL: "   ", SUPABASE_SERVICE_ROLE_KEY: tab })).not.toThrow();
+});
+
+test("a bare Sentry DSN host is refused with the same guidance", () => {
+  expect(() => parseEnv({ NEXT_PUBLIC_SENTRY_DSN: "o44.ingest.sentry.io/456" })).toThrow(
+    "NEXT_PUBLIC_SENTRY_DSN",
+  );
+});

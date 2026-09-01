@@ -21,13 +21,35 @@ import { z } from "zod";
  * cleared, and `z.url()` rejects that with "invalid URL" — which reads as a
  * malformed address rather than an absent one, and sends you looking for a typo
  * in a value that is not there.
+ *
+ * Values are trimmed first. Pasting into a dashboard field picks up a trailing
+ * newline more often than anyone would like, and a variable that is correct
+ * apart from invisible whitespace is the worst kind of wrong: it fails, and the
+ * value looks right in every place you can see it.
  */
 const absent = <T extends z.ZodType>(inner: T) =>
-  z.preprocess((value) => (value === "" ? undefined : value), inner.optional());
+  z.preprocess((value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed === "" ? undefined : trimmed;
+  }, inner.optional());
+
+/**
+ * A URL, complained about in terms of the mistake actually being made.
+ *
+ * Supabase displays a project's address as a bare host — `xyz.supabase.co` —
+ * so that is what gets pasted, and `new URL()` rejects it. "Invalid URL" then
+ * sends you hunting a typo in a value that is correct apart from a scheme
+ * nobody was shown.
+ */
+const url = (name: string) =>
+  z.url({
+    error: `${name} must be a full URL including https:// — Supabase shows the bare host, which is not enough.`,
+  });
 
 const schema = z
   .object({
-    SUPABASE_URL: absent(z.url()),
+    SUPABASE_URL: absent(url("SUPABASE_URL")),
     SUPABASE_SERVICE_ROLE_KEY: absent(z.string().min(1)),
 
     /**
@@ -39,7 +61,7 @@ const schema = z
     SYNC_IN_MEMORY: absent(z.enum(["0", "1"])),
 
     /** Public by design — a DSN identifies a project, it does not authorise. */
-    NEXT_PUBLIC_SENTRY_DSN: absent(z.url()),
+    NEXT_PUBLIC_SENTRY_DSN: absent(url("NEXT_PUBLIC_SENTRY_DSN")),
 
     /**
      * Shared secret for the retention sweep, which Vercel Cron presents as a
