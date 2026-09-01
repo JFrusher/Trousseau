@@ -39,7 +39,10 @@ export function PolicyPage({ policy }: { policy: Policy }) {
       ))}
 
       <p className="mt-12 border-t border-stone pt-6 text-sm">
-        <Link href="/" className="underline underline-offset-2 hover:text-charcoal">
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-charcoal"
+        >
           Back to Trousseau
         </Link>
       </p>

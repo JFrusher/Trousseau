@@ -11,7 +11,9 @@ import type { ComponentType, ReactNode } from "react";
  */
 
 const FIELD =
-  "w-full rounded border border-charcoal/15 bg-parchment px-2 py-1.5 text-sm text-charcoal outline-none focus:border-gold";
+  // No `outline-none`: the global `:focus-visible` ring is the accessible
+  // indicator, and this border change is the decorative one on top of it.
+  "w-full rounded border border-charcoal/15 bg-parchment px-2 py-1.5 text-sm text-charcoal focus:border-gold";
 
 export function Panel({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
   return (

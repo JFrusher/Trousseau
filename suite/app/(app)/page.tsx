@@ -5,7 +5,9 @@ import { Countdown } from "@/components/shell/Countdown";
 import { WeddingPack } from "@/components/shell/WeddingPack";
 
 export const metadata: Metadata = {
-  title: "Trousseau",
+  // `absolute` so the root template does not append the suffix to the name it
+  // is a suffix of.
+  title: { absolute: "Trousseau" },
   description: "Seating, stationery, timeline and crew for one wedding.",
 };
 

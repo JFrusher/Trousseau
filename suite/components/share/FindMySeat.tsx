@@ -91,7 +91,7 @@ export function FindMySeat({ token }: { token: string }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Your name"
-          className="min-w-0 flex-1 bg-transparent outline-none"
+          className="min-w-0 flex-1 bg-transparent"
           aria-label="Your name"
         />
       </label>

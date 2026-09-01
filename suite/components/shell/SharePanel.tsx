@@ -405,7 +405,7 @@ export function SharePanel({ onProblem }: { onProblem: (message: string | null) 
                     readOnly
                     value={shareLink}
                     onFocus={(e) => e.currentTarget.select()}
-                    className="min-w-0 flex-1 rounded border border-charcoal/15 bg-stone px-2 py-1.5 text-xs text-charcoal outline-none"
+                    className="min-w-0 flex-1 rounded border border-charcoal/15 bg-stone px-2 py-1.5 text-xs text-charcoal"
                   />
                   <Button
                     icon={copied ? CheckIcon : Copy}

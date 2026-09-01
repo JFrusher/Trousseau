@@ -27,6 +27,26 @@
 }
 
 /**
+ * One visible focus ring, everywhere.
+ *
+ * There was none. Buttons carried only `hover:` styles, and the shared field
+ * class set `outline-none` and changed its border to gold instead — which is
+ * invisible to anyone not looking for it and, at roughly 1.9:1 against the
+ * parchment, well under the 3:1 WCAG asks of a focus indicator. Keyboard users
+ * had no reliable way to tell where they were.
+ *
+ * Charcoal rather than the gold used elsewhere for exactly that reason: it is
+ * the one accent with strong contrast against both grounds this app paints.
+ * `:focus-visible` rather than `:focus`, so a mouse click does not leave a ring
+ * behind on every button it touches.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-charcoal);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/**
  * Painted explicitly rather than left to the browser: the tools render print
  * previews, and a page that inherits a dark UA background makes a white A4
  * sheet look like the artwork rather than the paper.

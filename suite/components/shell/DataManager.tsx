@@ -348,7 +348,7 @@ function Field({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded border border-charcoal/15 bg-parchment px-2 py-1.5 text-charcoal outline-none focus:border-gold"
+        className="w-full rounded border border-charcoal/15 bg-parchment px-2 py-1.5 text-charcoal focus:border-gold"
       />
     </label>
   );
