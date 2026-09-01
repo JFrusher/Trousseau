@@ -14,6 +14,7 @@ import {
   MAX_BLOB_BYTES,
   MAX_BLOBS_PER_WEDDING,
   MAX_SLICE_BYTES,
+  MAX_WEDDING_BYTES,
   pull,
   push,
   putBlob,
@@ -431,4 +432,62 @@ test("sweeping leaves a wedding that is still in use alone", async () => {
 
   const swept = await sweepAbandoned(store, later);
   expect(swept.deleted).toContain(id);
+});
+
+// storage budget --------------------------------------------------------------
+
+/**
+ * The per-file and per-count limits never added up to anything: 64 files at 8MB
+ * is half a gigabyte, and anyone may create a wedding and choose its own
+ * passphrase, so uploading to it needs nobody's permission.
+ */
+
+test("a wedding cannot store more than its total budget across all assets", async () => {
+  const chunk = "a".repeat(6 * 1024 * 1024);
+  let stored = 0;
+  let refused: number | null = null;
+
+  for (let i = 0; i < MAX_BLOBS_PER_WEDDING; i++) {
+    const reply = await putBlob(store, id, token, `f${i}`, { ciphertext: chunk, iv: "iv" });
+    if (reply.status !== 200) {
+      refused = reply.status;
+      break;
+    }
+    stored += chunk.length;
+  }
+
+  expect(refused).toBe(400);
+  expect(stored).toBeLessThanOrEqual(MAX_WEDDING_BYTES);
+});
+
+test("replacing an asset is measured against what it replaces, not on top of it", async () => {
+  // Re-uploading the same id must not consume the budget twice, or syncing the
+  // same font between two machines would eventually be refused.
+  const font = "a".repeat(MAX_BLOB_BYTES);
+  expect((await putBlob(store, id, token, "font", { ciphertext: font, iv: "iv" })).status).toBe(200);
+  expect((await putBlob(store, id, token, "font", { ciphertext: font, iv: "iv" })).status).toBe(200);
+  expect(await store.blobBytes(id)).toBe(MAX_BLOB_BYTES);
+});
+
+test("the budget is per wedding, not shared between them", async () => {
+  const otherId = newWeddingId();
+  const otherSalt = newSalt();
+  const other = await deriveKeys("a different passphrase entirely", otherSalt);
+  await createWedding(store, {
+    id: otherId,
+    salt: otherSalt,
+    authHash: await tokenHash(other.writeToken),
+  });
+
+  // Fill the first wedding to its ceiling.
+  const chunk = "a".repeat(MAX_BLOB_BYTES);
+  for (let i = 0; i < MAX_WEDDING_BYTES / MAX_BLOB_BYTES; i++) {
+    expect((await putBlob(store, id, token, `f${i}`, { ciphertext: chunk, iv: "iv" })).status).toBe(200);
+  }
+  expect((await putBlob(store, id, token, "one-more", { ciphertext: chunk, iv: "iv" })).status).toBe(400);
+
+  // The second is untouched by that.
+  expect(
+    (await putBlob(store, otherId, other.writeToken, "f", { ciphertext: chunk, iv: "iv" })).status,
+  ).toBe(200);
 });

@@ -220,6 +220,19 @@ test("row level security is enabled on every table", async () => {
   expect(rls.rows.every((row) => row.relrowsecurity)).toBe(true);
 });
 
+// the storage budget ----------------------------------------------------------
+
+test("an asset records its own length, so the budget is cheap to ask for", async () => {
+  await wedding("w1");
+  await db.query(
+    "insert into blobs (wedding_id, blob_id, ciphertext, iv, bytes) values ('w1','b','abcdef','i',6)",
+  );
+  const rows = await db.query<{ total: number }>(
+    "select coalesce(sum(bytes),0)::int as total from blobs where wedding_id = 'w1'",
+  );
+  expect(rows.rows[0]?.total).toBe(6);
+});
+
 // upgrading an existing database ----------------------------------------------
 
 /**
@@ -273,6 +286,26 @@ test("the retention migration is safe to apply to a database with existing weddi
     "select extract(month from age(now(), updated_at))::int as months from weddings where id = 'w1'",
   );
   expect(rows.rows[0]?.months).toBeGreaterThanOrEqual(9);
+
+  await old.close();
+});
+
+test("the budget migration measures assets that were stored before it existed", async () => {
+  const files = migrationFiles();
+  const before = files.filter((f) => f < "20260901000003_storage_budget.sql");
+
+  const old = await databaseWith(before);
+  await old.query("insert into weddings (id, salt, auth_hash) values ('w1','salt','hash')");
+  await old.query(
+    "insert into blobs (wedding_id, blob_id, ciphertext, iv) values ('w1','b','abcdefghij','i')",
+  );
+
+  await old.exec(readFileSync(join(MIGRATIONS, "20260901000003_storage_budget.sql"), "utf8"));
+
+  // Left at zero, a wedding already at the ceiling would be handed a fresh
+  // budget by the migration that introduces the ceiling.
+  const rows = await old.query<{ bytes: number }>("select bytes from blobs where blob_id = 'b'");
+  expect(rows.rows[0]?.bytes).toBe(10);
 
   await old.close();
 });

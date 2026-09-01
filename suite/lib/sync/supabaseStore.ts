@@ -120,12 +120,21 @@ export function supabaseStore(): SyncStore | null {
       return (data ?? []).map((row) => row.blob_id as string);
     },
 
+    blobBytes: async (id) => {
+      // The recorded length, not the ciphertext: asking for the bytes must not
+      // mean sending every asset the wedding holds across the wire.
+      const { data, error } = await db.from("blobs").select("bytes").eq("wedding_id", id);
+      if (error) throw new Error(error.message);
+      return (data ?? []).reduce((total, row) => total + ((row.bytes as number) ?? 0), 0);
+    },
+
     putBlob: async (id, record) => {
       const { error } = await db.from("blobs").upsert({
         wedding_id: id,
         blob_id: record.blobId,
         ciphertext: record.ciphertext,
         iv: record.iv,
+        bytes: record.ciphertext.length,
         created_at: record.createdAt,
       });
       if (error) throw new Error(error.message);

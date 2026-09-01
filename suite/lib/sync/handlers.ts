@@ -13,6 +13,18 @@ export const MAX_BLOB_BYTES = 8 * 1024 * 1024;
 export const MAX_SLICES_PER_PUSH = 16;
 export const MAX_BLOBS_PER_WEDDING = 64;
 
+/**
+ * Everything one wedding may store, across all its assets.
+ *
+ * The per-file and per-count limits never added up to anything: 64 files at 8MB
+ * is half a gigabyte, and a stranger may create a wedding and choose its
+ * passphrase, so uploading to it needs no permission from anyone here.
+ *
+ * Sized from what a wedding actually uses — five typefaces at a couple of
+ * hundred kilobytes, and artwork for the stationery — with a wide margin.
+ */
+export const MAX_WEDDING_BYTES = 64 * 1024 * 1024;
+
 const tooBig = (what: string, limit: number): Reply => ({
   status: 413,
   body: { error: `That ${what} is over the ${Math.round(limit / 1024 / 1024)}MB limit.` },
@@ -201,6 +213,15 @@ export async function putBlob(
   // A ceiling per wedding, so one document cannot become a file host.
   if (!existing.includes(blobId) && existing.length >= MAX_BLOBS_PER_WEDDING) {
     return bad(`This wedding already holds ${MAX_BLOBS_PER_WEDDING} uploaded files.`);
+  }
+
+  // And a ceiling on the total, which the count alone never gave.
+  const held = await store.blobBytes(id);
+  const replacing = existing.includes(blobId) ? (await store.getBlob(id, blobId))?.ciphertext.length ?? 0 : 0;
+  if (held - replacing + sealed.ciphertext.length > MAX_WEDDING_BYTES) {
+    return bad(
+      `This wedding is at its ${Math.round(MAX_WEDDING_BYTES / 1024 / 1024)}MB limit for uploaded files. Remove something first.`,
+    );
   }
 
   await store.putBlob(id, { blobId, ...sealed, createdAt: new Date().toISOString() });

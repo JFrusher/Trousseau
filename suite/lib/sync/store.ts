@@ -66,6 +66,8 @@ export interface SyncStore {
     expectedVersion: number,
   ) => Promise<{ accepted: boolean; record: SliceRecord }>;
   listBlobs: (id: string) => Promise<string[]>;
+  /** Total ciphertext already stored for this wedding, in bytes. */
+  blobBytes: (id: string) => Promise<number>;
   putBlob: (id: string, record: BlobRecord) => Promise<void>;
   getBlob: (id: string, blobId: string) => Promise<BlobRecord | null>;
   putShare: (record: ShareRecord) => Promise<void>;
@@ -135,6 +137,11 @@ export function memoryStore(): SyncStore {
       const group = blobs.get(id) ?? new Map<string, BlobRecord>();
       blobs.set(id, group);
       group.set(record.blobId, record);
+    },
+    blobBytes: async (id) => {
+      let total = 0;
+      for (const record of blobs.get(id)?.values() ?? []) total += record.ciphertext.length;
+      return total;
     },
     getBlob: async (id, blobId) => blobs.get(id)?.get(blobId) ?? null,
     putShare: async (record) => void shares.set(record.token, record),
