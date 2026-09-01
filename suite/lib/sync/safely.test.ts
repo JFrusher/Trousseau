@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, test, vi } from "vitest";
-import { safely, schemaCacheIsStale, schemaIsBehind } from "./safely";
+import { backendUnreachable, safely, schemaCacheIsStale, schemaIsBehind } from "./safely";
 
 /**
  * What a failing database looks like from the outside.
@@ -97,4 +97,18 @@ test("a missing column is not mistaken for a stale cache", () => {
   const missing = new Error('column "updated_at" of relation "weddings" does not exist');
   expect(schemaIsBehind(missing)).toBe(true);
   expect(schemaCacheIsStale(missing)).toBe(false);
+});
+
+test("an unreachable backend is recognised, and not blamed on the schema", () => {
+  // What a paused Supabase project looks like: no SQL error at all, because
+  // nothing ever answered.
+  for (const message of ["fetch failed", "The operation was aborted due to timeout", "ENOTFOUND"]) {
+    expect(backendUnreachable(new Error(message)), message).toBe(true);
+    expect(schemaIsBehind(new Error(message)), message).toBe(false);
+  }
+});
+
+test("a schema error is not mistaken for the backend being down", () => {
+  const missing = new Error('column "updated_at" of relation "weddings" does not exist');
+  expect(backendUnreachable(missing)).toBe(false);
 });

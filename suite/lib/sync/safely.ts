@@ -40,6 +40,18 @@ export function schemaIsBehind(cause: unknown): boolean {
   );
 }
 
+/**
+ * The backend could not be reached at all.
+ *
+ * A paused Supabase project — which is what a free one does after a week of
+ * quiet — does not refuse the connection, it stops answering, so this arrives
+ * as a timeout or a bare `fetch failed` rather than anything about SQL.
+ */
+export function backendUnreachable(cause: unknown): boolean {
+  const message = cause instanceof Error ? cause.message : String(cause);
+  return /fetch failed|timed out|timeout|aborted|ENOTFOUND|ECONNREFUSED|network/i.test(message);
+}
+
 /** Whether it is PostgREST's cache rather than the database that is stale. */
 export function schemaCacheIsStale(cause: unknown): boolean {
   const message = cause instanceof Error ? cause.message : String(cause);
@@ -54,7 +66,14 @@ export async function safely(work: () => Promise<Reply>): Promise<NextResponse> 
     // The one failure worth naming, because it has a specific fix and is
     // otherwise a mystery: the code is deployed ahead of its migrations, so
     // every write fails on a column that does not exist yet.
-    if (schemaCacheIsStale(cause)) {
+    if (backendUnreachable(cause)) {
+      console.error(
+        "[Trousseau] could not reach Supabase at all. If this is a free " +
+          "project it has probably paused after a week of inactivity — restore " +
+          "it from the dashboard. Otherwise check SUPABASE_URL points at a " +
+          "project that still exists.",
+      );
+    } else if (schemaCacheIsStale(cause)) {
       console.error(
         "[Trousseau] PostgREST is serving a stale schema. The migrations are " +
           "probably applied and its cache has not caught up — run " +

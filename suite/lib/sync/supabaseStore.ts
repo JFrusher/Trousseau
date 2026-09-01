@@ -31,7 +31,16 @@ function supabase(): SupabaseClient | null {
   const { SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key } = env();
   // Both or neither — the schema has already refused the half-configured case.
   if (!url || !key) return null;
-  client = createClient(url, key, { auth: { persistSession: false } });
+  client = createClient(url, key, {
+    auth: { persistSession: false },
+    // Fail fast rather than hang. A paused or unreachable Supabase project does
+    // not refuse a connection, it simply never answers, and the client retries
+    // underneath — one create took 7.9 seconds in production before giving up,
+    // which the person waiting experiences as the application being broken
+    // rather than the backend being asleep. Five seconds is far longer than a
+    // healthy round trip and far shorter than a serverless timeout.
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(5000) }) },
+  });
   return client;
 }
 
