@@ -42,7 +42,7 @@ instead (see subsystem F).
 | C | Cadence/suite de-duplication | — | ✅ [spec written](superpowers/specs/2026-09-02-cadence-deduplication-design.md), execution blocked on `gh` access |
 | D | Tableaux's future | — | ✅ [spec written](superpowers/specs/2026-09-02-tableaux-migration-design.md) |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 direction set, needs its own decomposition |
-| F | Onboarding, billing & legal at product scale | A | 🟢 core decisions made, spec not yet written |
+| F | Onboarding, billing & legal at product scale | A | ✅ [spec written](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md) |
 | G | Multi-tenant suite mechanics | A, B | 🟢 core decisions made, spec not yet written |
 
 ## Decisions log
@@ -217,13 +217,11 @@ paid fork of the hosted service can't undercut the free-forever intent (the
 root contract package is currently MIT — needs reconciling, see open
 questions).
 
-**Still open:** the MIT-to-AGPL relicensing mechanics for existing code (the
-maintainer is sole copyright holder, so straightforward, but needs doing
-deliberately rather than assumed); what self-hosting setup actually requires
-(env var docs, a setup wizard, a `docker-compose` file?); real
-privacy/terms content for a multi-tenant product (the current pages were
-written for one wedding); whether donations/sponsorship is worth setting up
-now or later. Deferred to the dated spec.
+**Spec written:** [`2026-09-02-onboarding-billing-legal-design.md`](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md)
+— mechanical MIT→AGPL relicensing, self-hosting via a thorough markdown
+runbook (no Docker), privacy/terms flagged for a real content rewrite
+before real users' data is at stake, donations/sponsorship explicitly
+deferred until real usage exists. Ready for an implementation plan.
 
 ## Subsystem G — Multi-tenant suite mechanics
 
