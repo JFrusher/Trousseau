@@ -39,7 +39,7 @@ instead (see subsystem F).
 |---|---|---|---|
 | A | Identity & accounts | — | ✅ [spec written](superpowers/specs/2026-09-02-identity-accounts-design.md) |
 | B | Multi-tenant data & storage | A | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-storage-design.md) |
-| C | Cadence/suite de-duplication | — | 🟢 core decisions made, spec not yet written |
+| C | Cadence/suite de-duplication | — | ✅ [spec written](superpowers/specs/2026-09-02-cadence-deduplication-design.md), execution blocked on `gh` access |
 | D | Tableaux's future | — | 🟢 core decisions made, spec not yet written |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 direction set, needs its own decomposition |
 | F | Onboarding, billing & legal at product scale | A | 🟢 core decisions made, spec not yet written |
@@ -169,10 +169,12 @@ repo is archived via `gh` (not deleted) once its content is confirmed fully
 absorbed. Same policy applies to the other three apps' standalone repo
 histories.
 
-**Still open:** the mechanics of archiving safely (confirming nothing in the
-standalone repos is missing from `suite/`), and whether any of the other
-three standalone repos have already drifted the same way Cadence did.
-Deferred to the dated spec.
+**Spec written:** [`2026-09-02-cadence-deduplication-design.md`](superpowers/specs/2026-09-02-cadence-deduplication-design.md)
+— verified via git log comparison that the standalone `cadence` repo has no
+unported commits as of now, safe to archive. Execution is blocked on `gh`
+CLI access on this machine (or use the GitHub web UI instead — either
+works). The other three standalone repos get their own drift check in a
+later pass, not this one.
 
 ## Subsystem D — Tableaux's future
 
