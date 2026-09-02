@@ -43,7 +43,7 @@ instead (see subsystem F).
 | D | Tableaux's future | — | ✅ [spec written](superpowers/specs/2026-09-02-tableaux-migration-design.md) |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 direction set, needs its own decomposition |
 | F | Onboarding, billing & legal at product scale | A | ✅ [spec written](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md) |
-| G | Multi-tenant suite mechanics | A, B | 🟢 core decisions made, spec not yet written |
+| G | Multi-tenant suite mechanics | A, B | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-mechanics-design.md) |
 
 ## Decisions log
 
@@ -233,13 +233,10 @@ yet. Kept additive-safe: multi-wedding-per-account can be layered on later
 without a redesign, since it's a superset of the one-wedding case, not a
 different shape.
 
-**Still open:** per-tenant rate limiting shape (the existing `seat/[token]`
-limiter is explicitly known to not scale past in-memory/per-instance — does
-the same limitation apply here, and does it matter sooner given real
-signups?), admin/support tooling (does the maintainer need a way to look at
-a couple's wedding for support purposes, and if standard encryption/RLS
-means the server *can* read it, what's the access-control/audit story for
-that), account deletion/export, and how self-hosting (subsystem F) changes
-any of this — a self-hosted instance is inherently single- or
-few-tenant, so multi-tenant mechanics may only fully apply to the
-maintainer-run hosted instance. Deferred to the dated spec.
+**Spec written:** [`2026-09-02-multitenant-mechanics-design.md`](superpowers/specs/2026-09-02-multitenant-mechanics-design.md)
+— no built-in admin/support access to user data by design, reuse of the
+existing in-memory rate limiter until real usage demands better, and data
+export from day one (reusing the existing `bundle.mjs` pack format almost
+directly). Self-hosting mostly sidesteps this subsystem entirely, since a
+self-hosted instance is inherently single/few-tenant. Ready for an
+implementation plan.
