@@ -45,6 +45,18 @@ async function databaseWith(files: string[] = migrationFiles()): Promise<PGlite>
   const db = await PGlite.create();
   // Supabase supplies these; the migrations revoke grants from them by name.
   await db.exec("create role anon; create role authenticated;");
+  // Supabase also supplies its own `auth` schema. This suite's tables never
+  // reference it, but 20260902000001_accounts.sql — read generically off disk
+  // like every other file here — does, so it must exist before that
+  // migration (or any later one with the same dependency) can apply. Kept
+  // minimal and identical to the stub in lib/accounts/migrations.test.ts.
+  await db.exec(`
+    create schema if not exists auth;
+    create table if not exists auth.users (id uuid primary key, email text not null);
+    create or replace function auth.uid() returns uuid
+      language sql stable
+      as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+  `);
   for (const file of files) {
     await db.exec(readFileSync(join(MIGRATIONS, file), "utf8"));
   }
@@ -82,7 +94,17 @@ test("every migration applies in order, from empty", async () => {
   const tables = await db.query<{ table_name: string }>(
     "select table_name from information_schema.tables where table_schema = 'public' order by 1",
   );
-  expect(tables.rows.map((r) => r.table_name)).toEqual(["blobs", "shares", "slices", "weddings"]);
+  // Includes the accounts feature's tables too — this reads every migration
+  // file in the directory, not just the sync ones.
+  expect(tables.rows.map((r) => r.table_name)).toEqual([
+    "account_weddings",
+    "blobs",
+    "invites",
+    "shares",
+    "slices",
+    "wedding_members",
+    "weddings",
+  ]);
 });
 
 // the compare-and-set ---------------------------------------------------------
@@ -205,9 +227,16 @@ test("the anon role is given nothing on any table", async () => {
   // RLS is on with no policies, but the grants are the belt: the moment the
   // client library is pointed at this project with the anon key, these are what
   // stand between it and the rows.
+  //
+  // `anon` only, not `authenticated` too: that used to hold for both roles
+  // when this suite's own tables were the only ones in the schema, since sync
+  // is service-role-only and grants authenticated nothing either. The accounts
+  // feature's tables (in the same migrations directory this reads generically)
+  // deliberately do grant `authenticated` read access, gated by RLS — that is
+  // its own tests' concern, not this file's.
   const grants = await db.query<{ table_name: string }>(
     `select table_name from information_schema.role_table_grants
-      where grantee in ('anon', 'authenticated') and table_schema = 'public'`,
+      where grantee = 'anon' and table_schema = 'public'`,
   );
   expect(grants.rows).toEqual([]);
 });
