@@ -109,12 +109,10 @@ test("accountsConfigured is false with no Supabase config", () => {
 });
 
 test("accountsConfigured is true once SUPABASE_URL and the anon key are both set", () => {
-  const result = parseEnv({
-    NODE_ENV: "production",
-    SUPABASE_URL: "https://example.supabase.co",
-    SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key-value",
-  });
-  expect(result.SUPABASE_URL).toBe("https://example.supabase.co");
-  expect(result.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBe("anon-key-value");
+  resetCache();
+  process.env.NODE_ENV = "production";
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-value";
+  expect(accountsConfigured()).toBe(true);
 });
