@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
+import { describeCause } from "./safely";
 import type { Sealed } from "./crypto";
 import type { BlobRecord, ShareRecord, SliceRecord, SyncStore, WeddingRecord } from "./store";
 
@@ -39,7 +40,22 @@ function supabase(): SupabaseClient | null {
     // which the person waiting experiences as the application being broken
     // rather than the backend being asleep. Five seconds is far longer than a
     // healthy round trip and far shorter than a serverless timeout.
-    global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(5000) }) },
+    global: {
+      fetch: async (input, init) => {
+        try {
+          return await fetch(input, { ...init, signal: AbortSignal.timeout(5000) });
+        } catch (cause) {
+          // supabase-js catches this and re-throws it as a plain `Error`,
+          // dropping undici's `.cause` chain — which is where the actual
+          // reason lives: ECONNREFUSED, ENETUNREACH, a certificate failure,
+          // the AbortError from the timeout above. By the time `safely()` logs
+          // the error it has already lost that detail, so it is logged here,
+          // at the one point it still exists.
+          console.error("[Trousseau] fetch to Supabase failed:", describeCause(cause));
+          throw cause;
+        }
+      },
+    },
   });
   return client;
 }

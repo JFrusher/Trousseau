@@ -3,24 +3,6 @@ import { env } from "@/lib/env";
 import type { Reply } from "./handlers";
 
 /**
- * Run a handler, and turn a failing store into an answer rather than a stack.
- *
- * Every sync endpoint reaches a database, and nothing caught what that database
- * might throw: a Postgres error propagated out of the route as an unhandled
- * exception and reached the client as a bare 500 with no message. That is the
- * worst possible answer for the person on the other end, who is told only that
- * something went wrong while their wedding was being saved.
- *
- * It is not hypothetical. Deploying against a database whose migrations have
- * not been applied makes every write fail this way — the columns the store
- * writes do not exist yet — and the first thing anyone does with a passphrase
- * is a write.
- *
- * The client gets 503 and a sentence it can act on. The detail goes to the
- * server log and to Sentry, because it is for whoever runs this, and a database
- * error can name columns and constraints that a public endpoint should not.
- */
-/**
  * The database and this code disagree about what columns exist.
  *
  * Two quite different wordings, because there are two layers. Postgres itself
@@ -59,6 +41,31 @@ export function schemaCacheIsStale(cause: unknown): boolean {
   return /could not find .* in the schema cache/i.test(message);
 }
 
+/**
+ * Every layer of `.cause`, since Node nests the real reason under one.
+ *
+ * supabase-js catches a fetch failure and re-throws it as a plain `Error`,
+ * dropping undici's `.cause` chain — which is where the actual reason lives:
+ * `ECONNREFUSED`, `ENETUNREACH`, a certificate failure, the abort from a
+ * timeout. By the time that re-thrown error reaches `safely()` the detail is
+ * already gone, so the fetch wrapper in `supabaseStore.ts` calls this on the
+ * original error, before supabase-js gets to it.
+ */
+export function describeCause(error: unknown): string {
+  const seen: string[] = [];
+  let current: unknown = error;
+  for (let depth = 0; current && depth < 5; depth += 1) {
+    if (current instanceof Error) {
+      seen.push(`${current.name}: ${current.message}`);
+      current = current.cause;
+    } else {
+      seen.push(String(current));
+      break;
+    }
+  }
+  return seen.join(" <- caused by <- ");
+}
+
 function hostOf(url: string | undefined): string {
   if (!url) return "no SUPABASE_URL set";
   try {
@@ -77,6 +84,24 @@ export function categorise(cause: unknown): Failure {
   return "unknown";
 }
 
+/**
+ * Run a handler, and turn a failing store into an answer rather than a stack.
+ *
+ * Every sync endpoint reaches a database, and nothing caught what that database
+ * might throw: a Postgres error propagated out of the route as an unhandled
+ * exception and reached the client as a bare 500 with no message. That is the
+ * worst possible answer for the person on the other end, who is told only that
+ * something went wrong while their wedding was being saved.
+ *
+ * It is not hypothetical. Deploying against a database whose migrations have
+ * not been applied makes every write fail this way — the columns the store
+ * writes do not exist yet — and the first thing anyone does with a passphrase
+ * is a write.
+ *
+ * The client gets 503 and a sentence it can act on. The detail goes to the
+ * server log and to Sentry, because it is for whoever runs this, and a database
+ * error can name columns and constraints that a public endpoint should not.
+ */
 export async function safely(work: () => Promise<Reply>): Promise<NextResponse> {
   try {
     const reply = await work();

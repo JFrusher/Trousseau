@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest";
 import {
   backendUnreachable,
   categorise,
+  describeCause,
   safely,
   schemaCacheIsStale,
   schemaIsBehind,
@@ -139,4 +140,22 @@ test("each cause is categorised distinctly", () => {
   );
   expect(categorise(new Error('column "x" of relation "y" does not exist'))).toBe("schema-behind");
   expect(categorise(new Error("something else entirely"))).toBe("unknown");
+});
+
+test("describeCause walks the whole chain, deepest last", () => {
+  // What supabase-js throws away: the outer TypeError undici wraps everything
+  // in, and the real reason underneath it.
+  const real = new Error("connect ECONNREFUSED 127.0.0.1:443");
+  const wrapped = new Error("fetch failed", { cause: real });
+  expect(describeCause(wrapped)).toBe(
+    "Error: fetch failed <- caused by <- Error: connect ECONNREFUSED 127.0.0.1:443",
+  );
+});
+
+test("describeCause stops cleanly at the bottom of the chain", () => {
+  expect(describeCause(new Error("no cause here"))).toBe("Error: no cause here");
+});
+
+test("describeCause handles a non-Error thrown value", () => {
+  expect(describeCause("just a string")).toBe("just a string");
 });
