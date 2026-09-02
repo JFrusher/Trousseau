@@ -20,6 +20,24 @@ const GUTTER_MM = 13;
 const LANES_PER_PAGE = 4;
 const PAD_MM = 1.3;
 const LEADING = 1.25;
+/** Below this, drawBoxText already refuses to print — see minHeightForPt. */
+const MIN_LABEL_PT = 5;
+
+/**
+ * The shortest a box can be and still hold one line of type at `pt`, in the
+ * same units `boxesFor` and `drawBoxText` both work in.
+ *
+ * One formula rather than two. Before this, `boxesFor` inflated every short
+ * block up to a fixed floor sized for full-size type — a ten minute block on
+ * an eighteen hour page drew as tall as a twenty-five minute one, its box
+ * telling a different length than the clock beside it says. `drawBoxText`
+ * separately shrinks its own type down to `MIN_LABEL_PT` to fit whatever
+ * height it is actually given. The two are meant to agree on where "too
+ * short for any type at all" begins; written twice, they eventually would not.
+ */
+function minHeightForPt(pt: number): number {
+  return ptToMm(pt * LEADING) + PAD_MM * 0.5 + 0.4;
+}
 
 export interface Placed {
   block: Block;
@@ -64,9 +82,10 @@ export async function renderTimeline(
   const metaPt = 6.6 * style.typeScale;
   const labelPt = 8.4 * style.typeScale;
   const headPt = 8 * style.typeScale;
-  // The floor is one line of "14:30 Ceremony": below that a box says nothing,
-  // and a box that says nothing is worse than a taller one that lies slightly.
-  const minBoxMm = ptToMm(labelPt * LEADING) + PAD_MM + 0.5;
+  // A box's height is its duration on the clock and nothing else. Below this,
+  // there is no room for a line of type, and the label rides beside the box
+  // instead — see the `slivers` pass below.
+  const readableFloorMm = minHeightForPt(MIN_LABEL_PT);
 
   const lanes = laneLayout(doc);
   const span = spanOf(lanes);
@@ -148,12 +167,25 @@ export async function renderTimeline(
       const fill = 0.09 + laneIndex * 0.07;
 
       const geometry = { bodyTop, bodyHeight, fromMin: span.fromMin, mmPerMin };
-      boxesFor(lane, geometry, minBoxMm).forEach(({ entry, topMm, heightMm }) => {
+      const slivers: Placed[] = [];
+
+      boxesFor(lane, geometry).forEach(({ entry, topMm, heightMm }) => {
         const x = laneX + columnWidth * entry.column;
         const width = columnWidth - 1.2;
 
+        // The box is always the true duration, however small — it must never
+        // claim more time than the block actually has. One too short to hold
+        // a line of type prints no text of its own here; it gets a label
+        // riding beside it instead, in the pass below, the same way a
+        // zero-length moment already does.
         sheet.rect(x, topMm, width, heightMm, { colour: accent, opacity: fill });
         sheet.rect(x, topMm, 0.9, heightMm, { colour: accent });
+
+        if (heightMm < readableFloorMm) {
+          slivers.push(entry);
+          return;
+        }
+
         drawBoxText(sheet, entry, {
           doc,
           x: x + 0.9 + PAD_MM,
@@ -168,8 +200,9 @@ export async function renderTimeline(
         });
       });
 
-      // Moments last, so they read on top of whatever is running underneath.
-      lane.moments.forEach((entry) => {
+      // Moments and slivers last, so their labels read on top of whatever is
+      // running underneath rather than the box being drawn over them.
+      [...lane.moments, ...slivers].forEach((entry) => {
         drawMoment(sheet, entry, {
           x: laneX,
           width: laneWidth - 1.2,
@@ -273,55 +306,52 @@ export interface Box {
 }
 
 /**
- * Every box in a lane, in millimetres down the page. A block shorter than one
- * readable line is drawn at that minimum and the blocks under it shuffle down
- * to make the room — a debt the lane repays at the first real gap, so the drift
- * stays inside the run of back-to-back blocks that caused it rather than
- * walking the whole evening off its own hour line.
+ * Every box in a lane, in millimetres down the page, at its true duration.
  *
- * That repayment only happens if a gap actually arrives before the lane runs
- * out of page. A long run of short blocks with no gap in it — the far end of a
- * busy evening, say — could compound the debt past `bottom` with nothing left
- * to repay it against, and the old floor of 0.8mm on `heightMm` kept a box
- * being drawn even once its `topMm` had already run past the bottom of the
- * page: printed below the footer, or off the sheet altogether.
+ * A box's height must be honest — the one thing a reader trusts it for
+ * without reading the type inside it is how long the coloured bar runs, and a
+ * box drawn taller than its block lasts is a box that lies about the block it
+ * stands for. That used to happen on purpose: a block shorter than one
+ * readable line was inflated up to a fixed floor so its label always had
+ * somewhere to sit, on the reasoning that a box saying nothing was worse than
+ * a taller one that lied slightly. It is not — a ten minute block drawn as
+ * long as a twenty-five minute one is wrong every time it happens, not only
+ * when a reader checks the clock beside it. What replaces it: the box always
+ * tells the truth about its own length, and a block too short to hold a line
+ * of type gets its label drawn beside it instead, the same way a zero-length
+ * moment already is — see the `slivers` pass in `renderTimeline`.
  *
- * The fix is the same shape as the "scale bends, never the sheet count"
- * promise this file already keeps for a day that runs long: if the debt a
- * column has built by its last box would carry it past `bottom`, the whole
- * column is scaled back — positions and heights together — until its last box
+ * The one thing still worth guarding here is the page, not the box: stacking
+ * enough blocks into one lane — a long run of them, or simply a great many —
+ * advances the per-block 0.7mm gutter far enough on its own to run a column
+ * past the bottom, with no single block anywhere near the reader's fault for
+ * it. If a column's natural total would carry it past `bottom`, the whole
+ * column scales back — positions and heights together — until its last box
  * lands exactly on the page. Nothing is dropped and nothing prints past the
- * bottom; a lane packed tightly enough draws its boxes a little shorter than
- * `minBoxMm` rather than a little too low.
+ * bottom.
  */
-export function boxesFor(lane: Lane, body: Body, minBoxMm: number): Box[] {
+export function boxesFor(lane: Lane, body: Body): Box[] {
   const bottom = body.bodyTop + body.bodyHeight;
   const cursor = new Map<number, number>();
 
   const natural = lane.placed.map((entry) => {
     const trueTop = body.bodyTop + (entry.startMin - body.fromMin) * body.mmPerMin;
     const topMm = Math.max(trueTop, cursor.get(entry.column) ?? trueTop);
-    const heightMm = Math.max(minBoxMm, (entry.endMin - entry.startMin) * body.mmPerMin);
+    const heightMm = Math.max(0, (entry.endMin - entry.startMin) * body.mmPerMin);
     cursor.set(entry.column, topMm + heightMm + 0.7);
     return { entry, topMm, heightMm };
   });
 
-  // The deepest any column's debt reached. Columns are independent — one lane
-  // can hold several sub-columns of overlapping blocks — so this has to be the
-  // worst of them, not any single column's own total.
+  // The deepest any column's total reached. Columns are independent — one
+  // lane can hold several sub-columns of overlapping blocks — so this has to
+  // be the worst of them, not any single column's own total.
   const deepest = Math.max(bottom, ...cursor.values());
   const scale = deepest > bottom ? (bottom - body.bodyTop) / (deepest - body.bodyTop) : 1;
 
   return natural.map(({ entry, topMm, heightMm }) => ({
     entry,
     topMm: body.bodyTop + (topMm - body.bodyTop) * scale,
-    // Still floored at 0.8mm for visibility once scaled down. That reopens a
-    // sliver of the same risk this fix closes, but only in a lane packed with
-    // enough blocks that dozens of them are simultaneously at the floor — a
-    // day printed at this density has bigger problems than a millimetre of
-    // page, and the alternative is dropping a block or adding a page, both of
-    // which this renderer already refuses to do.
-    heightMm: Math.max(0.8, heightMm * scale),
+    heightMm: heightMm * scale,
   }));
 }
 
@@ -428,7 +458,7 @@ function drawBoxText(sheet: Sheet, entry: Placed, context: BoxContext): void {
     context.labelPt,
     mmToPt(context.height - PAD_MM * 0.5 - 0.4) / LEADING,
   );
-  if (headPt < 5) return;
+  if (headPt < MIN_LABEL_PT) return;
 
   const tight = headPt < context.labelPt;
   const headHeight = ptToMm(headPt * LEADING);

@@ -125,13 +125,12 @@ describe("renderTimeline", () => {
 });
 
 describe("boxesFor", () => {
-  // A431mm page with headerMm 20, laneHeadMm 7, footerMm 8 and 12mm margins
+  // A4 page with headerMm 20, laneHeadMm 7, footerMm 8 and 12mm margins
   // leaves a 238mm-tall body running from 39mm to 277mm — the numbers a real
   // A4 run of renderTimeline would use. mmPerMin is set as it would be for an
   // eight-hour span on that body: 238 / 480.
   const body: Body = { bodyTop: 39, bodyHeight: 238, fromMin: 480, mmPerMin: 238 / 480 };
   const bottom = body.bodyTop + body.bodyHeight;
-  const minBoxMm = 5.5;
 
   function placed(id: string, startMin: number, durationMin: number, column = 0): Placed {
     return {
@@ -142,59 +141,47 @@ describe("boxesFor", () => {
     };
   }
 
-  it("never starts a box below the printable bottom of the page", () => {
-    // Fifty one-minute blocks, back to back, starting three hours in — the
-    // shape of a busy stretch of the evening with nothing between blocks to
-    // repay the floor's debt against. Before the fix this ran the boxes' tops
-    // straight through `bottom` and kept drawing anyway.
+  it("draws a box exactly as tall as the block's real duration, never inflated", () => {
+    // The actual bug report: boxes were "sized bigger than they take up".
+    // A block shorter than one readable line used to be inflated up to a
+    // fixed floor regardless of its true length — a ten minute block drawn as
+    // tall as a twenty-five minute one. There is no floor left to hit here.
     const lane: Lane = {
       name: "Main",
       moments: [],
       columns: 1,
-      placed: Array.from({ length: 50 }, (_, i) => placed(`blk-${i}`, 660 + i, 1)),
+      placed: [placed("tiny", 480, 3), placed("short", 483, 10), placed("long", 493, 60)],
     };
 
-    const boxes = boxesFor(lane, body, minBoxMm);
-    for (const box of boxes) {
-      expect(box.topMm).toBeLessThanOrEqual(bottom);
-    }
+    const [tiny, short, long] = boxesFor(lane, body);
+    expect(tiny?.heightMm).toBeCloseTo(3 * body.mmPerMin, 5);
+    expect(short?.heightMm).toBeCloseTo(10 * body.mmPerMin, 5);
+    expect(long?.heightMm).toBeCloseTo(60 * body.mmPerMin, 5);
   });
 
-  it("never draws a box past the printable bottom of the page either", () => {
+  it("gives two blocks of equal length equal height, whatever their duration", () => {
+    // Restated the other way round: height is a pure function of duration,
+    // not a step function that goes flat below some cutoff.
     const lane: Lane = {
       name: "Main",
       moments: [],
       columns: 1,
-      placed: Array.from({ length: 50 }, (_, i) => placed(`blk-${i}`, 660 + i, 1)),
+      placed: [placed("a", 480, 4), placed("b", 700, 4)],
     };
 
-    const boxes = boxesFor(lane, body, minBoxMm);
-    for (const box of boxes) {
-      expect(box.topMm + box.heightMm).toBeLessThanOrEqual(bottom + 0.01);
-    }
+    const [a, b] = boxesFor(lane, body);
+    expect(a?.heightMm).toBeCloseTo(b?.heightMm ?? -1, 10);
   });
 
-  it("keeps every block, even once packing forces boxes below the readable floor", () => {
-    // The same pathological lane. Nothing here may vanish — a timeline that
-    // silently drops a block is not one, which is exactly what
-    // "names every block" already asserts of the full render below.
-    const lane: Lane = {
-      name: "Main",
-      moments: [],
-      columns: 1,
-      placed: Array.from({ length: 50 }, (_, i) => placed(`blk-${i}`, 660 + i, 1)),
-    };
-
-    const boxes = boxesFor(lane, body, minBoxMm);
-    expect(boxes).toHaveLength(50);
-    for (const box of boxes) {
-      expect(box.heightMm).toBeGreaterThan(0);
-    }
+  it("a zero-length entry draws a zero-height box, not a floor-sized one", () => {
+    const lane: Lane = { name: "Main", moments: [], columns: 1, placed: [placed("blip", 480, 0)] };
+    expect(boxesFor(lane, body)[0]?.heightMm).toBe(0);
   });
 
   it("does not touch a lane with enough page to hold it", () => {
     // The ordinary case: three blocks with real gaps, well inside the body.
-    // Confirms the fix does not compress a page that never needed it.
+    // Confirms the overflow guard does not compress a page that never
+    // needed it.
     const lane: Lane = {
       name: "Main",
       moments: [],
@@ -202,30 +189,63 @@ describe("boxesFor", () => {
       placed: [placed("a", 480, 60), placed("b", 600, 60), placed("c", 720, 60)],
     };
 
-    const boxes = boxesFor(lane, body, minBoxMm);
+    const boxes = boxesFor(lane, body);
     expect(boxes[0]?.topMm).toBeCloseTo(body.bodyTop, 5);
     expect(boxes[0]?.heightMm).toBeCloseTo(60 * body.mmPerMin, 5);
   });
 
+  it("never starts or draws a box past the printable bottom of the page", () => {
+    // With no floor left to inflate individual boxes, the only way left to
+    // overrun the page is sheer count: enough blocks that the fixed 0.7mm
+    // gutter between them alone outgrows the body. Five hundred one-minute
+    // blocks add roughly 600mm of gutter and content against a 238mm body.
+    const lane: Lane = {
+      name: "Main",
+      moments: [],
+      columns: 1,
+      placed: Array.from({ length: 500 }, (_, i) => placed(`blk-${i}`, 480 + i, 1)),
+    };
+
+    const boxes = boxesFor(lane, body);
+    for (const box of boxes) {
+      expect(box.topMm).toBeLessThanOrEqual(bottom);
+      expect(box.topMm + box.heightMm).toBeLessThanOrEqual(bottom + 0.01);
+    }
+  });
+
+  it("keeps every block even once the page forces them scaled down", () => {
+    // Nothing here may vanish — a timeline that silently drops a block is
+    // not one, which is exactly what "names every block" already asserts of
+    // the full render below.
+    const lane: Lane = {
+      name: "Main",
+      moments: [],
+      columns: 1,
+      placed: Array.from({ length: 500 }, (_, i) => placed(`blk-${i}`, 480 + i, 1)),
+    };
+
+    expect(boxesFor(lane, body)).toHaveLength(500);
+  });
+
   it("scales two overlapping columns by the same factor, not independently", () => {
-    // A lane packed enough in one column to trigger the debt should not warp
+    // A lane packed enough in one column to force scaling should not warp
     // its shape relative to a second column sharing the same page — the
     // scale is one number for the whole lane, taken from whichever column's
-    // debt is worst.
+    // total is worst.
     const lane: Lane = {
       name: "Main",
       moments: [],
       columns: 2,
       placed: [
-        ...Array.from({ length: 50 }, (_, i) => placed(`busy-${i}`, 660 + i, 1, 0)),
+        ...Array.from({ length: 500 }, (_, i) => placed(`busy-${i}`, 480 + i, 1, 0)),
         placed("quiet", 480, 60, 1),
       ],
     };
 
-    const boxes = boxesFor(lane, body, minBoxMm);
+    const boxes = boxesFor(lane, body);
     const quiet = boxes.find((box) => box.entry.block.id === "quiet");
     // Scaled down along with the busy column, from the same bodyTop origin —
-    // not left at its natural, unscaled position.
+    // not left at its natural, unscaled position or height.
     expect(quiet?.topMm).toBeCloseTo(body.bodyTop, 5);
     expect(quiet?.heightMm).toBeLessThan(60 * body.mmPerMin);
   });
