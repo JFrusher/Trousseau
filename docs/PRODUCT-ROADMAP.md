@@ -40,7 +40,7 @@ instead (see subsystem F).
 | A | Identity & accounts | — | ✅ [spec written](superpowers/specs/2026-09-02-identity-accounts-design.md) |
 | B | Multi-tenant data & storage | A | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-storage-design.md) |
 | C | Cadence/suite de-duplication | — | ✅ [spec written](superpowers/specs/2026-09-02-cadence-deduplication-design.md), execution blocked on `gh` access |
-| D | Tableaux's future | — | 🟢 core decisions made, spec not yet written |
+| D | Tableaux's future | — | ✅ [spec written](superpowers/specs/2026-09-02-tableaux-migration-design.md) |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 direction set, needs its own decomposition |
 | F | Onboarding, billing & legal at product scale | A | 🟢 core decisions made, spec not yet written |
 | G | Multi-tenant suite mechanics | A, B | 🟢 core decisions made, spec not yet written |
@@ -91,11 +91,14 @@ against, not a discussion to reopen without a reason.
   never fully deleted** — this is a general policy for all the formerly-
   standalone repos (Plaque, Cadence, Brigade, Tableaux each has one), not
   Cadence-specific: history is kept, but nobody develops against it again.
-- **2026-09-02** — Tableaux: full rewrite to TypeScript, matching the pattern
-  the other three apps already use. Justified by both the audit's
-  schema-drift finding and subsystem B's storage rework touching Tableaux's
-  data layer regardless — one rewrite instead of a patch now and a rewrite
-  later.
+- **2026-09-02** — Tableaux: *(revised same day — see below)* first decided
+  as a full rewrite to TypeScript; reconsidered after realizing that risked
+  losing working, audit-validated behavior for no real gain. **Revised
+  decision: incremental in-place TypeScript migration** — same files, same
+  logic, same behavior, converted progressively (allowJs during transition)
+  with real schema validation added at the data boundary as it goes. Not a
+  rewrite. Solid existing logic (CSV parser, warnings engine, per the audit)
+  is typed in place, not redesigned.
 - **2026-09-02** — Business model: always free and open source. No
   freemium, no paid tiers — explicitly the reason this project exists.
 - **2026-09-02** — Hosting sustainability: hybrid — a maintainer-run hosted
@@ -178,13 +181,14 @@ later pass, not this one.
 
 ## Subsystem D — Tableaux's future
 
-**Decided:** full rewrite to TypeScript, matching the other three apps'
-schema-validated pattern. Not a patch-in-place, not a deferral.
+**Revised same day:** first decided as a full TypeScript rewrite, then
+reconsidered in favor of keeping current function and workings intact.
 
-**Still open:** how much of the current JS implementation's logic ports
-directly (the CSV parser and warnings engine both look solid per the audit)
-vs. gets redesigned; sequencing against subsystem B's storage rework, since
-they touch the same data layer. Deferred to the dated spec.
+**Spec written:** [`2026-09-02-tableaux-migration-design.md`](superpowers/specs/2026-09-02-tableaux-migration-design.md)
+— incremental in-place TS migration (allowJs during transition, data
+boundary converted first), real zod validation replacing `.passthrough()`,
+no behavior changes bundled in, proceeds independently of subsystem B.
+Ready for an implementation plan.
 
 ## Subsystem E — Brigade's expanded scope
 
