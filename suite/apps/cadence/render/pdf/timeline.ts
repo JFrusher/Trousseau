@@ -21,7 +21,7 @@ const LANES_PER_PAGE = 4;
 const PAD_MM = 1.3;
 const LEADING = 1.25;
 
-interface Placed {
+export interface Placed {
   block: Block;
   startMin: number;
   /** The block's own end, buffer excluded — the buffer prints as text, not as height. */
@@ -30,7 +30,7 @@ interface Placed {
   column: number;
 }
 
-interface Lane {
+export interface Lane {
   name: string;
   placed: Placed[];
   /** Zero-length blocks. They are drawn across the lane, not packed into it. */
@@ -259,14 +259,14 @@ function spanOf(lanes: Lane[]): { fromMin: number; toMin: number } {
   return { fromMin, toMin: Math.max(fromMin + 60, Math.ceil((last + 1) / 60) * 60) };
 }
 
-interface Body {
+export interface Body {
   bodyTop: number;
   bodyHeight: number;
   fromMin: number;
   mmPerMin: number;
 }
 
-interface Box {
+export interface Box {
   entry: Placed;
   topMm: number;
   heightMm: number;
@@ -278,19 +278,51 @@ interface Box {
  * to make the room — a debt the lane repays at the first real gap, so the drift
  * stays inside the run of back-to-back blocks that caused it rather than
  * walking the whole evening off its own hour line.
+ *
+ * That repayment only happens if a gap actually arrives before the lane runs
+ * out of page. A long run of short blocks with no gap in it — the far end of a
+ * busy evening, say — could compound the debt past `bottom` with nothing left
+ * to repay it against, and the old floor of 0.8mm on `heightMm` kept a box
+ * being drawn even once its `topMm` had already run past the bottom of the
+ * page: printed below the footer, or off the sheet altogether.
+ *
+ * The fix is the same shape as the "scale bends, never the sheet count"
+ * promise this file already keeps for a day that runs long: if the debt a
+ * column has built by its last box would carry it past `bottom`, the whole
+ * column is scaled back — positions and heights together — until its last box
+ * lands exactly on the page. Nothing is dropped and nothing prints past the
+ * bottom; a lane packed tightly enough draws its boxes a little shorter than
+ * `minBoxMm` rather than a little too low.
  */
-function boxesFor(lane: Lane, body: Body, minBoxMm: number): Box[] {
+export function boxesFor(lane: Lane, body: Body, minBoxMm: number): Box[] {
   const bottom = body.bodyTop + body.bodyHeight;
   const cursor = new Map<number, number>();
 
-  return lane.placed.map((entry) => {
+  const natural = lane.placed.map((entry) => {
     const trueTop = body.bodyTop + (entry.startMin - body.fromMin) * body.mmPerMin;
     const topMm = Math.max(trueTop, cursor.get(entry.column) ?? trueTop);
-    const natural = (entry.endMin - entry.startMin) * body.mmPerMin;
-    const heightMm = Math.max(0.8, Math.min(Math.max(natural, minBoxMm), bottom - topMm));
+    const heightMm = Math.max(minBoxMm, (entry.endMin - entry.startMin) * body.mmPerMin);
     cursor.set(entry.column, topMm + heightMm + 0.7);
     return { entry, topMm, heightMm };
   });
+
+  // The deepest any column's debt reached. Columns are independent — one lane
+  // can hold several sub-columns of overlapping blocks — so this has to be the
+  // worst of them, not any single column's own total.
+  const deepest = Math.max(bottom, ...cursor.values());
+  const scale = deepest > bottom ? (bottom - body.bodyTop) / (deepest - body.bodyTop) : 1;
+
+  return natural.map(({ entry, topMm, heightMm }) => ({
+    entry,
+    topMm: body.bodyTop + (topMm - body.bodyTop) * scale,
+    // Still floored at 0.8mm for visibility once scaled down. That reopens a
+    // sliver of the same risk this fix closes, but only in a lane packed with
+    // enough blocks that dozens of them are simultaneously at the floor — a
+    // day printed at this density has bigger problems than a millimetre of
+    // page, and the alternative is dropping a block or adding a page, both of
+    // which this renderer already refuses to do.
+    heightMm: Math.max(0.8, heightMm * scale),
+  }));
 }
 
 interface HourContext {
