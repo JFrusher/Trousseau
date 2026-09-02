@@ -37,7 +37,7 @@ instead (see subsystem F).
 
 | # | Subsystem | Depends on | Status |
 |---|---|---|---|
-| A | Identity & accounts | — | 🟢 core decisions made, spec not yet written |
+| A | Identity & accounts | — | ✅ [spec written](superpowers/specs/2026-09-02-identity-accounts-design.md) |
 | B | Multi-tenant data & storage | A | 🟢 core decisions made, spec not yet written |
 | C | Cadence/suite de-duplication | — | 🟢 core decisions made, spec not yet written |
 | D | Tableaux's future | — | 🟢 core decisions made, spec not yet written |
@@ -125,11 +125,11 @@ a shared login); couple-only roles for now (guests and vendors/crew stay
 link-based, no logins); email + magic-link sign-in, no passwords, no social
 login for now.
 
-**Still open:** invite-acceptance flow details (pending state, what an
-invited partner sees before accepting), session length/security policy,
-account deletion, whether email verification is required before a wedding
-can be created. Deferred to the dated spec when this subsystem is actually
-built.
+**Spec written:** [`2026-09-02-identity-accounts-design.md`](superpowers/specs/2026-09-02-identity-accounts-design.md)
+— one-click invite via emailed link (locked to the invited email, rejects a
+mismatched signer), no separate email verification, long-lived sessions, and
+wedding survives account deletion as long as one member remains. Ready for
+an implementation plan.
 
 ## Subsystem B — Multi-tenant data & storage
 
