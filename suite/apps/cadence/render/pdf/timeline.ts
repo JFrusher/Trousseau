@@ -321,31 +321,43 @@ export interface Box {
  * of type gets its label drawn beside it instead, the same way a zero-length
  * moment already is — see the `slivers` pass in `renderTimeline`.
  *
- * The one thing still worth guarding here is the page, not the box: stacking
- * enough blocks into one lane — a long run of them, or simply a great many —
- * advances the per-block 0.7mm gutter far enough on its own to run a column
- * past the bottom, with no single block anywhere near the reader's fault for
- * it. If a column's natural total would carry it past `bottom`, the whole
- * column scales back — positions and heights together — until its last box
- * lands exactly on the page. Nothing is dropped and nothing prints past the
- * bottom.
+ * The one thing still worth guarding here is the page, not the box: a column
+ * holding enough blocks — a long run of them, or simply a great many — can
+ * still carry its true total past the bottom on its own, with no single
+ * block anywhere near the reader's fault for it. If a column's natural total
+ * would carry it past `bottom`, the whole column scales back — positions and
+ * heights together — until its last box lands exactly on the page. Nothing
+ * is dropped and nothing prints past the bottom.
+ *
+ * There used to be a fixed 0.7mm gutter added after every box on top of its
+ * true duration, to leave visual breathing room between one box and the
+ * next. Column assignment already guarantees no two blocks in the same
+ * column overlap in time, so that gutter was never needed to prevent boxes
+ * touching — but stacked one atop another for every box in the column, it
+ * silently pushed each later box further from its true time than the one
+ * before, with nothing to ever pay the debt back on a lane that never has a
+ * real gap between blocks (a normal back-to-back day-of schedule, ceremony
+ * to last dance). A box's position is as much a promise as its height: it
+ * belongs exactly on its own true time, gap or no gap.
  */
 export function boxesFor(lane: Lane, body: Body): Box[] {
   const bottom = body.bodyTop + body.bodyHeight;
-  const cursor = new Map<number, number>();
 
   const natural = lane.placed.map((entry) => {
-    const trueTop = body.bodyTop + (entry.startMin - body.fromMin) * body.mmPerMin;
-    const topMm = Math.max(trueTop, cursor.get(entry.column) ?? trueTop);
+    const topMm = body.bodyTop + (entry.startMin - body.fromMin) * body.mmPerMin;
     const heightMm = Math.max(0, (entry.endMin - entry.startMin) * body.mmPerMin);
-    cursor.set(entry.column, topMm + heightMm + 0.7);
     return { entry, topMm, heightMm };
   });
 
-  // The deepest any column's total reached. Columns are independent — one
-  // lane can hold several sub-columns of overlapping blocks — so this has to
-  // be the worst of them, not any single column's own total.
-  const deepest = Math.max(bottom, ...cursor.values());
+  // The deepest any column's true extent reaches. Columns are independent —
+  // one lane can hold several sub-columns of overlapping blocks — so this has
+  // to be the worst of them, not any single column's own total.
+  const deepestByColumn = new Map<number, number>();
+  for (const { entry, topMm, heightMm } of natural) {
+    const prev = deepestByColumn.get(entry.column) ?? topMm;
+    deepestByColumn.set(entry.column, Math.max(prev, topMm + heightMm));
+  }
+  const deepest = Math.max(bottom, ...deepestByColumn.values());
   const scale = deepest > bottom ? (bottom - body.bodyTop) / (deepest - body.bodyTop) : 1;
 
   return natural.map(({ entry, topMm, heightMm }) => ({

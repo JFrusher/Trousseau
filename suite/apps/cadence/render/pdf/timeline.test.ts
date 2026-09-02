@@ -227,6 +227,41 @@ describe("boxesFor", () => {
     expect(boxesFor(lane, body)).toHaveLength(500);
   });
 
+  it("keeps a fully back-to-back day on its true time, gap or no gap", () => {
+    // The actual bug report: a normal day-of schedule — one block ending
+    // exactly where the next starts, all the way down, comfortably inside
+    // the page — drifted later and later the further down the lane it went.
+    // Ten blocks with zero gap between any of them, mirroring a real
+    // ceremony-to-last-dance run: 660 minutes of content on a page sized for
+    // the day's full 780-minute span (13:00 to past midnight), the same
+    // slack a real wedding day leaves top and bottom. Nothing here should
+    // ever need scaling.
+    const dayBody: Body = { bodyTop: 39, bodyHeight: 238, fromMin: 720, mmPerMin: 238 / 780 };
+    const lane: Lane = {
+      name: "Main",
+      moments: [],
+      columns: 1,
+      placed: [
+        placed("a", 780, 60), // 13:00-14:00 Ceremony
+        placed("b", 840, 30), // 14:00-14:30 Sandwiches
+        placed("c", 870, 60), // 14:30-15:30 Group Photos
+        placed("d", 930, 30), // 15:30-16:00 Cake cutting + Speeches
+        placed("e", 960, 30), // 16:00-16:30 Hall Transfer Window
+        placed("f", 990, 60), // 16:30-17:30 Cocktail Hour
+        placed("g", 1050, 120), // 17:30-19:30 Food
+        placed("h", 1170, 30), // 19:30-20:00 Speeches + Announcements
+        placed("i", 1200, 210), // 20:00-23:30 Dancing
+        placed("j", 1410, 30), // 23:30-00:00 Leave
+      ],
+    };
+
+    const boxes = boxesFor(lane, dayBody);
+    for (const box of boxes) {
+      const trueTop = dayBody.bodyTop + (box.entry.startMin - dayBody.fromMin) * dayBody.mmPerMin;
+      expect(box.topMm).toBeCloseTo(trueTop, 5);
+    }
+  });
+
   it("scales two overlapping columns by the same factor, not independently", () => {
     // A lane packed enough in one column to force scaling should not warp
     // its shape relative to a second column sharing the same page — the
