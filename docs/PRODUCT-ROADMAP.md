@@ -41,7 +41,7 @@ instead (see subsystem F).
 | B | Multi-tenant data & storage | A | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-storage-design.md) |
 | C | Cadence/suite de-duplication | — | ✅ [spec written](superpowers/specs/2026-09-02-cadence-deduplication-design.md), execution blocked on `gh` access |
 | D | Tableaux's future | — | ✅ [spec written](superpowers/specs/2026-09-02-tableaux-migration-design.md) |
-| E | Brigade's expanded scope | (loosely) A, B | 🟡 direction set, needs its own decomposition |
+| E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
 | F | Onboarding, billing & legal at product scale | A | ✅ [spec written](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md) |
 | G | Multi-tenant suite mechanics | A, B | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-mechanics-design.md) |
 
@@ -193,18 +193,29 @@ Ready for an implementation plan.
 ## Subsystem E — Brigade's expanded scope
 
 **Decided:** Brigade keeps building on Cadence's published day, and grows
-into four new areas: vendor/contract management (deposits, payment due
-dates, contact history), budget tracking (per-vendor cost vs. overall
-budget), general task/checklist management (not tied to a Cadence block —
-"book florist by March"), and a vendor-facing communication/portal (send job
-sheets/timelines directly, track confirmation, not just PDF export).
+into four new areas, decomposed into their own sequence — each gets its own
+dated spec when it's actually designed, the way the top-level seven
+subsystems do:
 
-**Still open:** this is four substantial features, not one — it needs its
-own decomposition and sequencing pass (likely its own set of dated specs,
-one per area) rather than a single design. Budget tracking and vendor
-management look most naturally paired; the communication portal likely
-depends on subsystem A/B (vendors need *some* way to receive/view things,
-even if not full accounts) and should probably come last. Not yet sequenced.
+| # | Feature | Depends on | Status |
+|---|---|---|---|
+| E1 | Vendor/contract management (deposits, payment dates, contact history) | — | ⬜ not started |
+| E2 | Budget tracking (per-vendor cost vs. overall budget) | E1 | ⬜ not started |
+| E3 | General task/checklist management (not tied to a Cadence block) | — | ⬜ not started |
+| E4 | Vendor-facing communication/portal (send job sheets, track confirmation) | E1, likely reuses the `/seat/[token]` share-link pattern rather than real vendor logins | ⬜ not started |
+
+**Sequencing rationale:** E1 is foundational — both E2 (budget lines attach
+to vendors) and E4 (you need a real vendor contact to send something to)
+need vendors to exist as real entities first. E3 is independent of the
+other three and could slot in anywhere, but doesn't block or get blocked by
+them. E4 is last both because it depends on E1 and because it's the most
+complex of the four — it likely needs some way for a vendor to receive/view
+something without a full account, which points toward reusing the
+`/seat/[token]` share-link pattern (subsystem B's territory) rather than
+extending subsystem A's couple-only accounts to a third role.
+
+**Still open:** each of E1-E4 needs its own full design pass (data model,
+UI, testing) when its turn comes — none are speced yet.
 
 ## Subsystem F — Onboarding, billing & legal at product scale
 
