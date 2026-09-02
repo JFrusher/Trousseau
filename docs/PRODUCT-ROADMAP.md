@@ -38,7 +38,7 @@ instead (see subsystem F).
 | # | Subsystem | Depends on | Status |
 |---|---|---|---|
 | A | Identity & accounts | — | ✅ [spec written](superpowers/specs/2026-09-02-identity-accounts-design.md) |
-| B | Multi-tenant data & storage | A | 🟢 core decisions made, spec not yet written |
+| B | Multi-tenant data & storage | A | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-storage-design.md) |
 | C | Cadence/suite de-duplication | — | 🟢 core decisions made, spec not yet written |
 | D | Tableaux's future | — | 🟢 core decisions made, spec not yet written |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 direction set, needs its own decomposition |
@@ -149,11 +149,13 @@ JSON document per wedding stored as JSONB, matching the existing zod
 contract; compare-and-set conflict detection with a refresh-and-reapply
 notice, not real-time collaboration.
 
-**Still open:** exact RLS policy shape, whether/how the existing
-`suite/lib/sync/` code is adapted vs. replaced, how the four apps' current
-per-device local-first autosave interacts with a cloud source of truth
-(does local storage become a cache/offline buffer, or go away entirely?).
-Deferred to the dated spec.
+**Spec written:** [`2026-09-02-multitenant-storage-design.md`](superpowers/specs/2026-09-02-multitenant-storage-design.md)
+— `wedding_documents` + append-only `wedding_document_history` (the DVC
+version-history replacement), CAS-gated write path that also runs the
+ported `validate-wedding.mjs` as a hard gate (errors block, warnings don't),
+local storage demoted to an offline cache with queued-write replay, and the
+existing E2E `suite/lib/sync/` backend left untouched, scoped to
+`/seat/[token]` only. Ready for an implementation plan.
 
 ## Subsystem C — Cadence/suite de-duplication
 
