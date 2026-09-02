@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { env } from "@/lib/env";
 import type { Reply } from "./handlers";
 
 /**
@@ -58,6 +59,15 @@ export function schemaCacheIsStale(cause: unknown): boolean {
   return /could not find .* in the schema cache/i.test(message);
 }
 
+function hostOf(url: string | undefined): string {
+  if (!url) return "no SUPABASE_URL set";
+  try {
+    return new URL(url).host;
+  } catch {
+    return `an unparseable SUPABASE_URL (${url.slice(0, 40)})`;
+  }
+}
+
 export type Failure = "unreachable" | "schema-cache" | "schema-behind" | "unknown";
 
 export function categorise(cause: unknown): Failure {
@@ -76,11 +86,15 @@ export async function safely(work: () => Promise<Reply>): Promise<NextResponse> 
     // otherwise a mystery: the code is deployed ahead of its migrations, so
     // every write fails on a column that does not exist yet.
     if (backendUnreachable(cause)) {
+      // The host, so a typo is visible here rather than requiring a trip to the
+      // dashboard to compare two strings by eye. The URL is not a secret — the
+      // service role key is, and that is never printed.
       console.error(
-        "[Trousseau] could not reach Supabase at all. If this is a free " +
-          "project it has probably paused after a week of inactivity — restore " +
-          "it from the dashboard. Otherwise check SUPABASE_URL points at a " +
-          "project that still exists.",
+        `[Trousseau] could not reach Supabase at ${hostOf(env().SUPABASE_URL)}. ` +
+          "`fetch failed` this early is usually DNS: check that host actually " +
+          "exists and matches the project you applied the migrations to. If it " +
+          "is right, a free project pauses after a week idle — restore it from " +
+          "the dashboard.",
       );
     } else if (schemaCacheIsStale(cause)) {
       console.error(
