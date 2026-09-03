@@ -114,5 +114,16 @@ test("accountsConfigured is true once SUPABASE_URL and the anon key are both set
   process.env.SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-value";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
   expect(accountsConfigured()).toBe(true);
+});
+
+test("accountsConfigured is false if only NEXT_PUBLIC_SUPABASE_URL is missing", () => {
+  resetCache();
+  process.env.NODE_ENV = "production";
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-value";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "";
+  expect(accountsConfigured()).toBe(false);
 });

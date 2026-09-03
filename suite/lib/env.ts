@@ -59,6 +59,10 @@ const schema = z
      */
     NEXT_PUBLIC_SUPABASE_ANON_KEY: absent(z.string().min(1)),
 
+    /** Same value as SUPABASE_URL, duplicated under a NEXT_PUBLIC_ name so the
+     *  browser client (which cannot read the server-only env()) can use it. */
+    NEXT_PUBLIC_SUPABASE_URL: absent(url("NEXT_PUBLIC_SUPABASE_URL")),
+
     /**
      * Development only: run the sync endpoints against a process-local map.
      * Enforced below, because the cost of getting this wrong is a wedding
@@ -151,8 +155,8 @@ export function syncConfigured(): boolean {
 
 /** Whether this deployment has accounts/sign-in available at all. */
 export function accountsConfigured(): boolean {
-  const { SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = env();
-  return Boolean(SUPABASE_URL && NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const { SUPABASE_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = env();
+  return Boolean(SUPABASE_URL && NEXT_PUBLIC_SUPABASE_URL && NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
 /**
