@@ -46,7 +46,7 @@ export function checkCrossSlice(doc: unknown): CrossSliceResult {
     ["day.day.date", dayInner?.date],
     ["sources.tableaux.meta.date", tableauxMeta?.date],
     ["sources.cadence.day.date", cadenceDay?.date],
-  ].filter(([, v]) => typeof v === "string" && v !== "");
+  ].filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1] !== "");
 
   const distinctDates = [...new Set(claims.map(([, v]) => v as string))];
   if (distinctDates.length > 1) {
