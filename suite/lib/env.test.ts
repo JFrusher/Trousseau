@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { parseEnv, accountsConfigured, resetCache } from "./env";
 
 const supabase = {
@@ -110,7 +110,7 @@ test("accountsConfigured is false with no Supabase config", () => {
 
 test("accountsConfigured is true once SUPABASE_URL and the anon key are both set", () => {
   resetCache();
-  process.env.NODE_ENV = "production";
+  vi.stubEnv("NODE_ENV", "production"); // plain assignment is a type error: NODE_ENV is read-only
   process.env.SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-value";
@@ -120,7 +120,7 @@ test("accountsConfigured is true once SUPABASE_URL and the anon key are both set
 
 test("accountsConfigured is false if only NEXT_PUBLIC_SUPABASE_URL is missing", () => {
   resetCache();
-  process.env.NODE_ENV = "production";
+  vi.stubEnv("NODE_ENV", "production"); // plain assignment is a type error: NODE_ENV is read-only
   process.env.SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-value";
