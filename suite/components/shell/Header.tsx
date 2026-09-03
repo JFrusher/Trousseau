@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Database, Users } from "lucide-react";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { TOOLS } from "@/lib/tools";
+import { AccountStatus } from "./AccountStatus";
 import { ChromeSlot } from "./chrome";
 import { DataManager } from "./DataManager";
 
@@ -83,6 +84,8 @@ export function Header() {
             <Database size={15} />
             <span className="hidden sm:inline">Data</span>
           </button>
+
+          <AccountStatus />
         </div>
       </header>
 
