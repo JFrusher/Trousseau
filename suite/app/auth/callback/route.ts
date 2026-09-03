@@ -12,6 +12,30 @@ export const dynamic = "force-dynamic";
  * page renders. `next` is where to go once that's done (the invite page, for
  * an invite), so pages downstream can assume a session already exists.
  */
+/**
+ * A same-site path, or `/account` if `next` isn't one.
+ *
+ * Parse first, then compare the resolved origin — not a prefix check on the
+ * raw string. A prefix regex like `/^\/(?!\/)/` looks like it blocks
+ * `//evil.com` but not `/\evil.com`: `new URL()` normalises a backslash to a
+ * forward slash for http/https before parsing, so that string resolves to
+ * `https://evil.com/` regardless of what the raw text started with. Letting
+ * the URL parser do the normalising, then checking *its* output, is the only
+ * way `next` can't be turned into an open redirect through a variant a regex
+ * didn't anticipate.
+ */
+export function sameOriginPath(next: string | null, origin: string): string {
+  if (!next) return "/account";
+  try {
+    const resolved = new URL(next, origin);
+    return resolved.origin === origin
+      ? `${resolved.pathname}${resolved.search}${resolved.hash}`
+      : "/account";
+  } catch {
+    return "/account";
+  }
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -28,8 +52,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // Only same-site paths: `next` arrives in a URL, so an absolute one would
-  // turn this into an open redirect that borrows the sign-in link's trust.
-  const destination = next && /^\/(?!\/)/.test(next) ? next : "/account";
+  const destination = sameOriginPath(next, url.origin);
   return NextResponse.redirect(new URL(destination, url.origin));
 }
