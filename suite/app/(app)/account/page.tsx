@@ -8,6 +8,16 @@ interface AccountState {
   weddingId: string | null;
 }
 
+/**
+ * A failed request doesn't always carry JSON — an unhandled server error comes
+ * back as HTML, and `response.json()` on that rejects. Swallowing it here
+ * keeps every caller's `await` on the happy path, with `null` standing for
+ * "nothing useful came back".
+ */
+async function readJson<T>(response: Response): Promise<T | null> {
+  return (await response.json().catch(() => null)) as T | null;
+}
+
 export default function AccountPage() {
   const [state, setState] = useState<AccountState | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -19,19 +29,32 @@ export default function AccountPage() {
       setState({ signedIn: false, weddingId: null });
       return;
     }
-    client.auth.getUser().then(({ data }) => {
-      setState({ signedIn: Boolean(data.user), weddingId: null });
+    client.auth.getUser().then(async ({ data }) => {
+      if (!data.user) {
+        setState({ signedIn: false, weddingId: null });
+        return;
+      }
+      // Ask which wedding this account already belongs to, rather than
+      // assuming none: without this, a returning member is offered "create
+      // your wedding" on every reload and can never reach the invite form.
+      const response = await fetch("/api/accounts/wedding");
+      const body = await readJson<{ weddingId?: string | null }>(response);
+      setState({ signedIn: true, weddingId: (response.ok && body?.weddingId) || null });
+    }).catch(() => {
+      // Never leave the page on "Loading…" because a request threw.
+      setState({ signedIn: true, weddingId: null });
+      setNotice("Could not load your wedding. Please try again.");
     });
   }, [client]);
 
   async function createWedding() {
     const response = await fetch("/api/accounts/wedding", { method: "POST" });
-    const body = (await response.json()) as { weddingId?: string; error?: string };
+    const body = await readJson<{ weddingId?: string; error?: string }>(response);
     if (!response.ok) {
-      setNotice(body.error ?? "Could not create a wedding.");
+      setNotice(body?.error ?? "Could not create a wedding.");
       return;
     }
-    setState((prev) => (prev ? { ...prev, weddingId: body.weddingId ?? null } : prev));
+    setState((prev) => (prev ? { ...prev, weddingId: body?.weddingId ?? null } : prev));
     setNotice("Wedding created.");
   }
 
@@ -43,8 +66,27 @@ export default function AccountPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: inviteEmail }),
     });
-    const body = (await response.json()) as { error?: string };
-    setNotice(response.ok ? `Invite sent to ${inviteEmail}.` : (body.error ?? "Could not send the invite."));
+    const body = await readJson<{ error?: string }>(response);
+    setNotice(response.ok ? `Invite sent to ${inviteEmail}.` : (body?.error ?? "Could not send the invite."));
+  }
+
+  async function signOut() {
+    await client?.auth.signOut();
+    window.location.href = "/login";
+  }
+
+  async function deleteAccount() {
+    if (!window.confirm("Delete your account? Your wedding data goes with it. This cannot be undone.")) {
+      return;
+    }
+    const response = await fetch("/api/accounts/delete", { method: "POST" });
+    const body = await readJson<{ error?: string }>(response);
+    if (!response.ok) {
+      setNotice(body?.error ?? "Could not delete your account.");
+      return;
+    }
+    await client?.auth.signOut();
+    window.location.href = "/login";
   }
 
   if (!client) {
@@ -70,6 +112,8 @@ export default function AccountPage() {
         </form>
       )}
       {notice && <p>{notice}</p>}
+      <button onClick={signOut}>Sign out</button>
+      <button onClick={deleteAccount}>Delete my account</button>
     </div>
   );
 }

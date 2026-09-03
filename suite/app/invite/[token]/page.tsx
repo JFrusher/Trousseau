@@ -24,13 +24,19 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
       }
       setStatus("accepting");
       const response = await fetch(`/api/accounts/invite/${token}`, { method: "POST" });
-      const body = (await response.json()) as { error?: string };
+      // An unhandled server error comes back as HTML, and parsing that would
+      // reject inside this callback — leaving the page stuck on "One moment…"
+      // with nothing on screen to explain why.
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
       if (response.ok) {
         setStatus("done");
       } else {
         setStatus("error");
-        setMessage(body.error ?? "That invite could not be accepted.");
+        setMessage(body?.error ?? "That invite could not be accepted.");
       }
+    }).catch(() => {
+      setStatus("error");
+      setMessage("Something went wrong. Please try again.");
     });
   }, [client, token]);
 
