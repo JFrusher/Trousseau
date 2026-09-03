@@ -53,6 +53,17 @@ const schema = z
     SUPABASE_SERVICE_ROLE_KEY: absent(z.string().min(1)),
 
     /**
+     * Public by design — Supabase's anon key identifies a project and is safe to
+     * ship to the browser; it is what lets the client SDK call Supabase Auth
+     * directly (magic-link sign-in) without a round trip through this server.
+     */
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: absent(z.string().min(1)),
+
+    /** Same value as SUPABASE_URL, duplicated under a NEXT_PUBLIC_ name so the
+     *  browser client (which cannot read the server-only env()) can use it. */
+    NEXT_PUBLIC_SUPABASE_URL: absent(url("NEXT_PUBLIC_SUPABASE_URL")),
+
+    /**
      * Development only: run the sync endpoints against a process-local map.
      * Enforced below, because the cost of getting this wrong is a wedding
      * accepted into memory that disappears on the next deploy — reported to the
@@ -131,10 +142,21 @@ export function env(): Env {
   return cached;
 }
 
+/** Exported for tests to reset the memoized env(). */
+export function resetCache(): void {
+  cached = undefined;
+}
+
 /** Whether this deployment has somewhere to put ciphertext. */
 export function syncConfigured(): boolean {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env();
   return Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+}
+
+/** Whether this deployment has accounts/sign-in available at all. */
+export function accountsConfigured(): boolean {
+  const { SUPABASE_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = env();
+  return Boolean(SUPABASE_URL && NEXT_PUBLIC_SUPABASE_URL && NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
 /**

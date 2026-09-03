@@ -1,5 +1,5 @@
-import { expect, test } from "vitest";
-import { parseEnv } from "./env";
+import { expect, test, vi } from "vitest";
+import { parseEnv, accountsConfigured, resetCache } from "./env";
 
 const supabase = {
   SUPABASE_URL: "https://project.supabase.co",
@@ -94,4 +94,36 @@ test("a bare Sentry DSN host is refused with the same guidance", () => {
   expect(() => parseEnv({ NEXT_PUBLIC_SENTRY_DSN: "o44.ingest.sentry.io/456" })).toThrow(
     "NEXT_PUBLIC_SENTRY_DSN",
   );
+});
+
+test("NEXT_PUBLIC_SUPABASE_ANON_KEY is optional, like the rest of Supabase config", () => {
+  const result = parseEnv({ NODE_ENV: "production" });
+  expect(result.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBeUndefined();
+});
+
+test("accountsConfigured is false with no Supabase config", () => {
+  resetCache();
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "";
+  process.env.SUPABASE_URL = "";
+  expect(accountsConfigured()).toBe(false);
+});
+
+test("accountsConfigured is true once SUPABASE_URL and the anon key are both set", () => {
+  resetCache();
+  vi.stubEnv("NODE_ENV", "production"); // plain assignment is a type error: NODE_ENV is read-only
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-value";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  expect(accountsConfigured()).toBe(true);
+});
+
+test("accountsConfigured is false if only NEXT_PUBLIC_SUPABASE_URL is missing", () => {
+  resetCache();
+  vi.stubEnv("NODE_ENV", "production"); // plain assignment is a type error: NODE_ENV is read-only
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-value";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "";
+  expect(accountsConfigured()).toBe(false);
 });
