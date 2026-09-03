@@ -38,7 +38,7 @@ export default defineConfig({
         test: {
           name: "suite",
           sequence: { groupOrder: 0 },
-          include: ["lib/**/*.test.{ts,tsx}", "components/**/*.test.{ts,tsx}", "app/**/*.test.{ts,tsx}", "apps/*.test.ts"],
+          include: ["*.test.{ts,tsx}", "lib/**/*.test.{ts,tsx}", "components/**/*.test.{ts,tsx}", "app/**/*.test.{ts,tsx}", "apps/*.test.ts"],
           // The store's persistence path is a no-op without `window`, and that
           // is exactly the path worth testing.
           environment: "jsdom",

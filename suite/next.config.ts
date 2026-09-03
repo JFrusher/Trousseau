@@ -26,6 +26,28 @@ export function sentryOrigin(dsn: string | undefined): string | null {
 }
 
 /**
+ * Supabase's origin, when accounts are configured.
+ *
+ * Accounts (subsystem A) call Supabase directly from the browser —
+ * `signInWithOtp`, `getUser`, `onAuthStateChange` all run client-side, unlike
+ * the older E2E sync system in `lib/sync/`, which is reached only from route
+ * handlers and needs nothing added here. Without this, `connect-src 'self'`
+ * blocks every one of those calls silently: the browser refuses the request
+ * before it leaves the page, and `fetch` reports it as a generic network
+ * failure with nothing that names a CSP violation as the cause. Derived from
+ * the same `NEXT_PUBLIC_SUPABASE_URL` the browser client itself reads, so
+ * the two cannot disagree.
+ */
+export function supabaseOrigin(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Content Security Policy, without a nonce, and deliberately.
  *
  * The strict form — a per-request nonce from middleware plus `strict-dynamic` —
@@ -44,10 +66,13 @@ export function sentryOrigin(dsn: string | undefined): string | null {
  * the builder escapes.
  *
  * What is kept is the directive that matters most for this application:
- * `connect-src 'self'`. The threat worth engineering against is not a defaced
- * page, it is a guest list leaving for somewhere else — and the browser is now
- * permitted to talk to this origin and nothing else. Supabase is reached from
- * the route handler, never from the page, so that costs nothing.
+ * `connect-src 'self'`, plus exactly the two named exceptions below. The
+ * threat worth engineering against is not a defaced page, it is a guest list
+ * leaving for somewhere else — and the browser is permitted to talk to this
+ * origin, Sentry (when configured) and Supabase (when accounts are
+ * configured), and nothing else. The older E2E sync system in `lib/sync/` is
+ * reached only from route handlers and needs no exception of its own; the
+ * accounts feature calls Supabase straight from the browser and does.
  *
  * Revisit if Next gains working nonce propagation, or if any page ever renders
  * HTML it did not construct itself.
@@ -63,10 +88,17 @@ const contentSecurityPolicy = [
   // back out of IndexedDB as object URLs.
   "img-src 'self' blob: data:",
   "font-src 'self' data:",
-  // The one that earns its place. Nothing the page holds can be sent anywhere
-  // but here — and to Sentry, when it is configured, which is the whole reason
-  // that integration is scrubbed as carefully as it is.
-  ["connect-src 'self'", sentryOrigin(env().NEXT_PUBLIC_SENTRY_DSN)].filter(Boolean).join(" "),
+  // The two named exceptions. Nothing the page holds can be sent anywhere but
+  // here, Sentry (scrubbed as carefully as it is for exactly this reason),
+  // and Supabase (which only ever sees an email address or a session token,
+  // never a guest list).
+  [
+    "connect-src 'self'",
+    sentryOrigin(env().NEXT_PUBLIC_SENTRY_DSN),
+    supabaseOrigin(env().NEXT_PUBLIC_SUPABASE_URL),
+  ]
+    .filter(Boolean)
+    .join(" "),
   // jsPDF and pdf-lib start workers from blob URLs.
   "worker-src 'self' blob:",
   "object-src 'none'",
