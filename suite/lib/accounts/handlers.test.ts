@@ -10,6 +10,7 @@ import { memoryStore } from "./store";
 function seededStore() {
   const store = memoryStore() as ReturnType<typeof memoryStore> & {
     _seedEmail(userId: string, email: string): void;
+    _expire(token: string): void;
   };
   return store;
 }
@@ -91,6 +92,22 @@ describe("acceptInviteHandler", () => {
     const reply = await acceptInviteHandler(store, token, "eve");
     expect(reply.status).toBe(409);
     expect((reply.body as { reason: string }).reason).toBe("wrong-email");
+    // The address comes back from the accept itself — the invitee can never
+    // read the invite row to find it out.
+    expect((reply.body as { error: string }).error).toContain("bob@example.com");
+  });
+
+  it("rejects someone who already has a wedding of their own", async () => {
+    const store = seededStore();
+    store._seedEmail("bob", "bob@example.com");
+    const alice = await createWeddingHandler(store, "alice");
+    const weddingId = (alice.body as { weddingId: string }).weddingId;
+    const invite = await createInviteHandler(store, weddingId, "alice", "bob@example.com");
+    await createWeddingHandler(store, "bob"); // bob set up his own wedding first
+
+    const reply = await acceptInviteHandler(store, (invite.body as { token: string }).token, "bob");
+    expect(reply.status).toBe(409);
+    expect((reply.body as { reason: string }).reason).toBe("already-in-a-wedding");
   });
 
   it("rejects an unknown token with 404", async () => {
@@ -122,8 +139,7 @@ describe("acceptInviteHandler", () => {
     const invite = await createInviteHandler(store, weddingId, "alice", "bob@example.com");
     const token = (invite.body as { token: string }).token;
 
-    const record = await store.getInvite(token);
-    if (record) record.expiresAt = new Date(0).toISOString();
+    store._expire(token);
 
     const reply = await acceptInviteHandler(store, token, "bob");
     expect(reply.status).toBe(409);

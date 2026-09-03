@@ -24,7 +24,12 @@ create table if not exists public.invites (
   wedding_id    uuid not null references public.account_weddings (id) on delete cascade,
   invited_email text not null,
   token         text not null unique,
-  created_by    uuid not null references auth.users (id),
+  -- `on delete cascade`, not the default `no action`: `delete_my_account()`
+  -- only removes the caller's `wedding_members` row (and the wedding itself if
+  -- they were its last member), so a surviving wedding leaves this row's
+  -- `wedding_id` cascade unfired — and deleting the auth.users row of whoever
+  -- sent the invite (the common case) would fail on this foreign key.
+  created_by    uuid not null references auth.users (id) on delete cascade,
   created_at    timestamptz not null default now(),
   expires_at    timestamptz not null,
   accepted_at   timestamptz
@@ -71,7 +76,10 @@ as $$
   );
 $$;
 
-revoke all on function public.is_wedding_member(uuid) from anon;
+-- `from public`, not `from anon`: Postgres grants EXECUTE on every new
+-- function to the PUBLIC pseudo-role, and revoking from a specific role never
+-- removes a grant held through PUBLIC — so `from anon` would be a no-op.
+revoke all on function public.is_wedding_member(uuid) from public;
 grant execute on function public.is_wedding_member(uuid) to authenticated;
 
 create policy "members can read their own wedding"
@@ -164,10 +172,14 @@ $$;
  * specific one — "this invite was sent to X", "that invite has expired",
  * "that invite was already used", "that wedding is full" — rather than a
  * generic failure. `accepted = false` with a `reason` is the normal shape of
- * "no" here; an exception is reserved for the invite simply not existing.
+ * "no" here, including for a token that doesn't exist at all: the invitee is
+ * never `created_by`, so the one SELECT policy on `invites` hides the row from
+ * them entirely and the caller cannot look the invite up itself first. This
+ * function is the only thing that can see it, so it answers every question
+ * about the invite on its own, `invited_email` included.
  */
 create or replace function public.accept_invite(p_token text)
-returns table (accepted boolean, reason text, wedding_id uuid)
+returns table (accepted boolean, reason text, wedding_id uuid, invited_email text)
 language plpgsql
 security definer
 set search_path = public
@@ -179,23 +191,24 @@ declare
 begin
   select * into v_invite from public.invites where token = p_token;
   if not found then
-    raise exception 'no such invite' using errcode = 'P0002';
+    return query select false, 'not-found', null::uuid, null::text;
+    return;
   end if;
 
   select email into v_caller_email from auth.users where id = auth.uid();
 
   if v_invite.accepted_at is not null then
-    return query select false, 'already-accepted', v_invite.wedding_id;
+    return query select false, 'already-accepted', v_invite.wedding_id, v_invite.invited_email;
     return;
   end if;
 
   if v_invite.expires_at < now() then
-    return query select false, 'expired', v_invite.wedding_id;
+    return query select false, 'expired', v_invite.wedding_id, v_invite.invited_email;
     return;
   end if;
 
   if lower(v_caller_email) <> v_invite.invited_email then
-    return query select false, 'wrong-email', v_invite.wedding_id;
+    return query select false, 'wrong-email', v_invite.wedding_id, v_invite.invited_email;
     return;
   end if;
 
@@ -213,14 +226,23 @@ begin
    where m.wedding_id = v_invite.wedding_id;
 
   if v_member_count >= 2 then
-    return query select false, 'wedding-full', v_invite.wedding_id;
+    return query select false, 'wedding-full', v_invite.wedding_id, v_invite.invited_email;
+    return;
+  end if;
+
+  -- `wedding_members.user_id` is the primary key, so a caller who already has
+  -- a wedding of their own would otherwise hit a raw unique-violation here.
+  -- Answer it the same way as every other "no" above, so the API can say
+  -- something the person can act on instead of returning a 500.
+  if exists (select 1 from public.wedding_members where user_id = auth.uid()) then
+    return query select false, 'already-in-a-wedding', v_invite.wedding_id, v_invite.invited_email;
     return;
   end if;
 
   insert into public.wedding_members (user_id, wedding_id) values (auth.uid(), v_invite.wedding_id);
   update public.invites set accepted_at = now() where token = p_token;
 
-  return query select true, null::text, v_invite.wedding_id;
+  return query select true, null::text, v_invite.wedding_id, v_invite.invited_email;
 end;
 $$;
 
@@ -263,6 +285,16 @@ begin
   end if;
 end;
 $$;
+
+-- Revoke the default PUBLIC grant first, for the same reason as
+-- `is_wedding_member` above: without it, `anon` can call every one of these
+-- through PUBLIC. Nothing here is exploitable by a caller with no
+-- `auth.uid()` (each one fails on a not-null or membership check), but a
+-- signed-out caller has no business reaching them at all.
+revoke all on function public.create_wedding() from public;
+revoke all on function public.create_invite(uuid, text) from public;
+revoke all on function public.accept_invite(text) from public;
+revoke all on function public.delete_my_account() from public;
 
 grant execute on function public.create_wedding() to authenticated;
 grant execute on function public.create_invite(uuid, text) to authenticated;

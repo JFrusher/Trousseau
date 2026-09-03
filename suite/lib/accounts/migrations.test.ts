@@ -146,6 +146,90 @@ test("accepting with the wrong email is rejected with a specific reason", async 
   expect(result.rows[0]?.reason).toBe("wrong-email");
 });
 
+test("an unknown token is refused as a normal reason, not an exception", async () => {
+  const bob = await userExists("bob@example.com");
+  await asUser(bob);
+
+  const result = await db.query<{ accepted: boolean; reason: string; wedding_id: string | null }>(
+    "select * from accept_invite($1)",
+    ["nosuchtoken"],
+  );
+  expect(result.rows[0]?.accepted).toBe(false);
+  expect(result.rows[0]?.reason).toBe("not-found");
+  expect(result.rows[0]?.wedding_id).toBeNull();
+});
+
+test("the invitee, who cannot read the invites row at all, still gets its email back", async () => {
+  const alice = await userExists("alice@example.com");
+  await asUser(alice);
+  const created = await db.query<{ create_wedding: string }>("select create_wedding()");
+  const invite = await db.query<{ token: string }>("select * from create_invite($1, $2)", [
+    created.rows[0]?.create_wedding,
+    "bob@example.com",
+  ]);
+  const token = invite.rows[0]?.token;
+
+  const eve = await userExists("eve@example.com");
+  await asUser(eve);
+  // RLS hides the row itself — this is exactly why accept_invite has to
+  // report `invited_email` for the "sent to someone else" message.
+  const direct = await db.query("select * from invites where token = $1", [token]);
+  expect(direct.rows).toHaveLength(0);
+
+  const result = await db.query<{ reason: string; invited_email: string }>(
+    "select * from accept_invite($1)",
+    [token],
+  );
+  expect(result.rows[0]?.reason).toBe("wrong-email");
+  expect(result.rows[0]?.invited_email).toBe("bob@example.com");
+});
+
+test("someone who already has their own wedding is refused, not left to a unique violation", async () => {
+  const alice = await userExists("alice@example.com");
+  await asUser(alice);
+  const created = await db.query<{ create_wedding: string }>("select create_wedding()");
+  const invite = await db.query<{ token: string }>("select * from create_invite($1, $2)", [
+    created.rows[0]?.create_wedding,
+    "bob@example.com",
+  ]);
+
+  const bob = await userExists("bob@example.com");
+  await asUser(bob);
+  await db.query("select create_wedding()");
+
+  const result = await db.query<{ accepted: boolean; reason: string }>(
+    "select * from accept_invite($1)",
+    [invite.rows[0]?.token],
+  );
+  expect(result.rows[0]?.accepted).toBe(false);
+  expect(result.rows[0]?.reason).toBe("already-in-a-wedding");
+});
+
+test("deleting a user who sent an invite cascades that invite away", async () => {
+  const alice = await userExists("alice@example.com");
+  await asUser(alice);
+  const created = await db.query<{ create_wedding: string }>("select create_wedding()");
+  const weddingId = created.rows[0]?.create_wedding;
+  const invite = await db.query<{ token: string }>("select * from create_invite($1, $2)", [
+    weddingId,
+    "bob@example.com",
+  ]);
+  const bob = await userExists("bob@example.com");
+  await asUser(bob);
+  await db.query("select * from accept_invite($1)", [invite.rows[0]?.token]);
+
+  // Alice leaves; the wedding survives for bob, so nothing cascades via
+  // `wedding_id` — the invite she created must go via `created_by` instead,
+  // or deleting her auth.users row fails on the foreign key.
+  await asUser(alice);
+  await db.query("select delete_my_account()");
+  await asSuperuser();
+  await db.query("delete from auth.users where id = $1", [alice]);
+
+  const invites = await db.query("select * from invites where wedding_id = $1", [weddingId]);
+  expect(invites.rows).toHaveLength(0);
+});
+
 test("a third invite is refused once the wedding already has two members", async () => {
   const alice = await userExists("alice@example.com");
   await asUser(alice);

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AcceptResult, AccountsStore, InviteRecord, MemberRecord, WeddingRecord } from "./store";
+import type { AcceptResult, AccountsStore } from "./store";
 
 /**
  * The Postgres implementation, over a caller-scoped client.
@@ -65,26 +65,6 @@ export function accountsStore(client: SupabaseClient): AccountsStore {
       };
     },
 
-    async getInvite(token) {
-      const { data, error } = await client
-        .from("invites")
-        .select("id, wedding_id, invited_email, token, created_by, created_at, expires_at, accepted_at")
-        .eq("token", token)
-        .maybeSingle();
-      if (error) throw new Error(error.message);
-      if (!data) return null;
-      return {
-        id: data.id as string,
-        weddingId: data.wedding_id as string,
-        invitedEmail: data.invited_email as string,
-        token: data.token as string,
-        createdBy: data.created_by as string,
-        createdAt: data.created_at as string,
-        expiresAt: data.expires_at as string,
-        acceptedAt: data.accepted_at as string | null,
-      };
-    },
-
     async acceptInvite(token, _userId) {
       // `_userId` is unused deliberately, same reasoning as `createWedding`
       // above: `accept_invite()` reads the real caller from `auth.uid()`
@@ -92,11 +72,17 @@ export function accountsStore(client: SupabaseClient): AccountsStore {
       // session — not from an argument a caller could spoof.
       const { data, error } = await client.rpc("accept_invite", { p_token: token }).single();
       if (error) throw new Error(error.message);
-      const row = data as { accepted: boolean; reason: string | null; wedding_id: string | null };
+      const row = data as {
+        accepted: boolean;
+        reason: string | null;
+        wedding_id: string | null;
+        invited_email: string | null;
+      };
       return {
         accepted: row.accepted,
         reason: row.reason as AcceptResult["reason"],
         weddingId: row.wedding_id,
+        invitedEmail: row.invited_email,
       };
     },
 

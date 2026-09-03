@@ -27,12 +27,25 @@ export interface InviteRecord {
   acceptedAt: string | null;
 }
 
-export type AcceptReason = "wrong-email" | "expired" | "already-accepted" | "wedding-full";
+export type AcceptReason =
+  | "not-found"
+  | "wrong-email"
+  | "expired"
+  | "already-accepted"
+  | "wedding-full"
+  | "already-in-a-wedding";
 
 export interface AcceptResult {
   accepted: boolean;
   reason: AcceptReason | null;
   weddingId: string | null;
+  /**
+   * The address the invite was sent to, so "this was sent to X" can be shown
+   * on a wrong-email rejection. It comes back from the accept itself because
+   * the invitee cannot read the `invites` row directly — RLS only lets the
+   * person who *created* an invite select it.
+   */
+  invitedEmail: string | null;
 }
 
 export interface AccountsStore {
@@ -42,7 +55,6 @@ export interface AccountsStore {
   membersOf(weddingId: string): Promise<MemberRecord[]>;
   /** Throws if the caller is not a member of the wedding, or it already has two members. */
   createInvite(weddingId: string, byUserId: string, invitedEmail: string): Promise<InviteRecord>;
-  getInvite(token: string): Promise<InviteRecord | null>;
   /**
    * `userId` is redundant with the real store's session-derived `auth.uid()`,
    * kept as an explicit parameter here because the in-memory fake has no
@@ -101,27 +113,27 @@ export function memoryStore(): AccountsStore {
       return invite;
     },
 
-    async getInvite(token) {
-      return invites.get(token) ?? null;
-    },
-
     async acceptInvite(token, userId) {
       const invite = invites.get(token);
-      if (!invite) return { accepted: false, reason: "wedding-full", weddingId: null }; // unreachable in practice; getInvite is checked by the caller first
-      if (invite.acceptedAt) return { accepted: false, reason: "already-accepted", weddingId: invite.weddingId };
-      if (new Date(invite.expiresAt).getTime() < Date.now()) {
-        return { accepted: false, reason: "expired", weddingId: invite.weddingId };
-      }
+      if (!invite) return { accepted: false, reason: "not-found", weddingId: null, invitedEmail: null };
+      const no = (reason: AcceptReason): AcceptResult => ({
+        accepted: false,
+        reason,
+        weddingId: invite.weddingId,
+        invitedEmail: invite.invitedEmail,
+      });
+
+      if (invite.acceptedAt) return no("already-accepted");
+      if (new Date(invite.expiresAt).getTime() < Date.now()) return no("expired");
       const callerEmail = (emails.get(userId) ?? "").toLowerCase();
-      if (callerEmail !== invite.invitedEmail) {
-        return { accepted: false, reason: "wrong-email", weddingId: invite.weddingId };
-      }
+      if (callerEmail !== invite.invitedEmail) return no("wrong-email");
       const memberCount = [...members.values()].filter((m) => m.weddingId === invite.weddingId).length;
-      if (memberCount >= 2) return { accepted: false, reason: "wedding-full", weddingId: invite.weddingId };
+      if (memberCount >= 2) return no("wedding-full");
+      if (members.has(userId)) return no("already-in-a-wedding");
 
       members.set(userId, { userId, weddingId: invite.weddingId, joinedAt: now() });
       invite.acceptedAt = now();
-      return { accepted: true, reason: null, weddingId: invite.weddingId };
+      return { accepted: true, reason: null, weddingId: invite.weddingId, invitedEmail: invite.invitedEmail };
     },
 
     async deleteAccount(userId) {
@@ -132,10 +144,16 @@ export function memoryStore(): AccountsStore {
       if (!remaining) weddings.delete(member.weddingId);
     },
 
-    // test-only seam, not part of the interface real Postgres implements —
-    // Task 5's tests call this directly on the object memoryStore() returns.
+    // test-only seams, not part of the interface real Postgres implements —
+    // the handler tests call these directly on the object memoryStore()
+    // returns. (`_expire` stands in for waiting fourteen days; Postgres has
+    // its own `expires_at` column to update instead.)
     _seedEmail(userId: string, email: string) {
       emails.set(userId, email);
     },
-  } as AccountsStore & { _seedEmail(userId: string, email: string): void };
+    _expire(token: string) {
+      const invite = invites.get(token);
+      if (invite) invite.expiresAt = new Date(0).toISOString();
+    },
+  } as AccountsStore & { _seedEmail(userId: string, email: string): void; _expire(token: string): void };
 }
