@@ -17,7 +17,13 @@ export default function LoginPage() {
       setError("Accounts are not set up on this deployment.");
       return;
     }
-    const { error: sendError } = await client.auth.signInWithOtp({ email });
+    // The link has to come back through `/auth/callback`, which exchanges its
+    // code for a real session; without a redirect target there is nowhere for
+    // that exchange to happen and signing in never takes effect.
+    const { error: sendError } = await client.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
     if (sendError) {
       setError(sendError.message);
       return;
