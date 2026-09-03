@@ -81,15 +81,27 @@ local persistence), `zustand`.
   (tables, migration, RLS-free-by-design token-hash authorisation) is not
   read, modified, or referenced by any task in this plan except Task 9's
   regression check, which runs its existing test suite unmodified.
-- The write path's SQL function must reproduce `put_slice`'s exact
-  CAS-via-UPSERT shape (`insert ... select ... where p_expected = 0 on
-  conflict (...) do update ... where <table>.version = p_expected
-  returning ... into v_written`), not a hand-rolled
-  select-then-branch-then-write, which is the check-then-act race shape
-  subsystem A had to fix once already (`accept_invite`'s and
-  `delete_my_account()`'s explicit `for update` locks, added specifically
-  because two concurrent callers could each read a stale count before
-  either committed).
+- **`put_slice`'s CAS-via-UPSERT shape has a confirmed bug and must not be
+  copied.** `insert ... select ... where p_expected = 0 on conflict (...) do
+  update ... where <table>.version = p_expected` looks race-free but isn't
+  correct: when the `select`'s `where` excludes its only candidate row
+  (true for every non-zero expected version), Postgres has zero proposed
+  rows to insert, so `on conflict` never triggers at all — the UPDATE
+  branch, including every ordinary second-or-later write with the *correct*
+  expected version, silently never runs. `put_slice`'s own test suite
+  (`suite/lib/sync/migrations.test.ts`) never exercises "second write at
+  the correct non-zero expected version," so this shipped as an untested
+  gap; it was caught here because Task 1's test suite does exercise that
+  case. The write function in this plan instead does an unconditional
+  UPDATE first (gated by `wedding_id` and `version` in its own `where`,
+  with nothing upstream suppressing row generation), then an unconditional
+  plain INSERT with `on conflict (wedding_id) do nothing`, only attempted
+  when the UPDATE found nothing and the caller expected version 0. This is
+  still a single race-free round trip — no separate `for update` lock is
+  needed, the same way `put_slice` needed none for its own (different)
+  race — it is simply not the same statement shape. Fixing `put_slice`
+  itself is out of scope for this plan (it lives in a migration file this
+  plan may not touch) and was surfaced to the human partner separately.
 - At least one test layer in this plan exercises RLS as a genuine
   non-superuser Postgres role reading through the exact query shape the
   production adapter (`supabaseStore.ts`) will run — not only through a
@@ -234,17 +246,42 @@ begin
     raise exception 'not a member of that wedding' using errcode = '42501';
   end if;
 
-  insert into public.wedding_documents as d (wedding_id, document, version, updated_at, updated_by)
-       select p_wedding_id, p_document, 1, now(), auth.uid()
-        where p_expected_version = 0
-  on conflict (wedding_id) do update
-      set document   = excluded.document,
-          version    = d.version + 1,
-          updated_at = now(),
-          updated_by = auth.uid()
-    where d.version = p_expected_version
+  -- Try the update first — the common case, since a document row exists for
+  -- every wedding after its first save. This is NOT `put_slice`'s single
+  -- `insert ... select ... where p_expected = 0 on conflict ... do update`
+  -- shape, on purpose: that shape has a real, confirmed bug (see the note
+  -- below) — when the SELECT's `where` filters out its only candidate row
+  -- (which it does for every non-zero expected version), Postgres has zero
+  -- proposed rows to insert, so ON CONFLICT never fires at all, and the
+  -- UPDATE branch — including every ordinary second-or-later write with the
+  -- correct expected version — silently never runs. Splitting into an
+  -- explicit UPDATE-then-INSERT avoids that: the UPDATE is unconditional
+  -- over the wedding_id/version match (no row-generation step to suppress),
+  -- and the INSERT is a plain, unconditionally-proposed row so
+  -- `on conflict (wedding_id) do nothing` can always detect a genuine
+  -- concurrent first-write race, the same race `put_slice`'s own comment
+  -- describes handling.
+  update public.wedding_documents d
+     set document   = p_document,
+         version    = d.version + 1,
+         updated_at = now(),
+         updated_by = auth.uid()
+   where d.wedding_id = p_wedding_id
+     and d.version = p_expected_version
   returning d.document, d.version, d.updated_at
        into v_written;
+
+  if v_written is null and p_expected_version = 0 then
+    -- No row was updated. If the caller expected "nothing saved yet",
+    -- attempt to create it — `on conflict do nothing` rather than `do
+    -- update` because a version mismatch on an existing row is already a
+    -- rejection, not something to retry as an update here.
+    insert into public.wedding_documents (wedding_id, document, version, updated_at, updated_by)
+    values (p_wedding_id, p_document, 1, now(), auth.uid())
+    on conflict (wedding_id) do nothing
+    returning document, version, updated_at
+         into v_written;
+  end if;
 
   if v_written is not null then
     insert into public.wedding_document_history (wedding_id, document, saved_at, saved_by)
@@ -254,9 +291,8 @@ begin
     return;
   end if;
 
-  -- Rejected: either a real version mismatch, or p_expected_version was
-  -- above 0 on a wedding with no document row yet (the insert's `where`
-  -- excluded it, and there is nothing for the UPSERT to conflict with).
+  -- Rejected: either a real version mismatch on an existing row, or
+  -- p_expected_version was above 0 on a wedding with no document row yet.
   -- Either way, return the true current state so the caller can show it —
   -- never a generic failure.
   select d.document, d.version, d.updated_at
