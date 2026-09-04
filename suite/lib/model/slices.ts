@@ -34,7 +34,6 @@ import type {
   Table,
   Zone,
 } from "./types";
-import { CAST_ROLES } from "./types";
 import type { OutputSpec, Timeline, TimelineDoc } from "./timeline";
 
 /**
@@ -614,7 +613,7 @@ export function readCrew(doc: Trousseau): Crew {
   });
 }
 
-// shots ------------------------------------------------------------------------
+// shots -----------------------------------------------------------------------
 
 const CAST_ROLE_SET = new Set<CastRole>(CAST_ROLES);
 
