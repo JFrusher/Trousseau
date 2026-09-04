@@ -12,11 +12,12 @@ import {
   readCrew,
   readGuests,
   readSeating,
+  readShots,
   readTimeline,
   resolvedDay,
   timelineDoc,
 } from "./slices";
-import type { Crew, Guest, Seating } from "./types";
+import type { Crew, Guest, Seating, Shots } from "./types";
 import type { Timeline } from "./timeline";
 
 /**
@@ -33,6 +34,7 @@ export const useGuests = (): Record<string, Guest> =>
 export const useSeating = (): Seating => useTrousseauStore((s) => readSeating(s.doc));
 export const useTimeline = (): Timeline => useTrousseauStore((s) => readTimeline(s.doc));
 export const useCrew = (): Crew => useTrousseauStore((s) => readCrew(s.doc));
+export const useShots = (): Shots => useTrousseauStore((s) => readShots(s.doc));
 export const useResolvedDay = () => useTrousseauStore((s) => resolvedDay(s.doc));
 export const useTimelineDoc = () => useTrousseauStore((s) => timelineDoc(s.doc));
 export const useStatus = (): TrousseauState["status"] => useTrousseauStore((s) => s.status);
@@ -49,6 +51,7 @@ export interface SuiteWriters {
   /** Also republishes the resolved `day`, in the same change. */
   setTimeline: (next: Timeline, options?: WriteOptions) => void;
   setCrew: (next: Crew, options?: WriteOptions) => void;
+  setShots: (next: Shots, options?: WriteOptions) => void;
   /** Both halves of a seat, as one undo step. */
   setPlan: (
     guests: Record<string, Guest>,
@@ -105,6 +108,11 @@ export function useWriters(): SuiteWriters {
     (next: Crew, options: WriteOptions = { label: "the crew" }) => setSlice("crew", next, options),
     [setSlice],
   );
+  const setShots = useCallback(
+    (next: Shots, options: WriteOptions = { label: "the group shots" }) =>
+      setSlice("shots", next, options),
+    [setSlice],
+  );
   const setPlan = useCallback(
     (
       guests: Record<string, Guest>,
@@ -121,5 +129,5 @@ export function useWriters(): SuiteWriters {
     [setSlices],
   );
 
-  return { setEvent, setGuests, setSeating, setTimeline, setCrew, setPlan };
+  return { setEvent, setGuests, setSeating, setTimeline, setCrew, setShots, setPlan };
 }
