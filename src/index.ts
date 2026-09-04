@@ -25,11 +25,15 @@ export {
   crewSchema,
   guestsSchema,
   seatingSchema,
+  shotsSchema,
   stationerySchema,
+  timelineSchema,
   type Crew,
   type Guests,
   type Seating,
+  type Shots,
   type Stationery,
+  type TimelineSlice,
 } from "./slices.js";
 export {
   TROUSSEAU_EXTENSION,

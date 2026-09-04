@@ -11,17 +11,6 @@ import {
 } from "@jfrusher/trousseau";
 
 /**
- * The slices this app writes.
- *
- * `timeline` is not one of the contract package's `SLICE_NAMES`: the envelope
- * holds the *resolved* day, and editing needs the anchors and gaps it was
- * resolved from. The envelope is a `looseObject` at every level exactly so a
- * new slice can appear without a release of the package, so this is the
- * intended way in — but the package should gain the name when next touched.
- */
-export type SuiteSlice = SliceName | "timeline";
-
-/**
  * The one store the whole suite reads.
  *
  * Its shape is the Trousseau envelope — `event`, `guests`, `seating`, `day`,
@@ -106,14 +95,14 @@ export interface TrousseauState {
   /** Read the document from IndexedDB. Safe to call more than once. */
   hydrate: () => Promise<void>;
   /** Publish one slice. Every other key survives untouched. */
-  setSlice: (slice: SuiteSlice, value: unknown, options?: WriteOptions) => void;
+  setSlice: (slice: SliceName, value: unknown, options?: WriteOptions) => void;
   /**
    * Publish several slices as one change. Editing the timeline also republishes
    * the resolved day, and the two must never be separately observable — a
    * render between them would show a day that disagrees with the blocks it came
    * from.
    */
-  setSlices: (entries: Array<[SuiteSlice, unknown]>, options?: WriteOptions) => void;
+  setSlices: (entries: Array<[SliceName, unknown]>, options?: WriteOptions) => void;
   /** Replace the whole document — a JSON restore, or a fresh start. */
   replaceDocument: (next: unknown) => void;
   undo: () => void;
@@ -187,10 +176,8 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
     // Refused while the stored document is unreadable. Writing over bytes we
     // could not parse is the one unrecoverable outcome.
     if (state.status !== "ready") return;
-    // `mergeSlice` is typed to the contract's own slice names; `timeline` is a
-    // slice this app adds, which the loose envelope carries without complaint.
     const raw = entries.reduce<Record<string, unknown>>(
-      (acc, [slice, value]) => mergeSlice(acc, slice as SliceName, value),
+      (acc, [slice, value]) => mergeSlice(acc, slice, value),
       state.raw,
     );
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { get as idbGet, set as idbSet, del as idbDel } from "idb-keyval";
-import { SLICE_NAMES } from "@jfrusher/trousseau";
-import { useTrousseauStore, type SuiteSlice } from "@/lib/store/useTrousseauStore";
+import { SLICE_NAMES, type SliceName } from "@jfrusher/trousseau";
+import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { acceptAsset, collectAssets, heldAssetIds } from "./assets";
 import {
   deriveKeys,
@@ -35,8 +35,7 @@ import {
  * fingerprints.
  */
 
-/** The slices that sync. `timeline` is this app's own addition to the envelope. */
-const SYNCED: SuiteSlice[] = [...SLICE_NAMES, "timeline"];
+const SYNCED: SliceName[] = [...SLICE_NAMES];
 
 /** What is agreed about one slice as of the last successful exchange. */
 interface Agreed {
@@ -163,12 +162,12 @@ export async function join(
     return { session: { weddingId, ...keys }, needsConfirmation: true };
   }
 
-  const entries: Array<[SuiteSlice, unknown]> = [];
+  const entries: Array<[SliceName, unknown]> = [];
   const slices: Record<string, Agreed> = {};
   for (const record of remote) {
     if (!record.ciphertext) continue;
     const value = await unseal(session.contentKey, record);
-    entries.push([record.slice as SuiteSlice, value]);
+    entries.push([record.slice as SliceName, value]);
     slices[record.slice] = { version: record.version, fingerprint: fingerprint(value) };
   }
 
@@ -243,7 +242,7 @@ export async function sync(): Promise<SyncResult> {
   const byName = new Map(remote.map((r) => [r.slice, r]));
 
   const agreed = { ...known.slices };
-  const take: Array<[SuiteSlice, unknown]> = [];
+  const take: Array<[SliceName, unknown]> = [];
   const conflicts: Conflict[] = [];
   const pushed: string[] = [];
 
@@ -261,7 +260,7 @@ export async function sync(): Promise<SyncResult> {
         conflicts.push({ slice, theirs, theirVersion: record.version });
         continue;
       }
-      take.push([slice as SuiteSlice, theirs]);
+      take.push([slice, theirs]);
       agreed[slice] = { version: record.version, fingerprint: fingerprint(theirs) };
       continue;
     }
@@ -335,7 +334,7 @@ export async function takeTheirs(conflict: Conflict): Promise<void> {
   if (!known) return;
   useTrousseauStore
     .getState()
-    .setSlices([[conflict.slice as SuiteSlice, conflict.theirs]], {
+    .setSlices([[conflict.slice as SliceName, conflict.theirs]], {
       label: `taking their ${conflict.slice}`,
     });
   await save({

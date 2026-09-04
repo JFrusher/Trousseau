@@ -19,8 +19,12 @@ export const guestsSchema = z.record(z.string(), z.unknown()).default(() => ({})
 export const seatingSchema = z.record(z.string(), z.unknown()).default(() => ({}));
 export const crewSchema = z.looseObject({}).default(() => ({}));
 export const stationerySchema = z.looseObject({}).default(() => ({}));
+export const shotsSchema = z.looseObject({}).default(() => ({}));
+export const timelineSchema = z.looseObject({}).default(() => ({}));
 
 export type Guests = z.infer<typeof guestsSchema>;
 export type Seating = z.infer<typeof seatingSchema>;
 export type Crew = z.infer<typeof crewSchema>;
 export type Stationery = z.infer<typeof stationerySchema>;
+export type Shots = z.infer<typeof shotsSchema>;
+export type TimelineSlice = z.infer<typeof timelineSchema>;

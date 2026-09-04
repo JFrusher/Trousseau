@@ -25,7 +25,7 @@ describe("emptyTrousseau", () => {
 });
 
 describe("SLICE_NAMES", () => {
-  it("lists exactly the six publishable slices", () => {
+  it("lists exactly the eight publishable slices", () => {
     expect([...SLICE_NAMES]).toEqual([
       "event",
       "guests",
@@ -33,6 +33,8 @@ describe("SLICE_NAMES", () => {
       "day",
       "crew",
       "stationery",
+      "shots",
+      "timeline",
     ]);
   });
 

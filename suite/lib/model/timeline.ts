@@ -12,10 +12,10 @@
  * publication (`kind: "cadence.day"`) that the delegation board and any outside
  * reader consume. Both are kept, and only the first can be edited.
  *
- * `timeline` is not one of the contract package's `SLICE_NAMES`. The envelope is
- * a `looseObject` at every level precisely so a new slice can appear without a
- * release, so this is the intended way in — but the package should gain the name
- * when it is next touched.
+ * `timeline` is now one of the contract package's `SLICE_NAMES` — it carries no
+ * schema of its own there beyond "an object", exactly like `crew` and
+ * `stationery`. This module is still where the suite's own richer, editable
+ * shape lives.
  */
 
 export type {
