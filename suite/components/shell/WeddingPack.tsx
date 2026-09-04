@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FileDown } from "lucide-react";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { assemblePack, type PackSection } from "@/lib/export/weddingPack";
-import { readTimeline } from "@/lib/model/slices";
+import { readGuests, readSeating, readShots, readTimeline } from "@/lib/model/slices";
 
 /**
  * The one button that produces everything you carry on the day.
@@ -41,6 +41,7 @@ export function WeddingPack() {
       ["The room", floorPlan],
       ["The day", runSheet],
       ["The jobs", jobList],
+      ["The shots", shotSheet],
     ] as const) {
       try {
         const bytes = await make();
@@ -77,9 +78,9 @@ export function WeddingPack() {
     <div className="rounded-lg border border-charcoal/10 bg-stone/60 p-6">
       <h2 className="mb-1 text-lg text-charcoal">The wedding pack</h2>
       <p className="mb-4 max-w-prose text-sm text-slate">
-        The floor plan, the run sheet and the job list as one document, printed from the wedding
-        as it stands right now. Place cards are a separate print — they go on card stock, not in
-        a binder.
+        The floor plan, the run sheet, the job list and the group shot list as one document,
+        printed from the wedding as it stands right now. Place cards are a separate print — they
+        go on card stock, not in a binder.
       </p>
 
       <button
@@ -157,6 +158,24 @@ async function jobList(): Promise<Uint8Array | null> {
 
   return renderJobList(doc, {
     fontSource: browserFontSource(),
+    generatedOn: `Made with Trousseau, ${new Date().toLocaleDateString()}`,
+  });
+}
+
+async function shotSheet(): Promise<Uint8Array | null> {
+  const { doc } = useTrousseauStore.getState();
+  const shots = readShots(doc);
+  const total = shots.sections.reduce((sum, section) => sum + section.shots.length, 0);
+  if (total === 0) return null;
+
+  const [{ renderShotSheet }, { browserFontSource }] = await Promise.all([
+    import("@/lib/ensemble/render/pdf/shotSheet"),
+    import("@/apps/brigade/render/pdf/fontSource"),
+  ]);
+
+  return renderShotSheet(shots.sections, readGuests(doc), readSeating(doc), shots.cast, {
+    fontSource: browserFontSource(),
+    coupleNames: doc.event.coupleNames,
     generatedOn: `Made with Trousseau, ${new Date().toLocaleDateString()}`,
   });
 }
