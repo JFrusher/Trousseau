@@ -123,7 +123,7 @@ describe("resolveShot: problems", () => {
   it("flags a role with nobody set", () => {
     const result = resolveShot(shot([{ kind: "role", ref: "bride" }]), {}, seating(), emptyCast());
     expect(result.problems).toEqual(
-      expect.arrayContaining([{ kind: "dangling", detail: expect.stringContaining("Bride") }]),
+      expect.arrayContaining([{ kind: "dangling", detail: expect.stringContaining("the bride") }]),
     );
   });
 

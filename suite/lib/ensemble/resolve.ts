@@ -18,7 +18,7 @@ export interface ResolvedShot {
   problems: ShotProblem[];
 }
 
-const rolePhrase = (role: CastRole): string => ROLE_LABEL[role];
+const rolePhrase = (role: CastRole): string => `the ${ROLE_LABEL[role].toLowerCase()}`;
 
 /**
  * A shot's members, resolved to the people they name right now.
