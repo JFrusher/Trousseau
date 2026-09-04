@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { emptyTrousseau, migrate } from "@jfrusher/trousseau";
-import { readCrew, readGuests, readSeating, readTimeline, resolvedDay, timelineDoc } from "./slices";
+import { readCrew, readGuests, readSeating, readShots, readTimeline, resolvedDay, timelineDoc } from "./slices";
 
 /**
  * Every slice reader must return the same object for the same document.
@@ -18,6 +18,7 @@ const doc = migrate({
   seating: { tables: { t1: { id: "t1", label: "Table 1" } } },
   timeline: { lanes: ["Couple"], blocks: [], tagDetails: [] },
   crew: { teams: [], people: [], jobs: [] },
+  shots: { cast: {}, sections: [{ id: "sec1", name: "Family", shots: [] }] },
   stationery: { rowSource: "plan" },
 });
 
@@ -26,6 +27,7 @@ test.each([
   ["seating", () => readSeating(doc)],
   ["timeline", () => readTimeline(doc)],
   ["crew", () => readCrew(doc)],
+  ["shots", () => readShots(doc)],
   ["timelineDoc", () => timelineDoc(doc)],
   ["resolved day", () => resolvedDay(doc)],
 ])("reading %s twice returns the same object", (_name, read) => {

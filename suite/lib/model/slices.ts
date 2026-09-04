@@ -9,7 +9,10 @@ import {
   defaultStyles,
   emptyDoc,
 } from "@/apps/cadence/core/model/defaults";
+import { CAST_ROLES } from "./types";
 import type {
+  Cast,
+  CastRole,
   Constraint,
   Crew,
   CustomTablePreset,
@@ -22,11 +25,16 @@ import type {
   RoomSpec,
   Seating,
   SeatingSettings,
+  Shot,
+  ShotMember,
+  ShotSection,
+  Shots,
   Snapshot,
   Space,
   Table,
   Zone,
 } from "./types";
+import { CAST_ROLES } from "./types";
 import type { OutputSpec, Timeline, TimelineDoc } from "./timeline";
 
 /**
@@ -602,6 +610,79 @@ export function readCrew(doc: Trousseau): Crew {
           status: status === "doing" || status === "done" ? status : "todo",
         };
       }),
+    };
+  });
+}
+
+// shots ------------------------------------------------------------------------
+
+const CAST_ROLE_SET = new Set<CastRole>(CAST_ROLES);
+
+export function emptyCast(): Cast {
+  const cast = {} as Cast;
+  for (const role of CAST_ROLES) cast[role] = [];
+  return cast;
+}
+
+function readCast(raw: unknown): Cast {
+  const cast = emptyCast();
+  if (!isRecord(raw)) return cast;
+  for (const role of CAST_ROLES) {
+    cast[role] = list(raw[role], (id) => (typeof id === "string" ? id : null));
+  }
+  return cast;
+}
+
+function readMember(raw: unknown): ShotMember | null {
+  if (!isRecord(raw)) return null;
+  const kind = raw["kind"];
+  const ref = raw["ref"];
+  switch (kind) {
+    case "guest":
+    case "family":
+    case "group":
+    case "text":
+      return typeof ref === "string" ? { kind, ref } : null;
+    case "role":
+      return typeof ref === "string" && CAST_ROLE_SET.has(ref as CastRole)
+        ? { kind: "role", ref: ref as CastRole }
+        : null;
+    default:
+      return null;
+  }
+}
+
+function readShot(raw: unknown): Shot | null {
+  if (!isRecord(raw) || typeof raw["id"] !== "string") return null;
+  return {
+    id: raw["id"],
+    label: str(raw["label"]),
+    members: list(raw["members"], readMember),
+    notes: str(raw["notes"]),
+  };
+}
+
+function readSection(raw: unknown): ShotSection | null {
+  if (!isRecord(raw) || typeof raw["id"] !== "string") return null;
+  return {
+    id: raw["id"],
+    name: str(raw["name"], "Section"),
+    shots: list(raw["shots"], readShot),
+  };
+}
+
+export function emptyShots(): Shots {
+  return { cast: emptyCast(), sections: [] };
+}
+
+export function readShots(doc: Trousseau): Shots {
+  return cached(doc, "shots", () => {
+    const raw: Record<string, unknown> = isRecord((doc as Record<string, unknown>)["shots"])
+      ? ((doc as Record<string, unknown>)["shots"] as Record<string, unknown>)
+      : {};
+    return {
+      cast: readCast(raw["cast"]),
+      sections: list(raw["sections"], readSection),
     };
   });
 }
