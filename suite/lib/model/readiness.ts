@@ -1,5 +1,6 @@
 import type { Trousseau } from "@jfrusher/trousseau";
-import { guestName, readCrew, readGuests, readSeating, readTimeline } from "./slices";
+import { guestName, readCrew, readGuests, readSeating, readShots, readTimeline } from "./slices";
+import { resolveShot } from "@/lib/ensemble/resolve";
 
 /**
  * What is left to do, across the whole wedding.
@@ -26,7 +27,7 @@ export interface Readiness {
   severity: Severity;
   message: string;
   /** Where the fix is, so a row can take you there. */
-  href: "/seating" | "/place-cards" | "/timeline" | "/delegation";
+  href: "/seating" | "/place-cards" | "/timeline" | "/delegation" | "/group-shots";
   action: string;
 }
 
@@ -199,6 +200,31 @@ export function readiness(doc: Trousseau, raw: unknown): Readiness[] {
           : `${uncrewed.length} jobs have nobody doing them.`,
       href: "/delegation",
       action: "Put names on them",
+    });
+  }
+
+  /**
+   * A shot pointing at someone or something that has since been deleted.
+   * Only the "dangling" kind — a declined guest or an empty shot is already
+   * visible inline in the tool itself, and repeating it here is exactly the
+   * double-reporting this module exists to avoid.
+   */
+  const shots = readShots(doc);
+  const dangling = shots.sections
+    .flatMap((section) => section.shots)
+    .flatMap((shot) => resolveShot(shot, guests, seating, shots.cast).problems)
+    .filter((problem) => problem.kind === "dangling").length;
+
+  if (dangling > 0) {
+    out.push({
+      id: "shots-dangling",
+      severity: "blocking",
+      message:
+        dangling === 1
+          ? "One group shot points at someone or something that no longer exists."
+          : `${dangling} group shots point at someone or something that no longer exists.`,
+      href: "/group-shots",
+      action: "Fix the shot list",
     });
   }
 

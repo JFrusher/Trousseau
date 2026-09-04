@@ -123,3 +123,24 @@ describe("what is left to do", () => {
     expect(found?.href).toBe("/delegation");
   });
 });
+
+describe("group shots", () => {
+  const shotsWith = (ref: string) => ({
+    cast: {},
+    sections: [
+      {
+        id: "s1",
+        name: "Family",
+        shots: [{ id: "sh1", label: "", members: [{ kind: "guest", ref }], notes: "" }],
+      },
+    ],
+  });
+
+  it("flags a shot that points at a guest who no longer exists", () => {
+    expect(ids({ guests: GUESTS, ...TABLES, shots: shotsWith("ghost") })).toContain("shots-dangling");
+  });
+
+  it("says nothing when every shot resolves cleanly", () => {
+    expect(ids({ guests: GUESTS, ...TABLES, shots: shotsWith("g1") })).not.toContain("shots-dangling");
+  });
+});
