@@ -1,8 +1,8 @@
-import { Armchair, ClipboardList, Clock, Contact, type LucideIcon } from "lucide-react";
+import { Armchair, Camera, ClipboardList, Clock, Contact, type LucideIcon } from "lucide-react";
 
-/** The four tools, in the order the day is planned in. Nav and landing share this. */
+/** The five tools, in the order the day is planned in. Nav and landing share this. */
 export interface Tool {
-  href: "/seating" | "/place-cards" | "/timeline" | "/delegation";
+  href: "/seating" | "/place-cards" | "/timeline" | "/delegation" | "/group-shots";
   name: string;
   tagline: string;
   icon: LucideIcon;
@@ -45,5 +45,12 @@ export const TOOLS: readonly Tool[] = [
     name: "Delegation",
     tagline: "The jobs, and the hands doing them.",
     icon: ClipboardList,
+  },
+  {
+    href: "/group-shots",
+    tokens: "ensemble-tokens",
+    name: "Group shots",
+    tagline: "The family photo list, built from who's who.",
+    icon: Camera,
   },
 ];

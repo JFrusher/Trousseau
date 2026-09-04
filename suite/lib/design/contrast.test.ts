@@ -75,7 +75,7 @@ export function contrast(foreground: string, background: string): number {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
-const SCOPES = [".plaque-scope", ".cadence-scope", ".brigade-scope", ".tableaux-scope"];
+const SCOPES = [".plaque-scope", ".cadence-scope", ".brigade-scope", ".tableaux-scope", ".ensemble-tokens"];
 
 /** The tint each tool fills behind its own accent text. Tableaux named it differently. */
 const TINT: Record<string, string> = {
@@ -83,6 +83,7 @@ const TINT: Record<string, string> = {
   ".cadence-scope": "--accent-soft",
   ".brigade-scope": "--accent-soft",
   ".tableaux-scope": "--accent-light",
+  ".ensemble-tokens": "--accent-soft",
 };
 
 describe("the shared ramp", () => {

@@ -128,6 +128,13 @@
   --accent-bright: #736755;
 }
 
+.ensemble-tokens {
+  --accent: #46617a;
+  --accent-hover: #3a5166;
+  --accent-soft: #e7ecf0;
+  --accent-bright: #6b8aa6;
+}
+
 /*
  * ── Plaque, Cadence and Brigade ───────────────────────────────────────────
  *
