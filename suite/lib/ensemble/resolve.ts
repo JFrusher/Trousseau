@@ -55,7 +55,7 @@ export function resolveShot(
     resolveMember(member, guests, seating, cast, addGuest, problems, people);
   }
 
-  if (people.length === 0 && shot.members.length === 0) problems.push({ kind: "empty" });
+  if (people.length === 0 && problems.length === 0) problems.push({ kind: "empty" });
 
   const label =
     shot.label.trim() || (people.length > 0 ? people.map((p) => p.name).join(" + ") : "Untitled shot");
