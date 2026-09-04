@@ -262,3 +262,69 @@ export interface Crew {
   people: Person[];
   jobs: Job[];
 }
+
+// group shots ------------------------------------------------------------------
+
+/** Where a shot's people come from — the couple, a parent, the wedding party. */
+export type CastRole =
+  | "bride"
+  | "groom"
+  | "brides-mother"
+  | "brides-father"
+  | "grooms-mother"
+  | "grooms-father"
+  | "bridal-party"
+  | "groomsmen";
+
+export const CAST_ROLES: readonly CastRole[] = [
+  "bride",
+  "groom",
+  "brides-mother",
+  "brides-father",
+  "grooms-mother",
+  "grooms-father",
+  "bridal-party",
+  "groomsmen",
+];
+
+export const ROLE_LABEL: Record<CastRole, string> = {
+  bride: "Bride",
+  groom: "Groom",
+  "brides-mother": "Bride's mother",
+  "brides-father": "Bride's father",
+  "grooms-mother": "Groom's mother",
+  "grooms-father": "Groom's father",
+  "bridal-party": "Bridal party",
+  groomsmen: "Groomsmen",
+};
+
+/** Guest ids per role. Singular roles hold 0 or 1; party roles hold many. */
+export type Cast = Record<CastRole, string[]>;
+
+/** Where one person in a shot comes from — pinned, or resolved live from another slice. */
+export type ShotMember =
+  | { kind: "guest"; ref: string }
+  | { kind: "family"; ref: string }
+  | { kind: "group"; ref: string }
+  | { kind: "role"; ref: CastRole }
+  | { kind: "text"; ref: string };
+
+export interface Shot {
+  id: string;
+  /** Blank means the printed label is built from the members instead. */
+  label: string;
+  members: ShotMember[];
+  notes: string;
+}
+
+export interface ShotSection {
+  id: string;
+  name: string;
+  shots: Shot[];
+}
+
+/** The `shots` slice. Ensemble's model. */
+export interface Shots {
+  cast: Cast;
+  sections: ShotSection[];
+}
