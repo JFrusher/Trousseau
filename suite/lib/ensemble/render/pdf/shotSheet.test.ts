@@ -96,14 +96,33 @@ describe("renderShotSheet", () => {
   });
 
   it("renders a document with no shots at all without falling over", async () => {
-    const { pages } = await textOf(await renderShotSheet([], {}, seating, emptyCast, options));
+    const { pages, text } = await textOf(await renderShotSheet([], {}, seating, emptyCast, options));
     expect(pages).toBeGreaterThanOrEqual(1);
+    // Drawn as a section heading, and headings print uppercased.
+    expect(text).toContain("NO SHOTS PLANNED YET.");
   });
 
-  it("uses A5 when asked", async () => {
-    const { pages } = await textOf(
-      await renderShotSheet([], {}, seating, emptyCast, { ...options, pageSize: "A5" }),
+  /*
+   * The columns, not just the page count.
+   *
+   * A5 once rendered "successfully" with the label column at about 10mm, which
+   * broke every multi-word label into a vertical stack of fragments. Nothing
+   * threw and the page count was right, so the tests of the day were happy. A
+   * label wide enough to be squeezed, asserted whole, is what catches that.
+   */
+  const longLabel = "Couple with the bride's parents";
+  const sections: ShotSection[] = [
+    { id: "s1", name: "Both families", shots: [{ id: "sh1", label: longLabel, members: [], notes: "" }] },
+  ];
+
+  it.each(["A4", "A5"] as const)("keeps a long label unbroken at %s", async (pageSize) => {
+    const { pages, text } = await textOf(
+      await renderShotSheet(sections, {}, seating, emptyCast, { ...options, pageSize }),
     );
     expect(pages).toBeGreaterThanOrEqual(1);
+    // `wrap` breaks a word too wide for its column mid-word, and each drawn
+    // line is its own extracted run — so a squeezed column shows up here as
+    // fragments where the phrase used to be.
+    expect(text).toContain(longLabel);
   });
 });

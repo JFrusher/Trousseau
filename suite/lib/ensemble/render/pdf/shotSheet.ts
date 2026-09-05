@@ -58,7 +58,9 @@ export async function renderShotSheet(
   const size = PAGE_SIZES[options.pageSize ?? "A4"];
   const box = contentBox(size, MARGIN_MM);
 
-  const labelColMm = (box.widthMm - NO_COL_MM - NOTES_COL_MM * 2 - 8) / 2;
+  // Three columns share what the number and notes columns leave: label and
+  // people split it evenly, less the two 4mm gutters between them.
+  const labelColMm = (box.widthMm - NO_COL_MM - NOTES_COL_MM - 8) / 2;
   const peopleColMm = labelColMm;
 
   const lines: Line[] = [];
