@@ -18,8 +18,10 @@ import {
   parse,
   seatingSchema,
   serialise,
+  shotsSchema,
   stationerySchema,
   suggestedFilename,
+  timelineSchema,
   trousseauSchema,
   type Crew,
   type Day,
@@ -28,8 +30,10 @@ import {
   type Event,
   type Guests,
   type Seating,
+  type Shots,
   type SliceName,
   type Stationery,
+  type TimelineSlice,
   type Trousseau,
 } from "@jfrusher/trousseau";
 
@@ -120,12 +124,16 @@ const schemas = [
   seatingSchema,
   crewSchema,
   stationerySchema,
+  shotsSchema,
+  timelineSchema,
 ];
-const slices: [Guests, Seating, Crew, Stationery] = [
+const slices: [Guests, Seating, Crew, Stationery, Shots, TimelineSlice] = [
   doc.guests,
   doc.seating,
   doc.crew,
   doc.stationery,
+  doc.shots,
+  doc.timeline,
 ];
 
 void kinds;
