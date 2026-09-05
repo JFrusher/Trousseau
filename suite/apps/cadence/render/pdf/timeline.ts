@@ -177,6 +177,13 @@ export async function renderTimeline(
         sheet.rect(x, topMm, width, heightMm, { colour: accent, opacity: fill });
         sheet.rect(x, topMm, 0.9, heightMm, { colour: accent });
 
+        // A start and an end rule, drawn at the box's true edges rather than
+        // any gap between boxes — a gap once compounded block after block on
+        // a back-to-back day and drove the whole lane off its true time (see
+        // boxesFor's history). Two back-to-back blocks share the same line.
+        sheet.line(x, topMm, x + width, topMm, { widthPt: 0.7, colour: accent });
+        sheet.line(x, topMm + heightMm, x + width, topMm + heightMm, { widthPt: 0.7, colour: accent });
+
         if (heightMm < readableFloorMm) {
           slivers.push(entry);
           return;
