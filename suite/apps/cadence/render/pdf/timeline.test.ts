@@ -47,7 +47,7 @@ describe("renderTimeline", () => {
     expect(text).not.toContain("Rings to the best man until");
   });
 
-  it("spills onto a second page past four lanes", async () => {
+  it("keeps every lane on one page, squeezing their width instead of spilling past four", async () => {
     const doc = sampleDoc();
     const extra = ["Photography", "Registry", "Bar"];
     const spread = {
@@ -59,8 +59,9 @@ describe("renderTimeline", () => {
           : block,
       ),
     };
-    const { pages } = await textOf(await renderTimeline(spread, options));
-    expect(pages).toBe(2);
+    const { text, pages } = await textOf(await renderTimeline(spread, options));
+    expect(pages).toBe(1);
+    for (const lane of spread.lanes) expect(text).toContain(lane.toUpperCase());
   });
 
   it("draws overlapping blocks beside each other, not on top", async () => {

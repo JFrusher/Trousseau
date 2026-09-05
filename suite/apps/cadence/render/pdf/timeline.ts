@@ -17,7 +17,6 @@ export interface TimelineOptions {
 
 const MARGIN_MM = 12;
 const GUTTER_MM = 13;
-const LANES_PER_PAGE = 4;
 const PAD_MM = 1.3;
 const LEADING = 1.25;
 /** Below this, drawBoxText already refuses to print — see minHeightForPt. */
@@ -99,11 +98,9 @@ export async function renderTimeline(
   // the sheet count.
   const mmPerMin = bodyHeight / (span.toMin - span.fromMin);
 
-  const pages: Lane[][] = [];
-  for (let start = 0; start < lanes.length; start += LANES_PER_PAGE) {
-    pages.push(lanes.slice(start, start + LANES_PER_PAGE));
-  }
-  if (pages.length === 0) pages.push([]);
+  // One page always, however many lanes there are: the width divides between
+  // them instead of the lanes spilling onto a second sheet.
+  const pages: Lane[][] = [lanes];
 
   pages.forEach((pageLanes, pageIndex) => {
     const sheet = addSheet(pdf, size);
