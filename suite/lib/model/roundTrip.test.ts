@@ -12,7 +12,7 @@ vi.mock("idb-keyval", () => ({
 const { STORAGE_KEY, flushPersist, useTrousseauStore } = await import(
   "@/lib/store/useTrousseauStore"
 );
-const { publishDay, readCrew, readGuests, readSeating, readTimeline, resolvedDay } = await import(
+const { publishDay, readCrew, readGuests, readSeating, readTimeline, readShots, resolvedDay } = await import(
   "./slices"
 );
 const { addTable, seatGuest } = await import("@/lib/seating/actions");
@@ -20,6 +20,7 @@ const { addBlock, patchBlock } = await import("@/lib/model/timelineActions");
 const { addJob, addPerson, seedTeamsFromTags, toggleAssignment } = await import(
   "@/lib/model/crewActions"
 );
+const { addSection, addShot, patchShot } = await import("@/lib/ensemble/actions");
 
 /**
  * Step 4's requirement, as a test: a wedding built through the tools survives
@@ -99,6 +100,15 @@ function buildAWedding(): void {
   crew = addJob(crew, ceremony, "Hand over the rings");
   crew = toggleAssignment(crew, crew.jobs[0]!.id, crew.people[0]!.id);
   store().setSlice("crew", crew);
+
+  let shots = addSection(readShots(store().doc), "Bride's family");
+  const sectionId = shots.sections[0]!.id;
+  shots = addShot(shots, sectionId);
+  shots = patchShot(shots, shots.sections[0]!.shots[0]!.id, {
+    label: "Bride with her mother",
+    members: [{ kind: "guest", ref: "g1" }],
+  });
+  store().setSlice("shots", shots);
 }
 
 test("a floating block starts when the one before it ends, plus its gap", () => {
@@ -143,6 +153,7 @@ test("an exported backup restores byte for byte, unknown slices included", async
   expect(Object.values(readSeating(store().doc).tables)[0]!.assignedGuestIds).toEqual(["g1"]);
   expect(readTimeline(store().doc).blocks.map((b) => b.label)).toEqual(["Ceremony", "Drinks"]);
   expect(readCrew(store().doc).jobs[0]!.label).toBe("Hand over the rings");
+  expect(readShots(store().doc).sections[0]!.shots[0]!.label).toBe("Bride with her mother");
   expect(store().doc.event.coupleNames).toBe("Charis & Jacob");
   expect((store().raw as Record<string, unknown>)["photobooth"]).toEqual({
     props: ["top hat"],
@@ -155,7 +166,7 @@ test("what is stored is what is restored — the whole document, not a summary",
   await flushPersist();
 
   const stored = db.get(STORAGE_KEY) as Record<string, unknown>;
-  for (const slice of ["event", "guests", "seating", "timeline", "day", "crew"]) {
+  for (const slice of ["event", "guests", "seating", "timeline", "day", "crew", "shots"]) {
     expect(stored[slice], `${slice} reached storage`).toBeDefined();
   }
 });
