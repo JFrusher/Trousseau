@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
 import { Button, Panel, SelectField, TextArea, TextField } from "@/components/ui/controls";
-import { GuestPicker } from "./GuestPicker";
+import { GuestChip, GuestPicker } from "./GuestPicker";
 import { guestName } from "@/lib/model/slices";
 import { CAST_ROLES, ROLE_LABEL, type Guest, type Seating, type Shot, type ShotMember, type Shots } from "@/lib/model/types";
 import { addMember, patchShot, removeMember } from "@/lib/ensemble/actions";
@@ -51,14 +50,11 @@ export function ShotInspector({
       <Panel title="Who's in it">
         <ul className="mb-2 flex flex-wrap gap-1.5">
           {shot.members.map((member, index) => (
-            <li
-              key={index}
-              className="inline-flex items-center gap-1 rounded-full border border-charcoal/15 bg-stone px-2 py-0.5 text-xs text-charcoal"
-            >
-              {memberLabel(member, guests, seating)}
-              <button type="button" aria-label="Remove" onClick={() => onChange(removeMember(shots, shot.id, index))}>
-                <X size={11} />
-              </button>
+            <li key={index}>
+              <GuestChip
+                name={memberLabel(member, guests, seating)}
+                onRemove={() => onChange(removeMember(shots, shot.id, index))}
+              />
             </li>
           ))}
           {shot.members.length === 0 && <li className="text-sm text-slate">Nobody added yet.</li>}

@@ -1,8 +1,7 @@
 "use client";
 
-import { X } from "lucide-react";
 import { Panel } from "@/components/ui/controls";
-import { GuestPicker } from "./GuestPicker";
+import { GuestChip, GuestPicker } from "./GuestPicker";
 import { guestName } from "@/lib/model/slices";
 import { CAST_ROLES, ROLE_LABEL, type Guest, type Shots } from "@/lib/model/types";
 import { setCastRole } from "@/lib/ensemble/actions";
@@ -35,18 +34,11 @@ export function CastPanel({
           <Panel key={role} title={ROLE_LABEL[role]}>
             <ul className="mb-2 flex flex-wrap gap-1.5">
               {chosen.map((guestId) => (
-                <li
-                  key={guestId}
-                  className="inline-flex items-center gap-1 rounded-full border border-charcoal/15 bg-stone px-2 py-0.5 text-xs text-charcoal"
-                >
-                  {guests[guestId] ? guestName(guests[guestId]!) || "Unnamed guest" : "Deleted guest"}
-                  <button
-                    type="button"
-                    aria-label="Remove"
-                    onClick={() => onChange(setCastRole(shots, role, chosen.filter((id) => id !== guestId)))}
-                  >
-                    <X size={11} />
-                  </button>
+                <li key={guestId}>
+                  <GuestChip
+                    name={guests[guestId] ? guestName(guests[guestId]!) || "Unnamed guest" : "Deleted guest"}
+                    onRemove={() => onChange(setCastRole(shots, role, chosen.filter((id) => id !== guestId)))}
+                  />
                 </li>
               ))}
               {chosen.length === 0 && <li className="text-sm text-slate">Not set yet.</li>}
