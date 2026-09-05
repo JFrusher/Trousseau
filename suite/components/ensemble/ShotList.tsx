@@ -1,8 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useMemo, useState } from "react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/controls";
@@ -35,6 +48,26 @@ export function ShotList({
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
+  // Arrow keys move a shot to the next position rather than a few pixels.
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  /**
+   * Shot id to its number across the whole list, not within its section — the
+   * same running count `shotSheet.ts` and `exports.ts` print, so the screen and
+   * the sheet in the photographer's hand agree about which shot is number six.
+   */
+  const numbers = useMemo(() => {
+    const map = new Map<string, number>();
+    let number = 0;
+    for (const section of shots.sections) {
+      for (const shot of section.shots) map.set(shot.id, (number += 1));
+    }
+    return map;
+  }, [shots.sections]);
+
   const toggle = (id: string) =>
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -54,6 +87,7 @@ export function ShotList({
               onClick={() => toggle(section.id)}
             />
             <input
+              aria-label="Section name"
               value={section.name}
               onChange={(e) => onChange(renameSection(shots, section.id, e.target.value))}
               className="min-w-0 flex-1 bg-transparent text-sm text-charcoal focus:outline-none"
@@ -82,6 +116,7 @@ export function ShotList({
           {!collapsed.has(section.id) && (
             <div className="p-1.5">
               <DndContext
+                sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={(event: DragEndEvent) => {
                   const { active, over } = event;
@@ -93,11 +128,11 @@ export function ShotList({
               >
                 <SortableContext items={section.shots.map((s) => s.id)} strategy={verticalListSortingStrategy}>
                   <ul className="flex flex-col gap-0.5">
-                    {section.shots.map((shot, shotIndex) => (
+                    {section.shots.map((shot) => (
                       <ShotRow
                         key={shot.id}
                         shot={shot}
-                        index={shotIndex}
+                        number={numbers.get(shot.id) ?? 0}
                         guests={guests}
                         seating={seating}
                         cast={shots.cast}
@@ -135,7 +170,7 @@ export function ShotList({
 
 function ShotRow({
   shot,
-  index,
+  number,
   guests,
   seating,
   cast,
@@ -144,7 +179,8 @@ function ShotRow({
   onRemove,
 }: {
   shot: Shot;
-  index: number;
+  /** Its place across the whole list, as printed. */
+  number: number;
   guests: Record<string, Guest>;
   seating: Seating;
   cast: Cast;
@@ -161,12 +197,19 @@ function ShotRow({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`group flex items-start gap-1.5 rounded px-1.5 py-1 ${selected ? "bg-gold/15" : "hover:bg-stone"}`}
     >
-      <button {...attributes} {...listeners} className="mt-0.5 shrink-0 cursor-grab text-slate" aria-label="Reorder">
+      <button
+        {...attributes}
+        {...listeners}
+        // Without this the browser scrolls the list instead of dragging the row.
+        style={{ touchAction: "none" }}
+        className="mt-0.5 shrink-0 cursor-grab text-slate"
+        aria-label="Reorder"
+      >
         <GripVertical size={13} />
       </button>
       <button type="button" onClick={onSelect} className="min-w-0 flex-1 text-left">
         <div className="truncate text-sm text-charcoal">
-          {index + 1}. {resolved.label}
+          {number}. {resolved.label}
           {resolved.problems.length > 0 && <span className="ml-1 text-rose">●</span>}
         </div>
         <div className="truncate text-xs text-slate">
