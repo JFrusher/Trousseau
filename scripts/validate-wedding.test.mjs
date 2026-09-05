@@ -163,3 +163,54 @@ describe("the suite's own slices", () => {
     expect(result.facts).toContainEqual(expect.stringContaining("(sources.tableaux)"));
   });
 });
+
+describe("shots slice", () => {
+  const base = { event: { date: "2026-06-20" }, day: null, guests: {}, seating: {} };
+
+  it("catches a shot member naming a guest who does not exist", () => {
+    const doc = {
+      ...base,
+      shots: {
+        cast: {},
+        sections: [{ id: "s1", name: "Family", shots: [{ id: "sh1", label: "x", members: [{ kind: "guest", ref: "ghost" }] }] }],
+      },
+    };
+    expect(check(doc).errors).toEqual([expect.stringContaining("ghost")]);
+  });
+
+  it("catches a cast role naming a guest who does not exist", () => {
+    const doc = { ...base, shots: { cast: { bride: ["ghost"] }, sections: [] } };
+    expect(check(doc).errors).toEqual([expect.stringContaining("bride")]);
+  });
+
+  it("warns on a declined guest in a shot, without failing", () => {
+    const doc = {
+      ...base,
+      guests: { g1: { id: "g1", rsvpStatus: "declined" } },
+      shots: {
+        cast: {},
+        sections: [{ id: "s1", name: "Family", shots: [{ id: "sh1", label: "x", members: [{ kind: "guest", ref: "g1" }] }] }],
+      },
+    };
+    const result = check(doc);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([expect.stringContaining("declined")]);
+  });
+
+  it("warns on an empty section and an empty shot", () => {
+    const doc = {
+      ...base,
+      shots: {
+        cast: {},
+        sections: [
+          { id: "s1", name: "Empty section", shots: [] },
+          { id: "s2", name: "Has one", shots: [{ id: "sh1", label: "", members: [] }] },
+        ],
+      },
+    };
+    const warnings = check(doc).warnings;
+    expect(warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining("nobody in it"), expect.stringContaining("nothing in them")]),
+    );
+  });
+});

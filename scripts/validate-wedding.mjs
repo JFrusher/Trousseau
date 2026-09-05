@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // The gate on the canonical wedding file.
 //
 // Trousseau's zod schema validates the envelope: kind, version, event, and the
@@ -146,11 +145,56 @@ export function check(doc) {
     facts.push(`day: ${blocks.length} blocks, ${lanes.size} lanes`);
   }
 
+  // --------------------------------------------------------------- shots slice
+  if (isObj(doc.shots)) {
+    const guestIds = new Set(Object.keys(isObj(doc.guests) ? doc.guests : {}));
+    const familyIds = new Set(Object.keys(doc.seating?.families ?? {}));
+    const groupIds = new Set([
+      ...Object.keys(doc.seating?.groups ?? {}),
+      ...Object.keys(doc.seating?.subgroups ?? {}),
+    ]);
+    const cast = isObj(doc.shots.cast) ? doc.shots.cast : {};
+
+    for (const [role, ids] of Object.entries(cast)) {
+      for (const id of Array.isArray(ids) ? ids : []) {
+        if (!guestIds.has(id)) fail(`the cast's ${role} names guest ${id}, who does not exist`);
+      }
+    }
+
+    let shotCount = 0;
+    let emptySections = 0;
+    for (const section of Array.isArray(doc.shots.sections) ? doc.shots.sections : []) {
+      const shots = Array.isArray(section.shots) ? section.shots : [];
+      if (shots.length === 0) emptySections += 1;
+      for (const shot of shots) {
+        shotCount += 1;
+        const members = Array.isArray(shot.members) ? shot.members : [];
+        if (members.length === 0) warn(`"${shot.label || "an untitled shot"}" has nobody in it`);
+        for (const member of members) {
+          if (member.kind === "guest" && !guestIds.has(member.ref)) {
+            fail(`"${shot.label || shot.id}" names guest ${member.ref}, who does not exist`);
+          }
+          if (member.kind === "family" && !familyIds.has(member.ref)) {
+            fail(`"${shot.label || shot.id}" names family ${member.ref}, which does not exist`);
+          }
+          if (member.kind === "group" && !groupIds.has(member.ref)) {
+            fail(`"${shot.label || shot.id}" names group ${member.ref}, which does not exist`);
+          }
+          if (member.kind === "guest" && guestIds.has(member.ref) && doc.guests[member.ref]?.rsvpStatus === "declined") {
+            warn(`"${shot.label || shot.id}" includes ${member.ref}, who has declined`);
+          }
+        }
+      }
+    }
+    if (emptySections > 0) warn(`${emptySections} shot section(s) with nothing in them`);
+    if (shotCount > 0) facts.push(`shots: ${shotCount} planned`);
+  }
+
   return { errors, warnings, facts };
 }
 
 // Not run when imported by the test.
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const file = process.argv[2] ?? "data/wedding.trousseau.json";
   let doc;
   try {
