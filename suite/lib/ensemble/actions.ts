@@ -1,5 +1,5 @@
 import { newId } from "@/lib/model/ids";
-import type { Cast, CastRole, Shot, ShotMember, ShotSection, Shots } from "@/lib/model/types";
+import type { Cast, CastRole, CustomRole, Shot, ShotMember, ShotSection, Shots } from "@/lib/model/types";
 
 /**
  * The shot list: sections holding shots holding members. A shot lives inside
@@ -53,6 +53,22 @@ export function removeShot(shots: Shots, shotId: string): Shots {
   };
 }
 
+/** Copies a shot's label, members, and notes into a new shot right after it. */
+export function duplicateShot(shots: Shots, shotId: string, newShotId = newId("shot")): Shots {
+  return {
+    ...shots,
+    sections: shots.sections.map((s) => {
+      const index = s.shots.findIndex((shot) => shot.id === shotId);
+      if (index === -1) return s;
+      const original = s.shots[index]!;
+      const copy: Shot = { ...original, id: newShotId };
+      const nextShots = [...s.shots];
+      nextShots.splice(index + 1, 0, copy);
+      return { ...s, shots: nextShots };
+    }),
+  };
+}
+
 /** Moves a shot to an index within its own section. A cross-section move is two calls. */
 export function reorderShot(shots: Shots, sectionId: string, fromIndex: number, toIndex: number): Shots {
   return {
@@ -92,4 +108,24 @@ function patchShotMembers(
 
 export function setCastRole(shots: Shots, role: CastRole, guestIds: string[]): Shots {
   return { ...shots, cast: { ...shots.cast, [role]: guestIds } as Cast };
+}
+
+export function addCustomRole(shots: Shots, name: string): Shots {
+  const role: CustomRole = { id: newId("crole"), name, guestIds: [] };
+  return { ...shots, customRoles: [...shots.customRoles, role] };
+}
+
+export function renameCustomRole(shots: Shots, roleId: string, name: string): Shots {
+  return { ...shots, customRoles: shots.customRoles.map((r) => (r.id === roleId ? { ...r, name } : r)) };
+}
+
+export function removeCustomRole(shots: Shots, roleId: string): Shots {
+  return { ...shots, customRoles: shots.customRoles.filter((r) => r.id !== roleId) };
+}
+
+export function setCustomRoleMembers(shots: Shots, roleId: string, guestIds: string[]): Shots {
+  return {
+    ...shots,
+    customRoles: shots.customRoles.map((r) => (r.id === roleId ? { ...r, guestIds } : r)),
+  };
 }

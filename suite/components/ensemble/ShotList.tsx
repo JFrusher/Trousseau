@@ -17,13 +17,15 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, GripVertical, Plus, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/controls";
-import type { Cast, Guest, Seating, Shot, Shots } from "@/lib/model/types";
+import { newId } from "@/lib/model/ids";
+import type { Cast, CustomRole, Guest, Seating, Shot, Shots } from "@/lib/model/types";
 import { resolveShot } from "@/lib/ensemble/resolve";
 import {
   addSection,
   addShot,
+  duplicateShot,
   removeSection,
   removeShot,
   renameSection,
@@ -136,9 +138,15 @@ export function ShotList({
                         guests={guests}
                         seating={seating}
                         cast={shots.cast}
+                        customRoles={shots.customRoles}
                         selected={shot.id === selectedId}
                         onSelect={() => onSelect(shot.id)}
                         onRemove={() => onChange(removeShot(shots, shot.id))}
+                        onDuplicate={() => {
+                          const copyId = newId("shot");
+                          onChange(duplicateShot(shots, shot.id, copyId));
+                          onSelect(copyId);
+                        }}
                       />
                     ))}
                   </ul>
@@ -174,9 +182,11 @@ function ShotRow({
   guests,
   seating,
   cast,
+  customRoles,
   selected,
   onSelect,
   onRemove,
+  onDuplicate,
 }: {
   shot: Shot;
   /** Its place across the whole list, as printed. */
@@ -184,12 +194,14 @@ function ShotRow({
   guests: Record<string, Guest>;
   seating: Seating;
   cast: Cast;
+  customRoles: CustomRole[];
   selected: boolean;
   onSelect: () => void;
   onRemove: () => void;
+  onDuplicate: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: shot.id });
-  const resolved = resolveShot(shot, guests, seating, cast);
+  const resolved = resolveShot(shot, guests, seating, cast, customRoles);
 
   return (
     <li
@@ -216,6 +228,7 @@ function ShotRow({
           {resolved.people.map((p) => p.name).join(", ") || "Nobody yet"}
         </div>
       </button>
+      <IconButton icon={Copy} label="Duplicate shot" onClick={onDuplicate} />
       <IconButton icon={Trash2} label="Remove shot" tone="danger" onClick={onRemove} />
     </li>
   );

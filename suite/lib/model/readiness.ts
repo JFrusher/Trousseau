@@ -212,7 +212,7 @@ export function readiness(doc: Trousseau, raw: unknown): Readiness[] {
   const shots = readShots(doc);
   const dangling = shots.sections
     .flatMap((section) => section.shots)
-    .flatMap((shot) => resolveShot(shot, guests, seating, shots.cast).problems)
+    .flatMap((shot) => resolveShot(shot, guests, seating, shots.cast, shots.customRoles).problems)
     .filter((problem) => problem.kind === "dangling").length;
 
   if (dangling > 0) {

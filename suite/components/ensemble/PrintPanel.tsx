@@ -26,7 +26,7 @@ export function PrintPanel({
 
   const problems = shots.sections.flatMap((section) =>
     section.shots.flatMap((shot) => {
-      const resolved = resolveShot(shot, guests, seating, shots.cast);
+      const resolved = resolveShot(shot, guests, seating, shots.cast, shots.customRoles);
       return resolved.problems.map((problem) => ({
         shotLabel: resolved.label,
         text:
@@ -46,12 +46,19 @@ export function PrintPanel({
     setBusy(true);
     setError(null);
     try {
-      const bytes = await renderShotSheet(shots.sections, guests, seating, shots.cast, {
-        fontSource: browserFontSource(),
-        pageSize,
-        coupleNames,
-        generatedOn: `Made with Trousseau, ${new Date().toLocaleDateString()}`,
-      });
+      const bytes = await renderShotSheet(
+        shots.sections,
+        guests,
+        seating,
+        shots.cast,
+        {
+          fontSource: browserFontSource(),
+          pageSize,
+          coupleNames,
+          generatedOn: `Made with Trousseau, ${new Date().toLocaleDateString()}`,
+        },
+        shots.customRoles,
+      );
       download(`${slug()}-group-shots.pdf`, new Blob([bytes as BlobPart], { type: "application/pdf" }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The PDF could not be made.");
@@ -63,7 +70,11 @@ export function PrintPanel({
   const makeCsv = () => {
     setError(null);
     try {
-      download(`${slug()}-group-shots.csv`, shotListCsv(shots.sections, guests, seating, shots.cast), "text/csv");
+      download(
+        `${slug()}-group-shots.csv`,
+        shotListCsv(shots.sections, guests, seating, shots.cast, shots.customRoles),
+        "text/csv",
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The CSV could not be made.");
     }

@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Panel, SelectField, TextArea, TextField } from "@/components/ui/controls";
+import { Heart, Plus } from "lucide-react";
+import { Button, Panel, TextArea, TextField } from "@/components/ui/controls";
 import { GuestChip, GuestPicker } from "./GuestPicker";
-import { guestName } from "@/lib/model/slices";
-import { CAST_ROLES, ROLE_LABEL, type Guest, type Seating, type Shot, type ShotMember, type Shots } from "@/lib/model/types";
+import { memberDescriptor } from "@/lib/ensemble/resolve";
 import { addMember, patchShot, removeMember } from "@/lib/ensemble/actions";
-
-type MemberKind = ShotMember["kind"];
+import { CAST_ROLES, ROLE_LABEL, type Guest, type Seating, type Shot, type ShotMember, type Shots } from "@/lib/model/types";
 
 export function ShotInspector({
   shot,
@@ -22,19 +21,28 @@ export function ShotInspector({
   seating: Seating;
   onChange: (next: Shots) => void;
 }) {
-  const [addKind, setAddKind] = useState<MemberKind>("guest");
   const [textValue, setTextValue] = useState("");
 
-  const addPicked = (ref: string) => {
-    if (!ref) return;
-    const member: ShotMember =
-      addKind === "family"
-        ? { kind: "family", ref }
-        : addKind === "group"
-          ? { kind: "group", ref }
-          : { kind: "role", ref: ref as (typeof CAST_ROLES)[number] };
-    onChange(addMember(shots, shot.id, member));
+  const add = (member: ShotMember) => onChange(addMember(shots, shot.id, member));
+  const hasRole = (role: string) => shot.members.some((m) => m.kind === "role" && m.ref === role);
+
+  const addCouple = () => {
+    let next = shots;
+    if (!hasRole("bride")) next = addMember(next, shot.id, { kind: "role", ref: "bride" });
+    if (!hasRole("groom")) next = addMember(next, shot.id, { kind: "role", ref: "groom" });
+    onChange(next);
   };
+
+  const availableRoles = CAST_ROLES.filter((role) => !hasRole(role));
+  const availableCustomRoles = shots.customRoles.filter(
+    (r) => !shot.members.some((m) => m.kind === "customRole" && m.ref === r.id),
+  );
+  const availableFamilies = Object.values(seating.families).filter(
+    (f) => !shot.members.some((m) => m.kind === "family" && m.ref === f.id),
+  );
+  const availableGroups = [...Object.values(seating.groups), ...Object.values(seating.subgroups)].filter(
+    (g) => !shot.members.some((m) => m.kind === "group" && m.ref === g.id),
+  );
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -52,7 +60,7 @@ export function ShotInspector({
           {shot.members.map((member, index) => (
             <li key={index}>
               <GuestChip
-                name={memberLabel(member, guests, seating)}
+                name={memberDescriptor(member, guests, seating, shots.customRoles)}
                 onRemove={() => onChange(removeMember(shots, shot.id, index))}
               />
             </li>
@@ -60,77 +68,56 @@ export function ShotInspector({
           {shot.members.length === 0 && <li className="text-sm text-slate">Nobody added yet.</li>}
         </ul>
 
-        <SelectField
-          value={addKind}
-          onChange={setAddKind}
-          options={[
-            { value: "guest", label: "Guest" },
-            { value: "family", label: "Family" },
-            { value: "group", label: "Group" },
-            { value: "role", label: "Role" },
-            { value: "text", label: "Text" },
-          ]}
-        />
-
-        {addKind === "guest" && (
-          <GuestPicker
-            guests={guests}
-            exclude={shot.members.filter((m) => m.kind === "guest").map((m) => m.ref)}
-            onPick={(guestId) => onChange(addMember(shots, shot.id, { kind: "guest", ref: guestId }))}
-          />
-        )}
-
-        {addKind === "family" && (
-          <SelectField
-            value=""
-            onChange={addPicked}
-            options={[
-              { value: "", label: "Choose a family…" },
-              ...Object.values(seating.families).map((f) => ({ value: f.id, label: f.name })),
-            ]}
-          />
-        )}
-
-        {addKind === "group" && (
-          <SelectField
-            value=""
-            onChange={addPicked}
-            options={[
-              { value: "", label: "Choose a group…" },
-              ...[...Object.values(seating.groups), ...Object.values(seating.subgroups)].map((g) => ({
-                value: g.id,
-                label: g.name,
-              })),
-            ]}
-          />
-        )}
-
-        {addKind === "role" && (
-          <SelectField
-            value=""
-            onChange={addPicked}
-            options={[
-              { value: "", label: "Choose a role…" },
-              ...CAST_ROLES.map((role) => ({ value: role, label: ROLE_LABEL[role] })),
-            ]}
-          />
-        )}
-
-        {addKind === "text" && (
-          <div className="flex gap-2">
-            <TextField value={textValue} onChange={setTextValue} placeholder="e.g. the dog" />
-            <Button
-              tone="quiet"
-              onClick={() => {
-                if (!textValue.trim()) return;
-                onChange(addMember(shots, shot.id, { kind: "text", ref: textValue.trim() }));
-                setTextValue("");
-              }}
-            >
-              Add
+        {!(hasRole("bride") && hasRole("groom")) && (
+          <div className="mb-2">
+            <Button icon={Heart} tone="primary" onClick={addCouple}>
+              + The couple
             </Button>
           </div>
         )}
+
+        <ul className="mb-2 flex flex-wrap gap-1.5">
+          {availableRoles.map((role) => (
+            <li key={role}>
+              <QuickAddChip label={ROLE_LABEL[role]} onClick={() => add({ kind: "role", ref: role })} />
+            </li>
+          ))}
+          {availableCustomRoles.map((r) => (
+            <li key={r.id}>
+              <QuickAddChip label={r.name} onClick={() => add({ kind: "customRole", ref: r.id })} />
+            </li>
+          ))}
+          {availableFamilies.map((f) => (
+            <li key={f.id}>
+              <QuickAddChip label={f.name} onClick={() => add({ kind: "family", ref: f.id })} />
+            </li>
+          ))}
+          {availableGroups.map((g) => (
+            <li key={g.id}>
+              <QuickAddChip label={g.name} onClick={() => add({ kind: "group", ref: g.id })} />
+            </li>
+          ))}
+        </ul>
+
+        <GuestPicker
+          guests={guests}
+          exclude={shot.members.filter((m) => m.kind === "guest").map((m) => m.ref)}
+          onPick={(guestId) => add({ kind: "guest", ref: guestId })}
+        />
+
+        <div className="mt-2 flex gap-2">
+          <TextField value={textValue} onChange={setTextValue} placeholder="Or type something else, e.g. the dog" />
+          <Button
+            tone="quiet"
+            onClick={() => {
+              if (!textValue.trim()) return;
+              add({ kind: "text", ref: textValue.trim() });
+              setTextValue("");
+            }}
+          >
+            Add
+          </Button>
+        </div>
       </Panel>
 
       <Panel title="Notes">
@@ -140,19 +127,15 @@ export function ShotInspector({
   );
 }
 
-function memberLabel(member: ShotMember, guests: Record<string, Guest>, seating: Seating): string {
-  switch (member.kind) {
-    case "guest": {
-      const guest = guests[member.ref];
-      return guest ? guestName(guest) || "Unnamed guest" : "Deleted guest";
-    }
-    case "family":
-      return seating.families[member.ref]?.name ?? "Deleted family";
-    case "group":
-      return (seating.groups[member.ref] ?? seating.subgroups[member.ref])?.name ?? "Deleted group";
-    case "role":
-      return ROLE_LABEL[member.ref];
-    case "text":
-      return member.ref;
-  }
+function QuickAddChip({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 rounded-full border border-dashed border-charcoal/25 px-2 py-0.5 text-xs text-slate transition hover:border-gold hover:text-charcoal"
+    >
+      <Plus size={11} />
+      {label}
+    </button>
+  );
 }

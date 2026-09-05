@@ -8,7 +8,7 @@ import { addSheet, hexColour, type Colour, type Sheet } from "@/apps/brigade/ren
 import { paginate } from "@/apps/brigade/render/pdf/table";
 import { wrap } from "@/apps/brigade/render/pdf/text";
 import { contentBox, PAGE_SIZES, ptToMm } from "@/apps/brigade/render/pdf/units";
-import type { Cast, Guest, Seating, ShotSection } from "@/lib/model/types";
+import type { Cast, CustomRole, Guest, Seating, ShotSection } from "@/lib/model/types";
 import { resolveShot } from "@/lib/ensemble/resolve";
 
 export interface ShotSheetOptions {
@@ -51,6 +51,7 @@ export async function renderShotSheet(
   seating: Seating,
   cast: Cast,
   options: ShotSheetOptions,
+  customRoles: CustomRole[] = [],
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const { regular, bold } = await embedFamily(pdf, await options.fontSource("Lato"));
@@ -72,7 +73,7 @@ export async function renderShotSheet(
 
     for (const shot of section.shots) {
       shotNumber += 1;
-      const resolved = resolveShot(shot, guests, seating, cast);
+      const resolved = resolveShot(shot, guests, seating, cast, customRoles);
       const labelLines = wrap(resolved.label, bold, BODY_PT, labelColMm);
       const peopleLines = wrap(resolved.people.map((p) => p.name).join(", ") || "—", regular, BODY_PT, peopleColMm);
       const notesLines = wrap(shot.notes, regular, BODY_PT, NOTES_COL_MM);

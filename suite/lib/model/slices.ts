@@ -15,6 +15,7 @@ import type {
   CastRole,
   Constraint,
   Crew,
+  CustomRole,
   CustomTablePreset,
   Designation,
   Family,
@@ -640,6 +641,7 @@ function readMember(raw: unknown): ShotMember | null {
     case "guest":
     case "family":
     case "group":
+    case "customRole":
     case "text":
       return typeof ref === "string" ? { kind, ref } : null;
     case "role":
@@ -649,6 +651,15 @@ function readMember(raw: unknown): ShotMember | null {
     default:
       return null;
   }
+}
+
+function readCustomRole(raw: unknown): CustomRole | null {
+  if (!isRecord(raw) || typeof raw["id"] !== "string") return null;
+  return {
+    id: raw["id"],
+    name: str(raw["name"], "New role"),
+    guestIds: list(raw["guestIds"], (id) => (typeof id === "string" ? id : null)),
+  };
 }
 
 function readShot(raw: unknown): Shot | null {
@@ -671,7 +682,7 @@ function readSection(raw: unknown): ShotSection | null {
 }
 
 export function emptyShots(): Shots {
-  return { cast: emptyCast(), sections: [] };
+  return { cast: emptyCast(), customRoles: [], sections: [] };
 }
 
 export function readShots(doc: Trousseau): Shots {
@@ -681,6 +692,7 @@ export function readShots(doc: Trousseau): Shots {
       : {};
     return {
       cast: readCast(raw["cast"]),
+      customRoles: list(raw["customRoles"], readCustomRole),
       sections: list(raw["sections"], readSection),
     };
   });

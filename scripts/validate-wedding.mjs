@@ -156,6 +156,9 @@ export function check(doc) {
       ...Object.keys(doc.seating?.groups ?? {}),
       ...Object.keys(doc.seating?.subgroups ?? {}),
     ]);
+    const customRoleIds = new Set(
+      (Array.isArray(doc.shots.customRoles) ? doc.shots.customRoles : []).filter(isObj).map((r) => r.id),
+    );
     const cast = isObj(doc.shots.cast) ? doc.shots.cast : {};
 
     for (const [role, ids] of Object.entries(cast)) {
@@ -182,6 +185,9 @@ export function check(doc) {
           }
           if (member.kind === "group" && !groupIds.has(member.ref)) {
             fail(`"${shot.label || shot.id}" names group ${member.ref}, which does not exist`);
+          }
+          if (member.kind === "customRole" && !customRoleIds.has(member.ref)) {
+            fail(`"${shot.label || shot.id}" names role ${member.ref}, which does not exist`);
           }
           if (member.kind === "guest" && guestIds.has(member.ref) && doc.guests[member.ref]?.rsvpStatus === "declined") {
             warn(`"${shot.label || shot.id}" includes ${member.ref}, who has declined`);

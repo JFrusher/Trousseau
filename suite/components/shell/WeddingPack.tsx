@@ -173,9 +173,16 @@ async function shotSheet(): Promise<Uint8Array | null> {
     import("@/apps/brigade/render/pdf/fontSource"),
   ]);
 
-  return renderShotSheet(shots.sections, readGuests(doc), readSeating(doc), shots.cast, {
-    fontSource: browserFontSource(),
-    coupleNames: doc.event.coupleNames,
-    generatedOn: `Made with Trousseau, ${new Date().toLocaleDateString()}`,
-  });
+  return renderShotSheet(
+    shots.sections,
+    readGuests(doc),
+    readSeating(doc),
+    shots.cast,
+    {
+      fontSource: browserFontSource(),
+      coupleNames: doc.event.coupleNames,
+      generatedOn: `Made with Trousseau, ${new Date().toLocaleDateString()}`,
+    },
+    shots.customRoles,
+  );
 }

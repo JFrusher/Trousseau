@@ -183,6 +183,18 @@ describe("shots slice", () => {
     expect(check(doc).errors).toEqual([expect.stringContaining("bride")]);
   });
 
+  it("catches a shot member naming a custom role that does not exist", () => {
+    const doc = {
+      ...base,
+      shots: {
+        cast: {},
+        customRoles: [],
+        sections: [{ id: "s1", name: "Family", shots: [{ id: "sh1", label: "x", members: [{ kind: "customRole", ref: "ghost" }] }] }],
+      },
+    };
+    expect(check(doc).errors).toEqual([expect.stringContaining("ghost")]);
+  });
+
   it("warns on a declined guest in a shot, without failing", () => {
     const doc = {
       ...base,

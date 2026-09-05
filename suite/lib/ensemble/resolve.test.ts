@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Cast, Guest, Seating, Shot } from "@/lib/model/types";
+import type { Cast, CustomRole, Guest, Seating, Shot } from "@/lib/model/types";
 import { emptyCast } from "@/lib/model/slices";
 import { resolveShot } from "./resolve";
 
@@ -93,6 +93,19 @@ describe("resolveShot: member kinds", () => {
     const result = resolveShot(shot([{ kind: "text", ref: "the dog" }]), {}, seating(), emptyCast());
     expect(result.people).toEqual([{ guestId: null, name: "the dog", rsvpStatus: null }]);
   });
+
+  it("resolves a customRole member to all its members", () => {
+    const guests = { g1: guest("g1", { firstName: "A" }), g2: guest("g2", { firstName: "B" }) };
+    const customRoles: CustomRole[] = [{ id: "crole1", name: "Ushers", guestIds: ["g1", "g2"] }];
+    const result = resolveShot(
+      shot([{ kind: "customRole", ref: "crole1" }]),
+      guests,
+      seating(),
+      emptyCast(),
+      customRoles,
+    );
+    expect(result.people.map((p) => p.name)).toEqual(["A", "B"]);
+  });
 });
 
 describe("resolveShot: dedupe and order", () => {
@@ -138,6 +151,25 @@ describe("resolveShot: problems", () => {
     const result = resolveShot(shot([]), {}, seating(), emptyCast());
     expect(result.problems).toEqual([{ kind: "empty" }]);
   });
+
+  it("flags a customRole member that does not exist", () => {
+    const result = resolveShot(shot([{ kind: "customRole", ref: "ghost" }]), {}, seating(), emptyCast(), []);
+    expect(result.problems).toEqual([{ kind: "dangling", detail: expect.stringContaining("no longer exists") }]);
+  });
+
+  it("flags a customRole with nobody set", () => {
+    const customRoles: CustomRole[] = [{ id: "crole1", name: "Ushers", guestIds: [] }];
+    const result = resolveShot(
+      shot([{ kind: "customRole", ref: "crole1" }]),
+      {},
+      seating(),
+      emptyCast(),
+      customRoles,
+    );
+    expect(result.problems).toEqual(
+      expect.arrayContaining([{ kind: "dangling", detail: expect.stringContaining("Ushers") }]),
+    );
+  });
 });
 
 describe("resolveShot: label", () => {
@@ -160,5 +192,28 @@ describe("resolveShot: label", () => {
   it("falls back to a placeholder when a blank label resolves to nobody", () => {
     const result = resolveShot(shot([]), {}, seating(), emptyCast());
     expect(result.label).toBe("Untitled shot");
+  });
+
+  it("builds a blank label from each member's own descriptor, not the people it resolves to", () => {
+    const s = seating({ families: { fam1: { id: "fam1", name: "Hartley family", memberIds: [] } } });
+    const result = resolveShot(
+      shot([{ kind: "role", ref: "bride" }, { kind: "role", ref: "bridal-party" }, { kind: "family", ref: "fam1" }]),
+      {},
+      s,
+      emptyCast(),
+    );
+    expect(result.label).toBe("Bride + Bridal party + Hartley family");
+  });
+
+  it("names a custom role in the built label", () => {
+    const customRoles: CustomRole[] = [{ id: "crole1", name: "Me and my family", guestIds: [] }];
+    const result = resolveShot(
+      shot([{ kind: "customRole", ref: "crole1" }]),
+      {},
+      seating(),
+      emptyCast(),
+      customRoles,
+    );
+    expect(result.label).toBe("Me and my family");
   });
 });

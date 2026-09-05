@@ -301,12 +301,20 @@ export const ROLE_LABEL: Record<CastRole, string> = {
 /** Guest ids per role. Singular roles hold 0 or 1; party roles hold many. */
 export type Cast = Record<CastRole, string[]>;
 
+/** A user-defined role, alongside the fixed cast — e.g. "Me and my family". Always a party role. */
+export interface CustomRole {
+  id: string;
+  name: string;
+  guestIds: string[];
+}
+
 /** Where one person in a shot comes from — pinned, or resolved live from another slice. */
 export type ShotMember =
   | { kind: "guest"; ref: string }
   | { kind: "family"; ref: string }
   | { kind: "group"; ref: string }
   | { kind: "role"; ref: CastRole }
+  | { kind: "customRole"; ref: string }
   | { kind: "text"; ref: string };
 
 export interface Shot {
@@ -326,5 +334,6 @@ export interface ShotSection {
 /** The `shots` slice. Ensemble's model. */
 export interface Shots {
   cast: Cast;
+  customRoles: CustomRole[];
   sections: ShotSection[];
 }
