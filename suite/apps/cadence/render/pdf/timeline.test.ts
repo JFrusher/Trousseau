@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sampleDoc } from "../../core/model/defaults";
 import { nodeFontSource } from "./nodeFontSource";
 import { textOf } from "./readPdf";
-import { boxesFor, renderTimeline, type Body, type Lane, type Placed } from "./timeline";
+import { boxesFor, paginateLanes, renderTimeline, type Body, type Lane, type Placed } from "./timeline";
 
 const options = { fontSource: nodeFontSource, generatedOn: "Generated for the test" };
 
@@ -47,7 +47,7 @@ describe("renderTimeline", () => {
     expect(text).not.toContain("Rings to the best man until");
   });
 
-  it("keeps every lane on one page, squeezing their width instead of spilling past four", async () => {
+  it("splits six lanes into two even pages of three, not four and two", async () => {
     const doc = sampleDoc();
     const extra = ["Photography", "Registry", "Bar"];
     const spread = {
@@ -60,7 +60,7 @@ describe("renderTimeline", () => {
       ),
     };
     const { text, pages } = await textOf(await renderTimeline(spread, options));
-    expect(pages).toBe(1);
+    expect(pages).toBe(2);
     for (const lane of spread.lanes) expect(text).toContain(lane.toUpperCase());
   });
 
@@ -122,6 +122,39 @@ describe("renderTimeline", () => {
   it("renders an empty day without falling over", async () => {
     const { pages } = await textOf(await renderTimeline({ ...sampleDoc(), blocks: [] }, options));
     expect(pages).toBe(1);
+  });
+});
+
+describe("paginateLanes", () => {
+  const lane = (name: string): Lane => ({ name, placed: [], moments: [], columns: 1 });
+  const lanes = (count: number): Lane[] => Array.from({ length: count }, (_, i) => lane(`Lane ${i}`));
+  const sizes = (pages: Lane[][]): number[] => pages.map((page) => page.length);
+
+  it("keeps four or fewer lanes on one page", () => {
+    expect(sizes(paginateLanes(lanes(1)))).toEqual([1]);
+    expect(sizes(paginateLanes(lanes(4)))).toEqual([4]);
+  });
+
+  it("splits six lanes into two pages of three, not four and two", () => {
+    expect(sizes(paginateLanes(lanes(6)))).toEqual([3, 3]);
+  });
+
+  it("splits eight lanes into two full pages of four", () => {
+    expect(sizes(paginateLanes(lanes(8)))).toEqual([4, 4]);
+  });
+
+  it("gives the extra lane to an earlier page when the count is uneven", () => {
+    expect(sizes(paginateLanes(lanes(5)))).toEqual([3, 2]);
+    expect(sizes(paginateLanes(lanes(7)))).toEqual([4, 3]);
+  });
+
+  it("keeps lanes in their original order across pages", () => {
+    const pages = paginateLanes(lanes(6));
+    expect(pages.flat().map((l) => l.name)).toEqual(lanes(6).map((l) => l.name));
+  });
+
+  it("still returns one, empty, page for no lanes", () => {
+    expect(paginateLanes([])).toEqual([[]]);
   });
 });
 

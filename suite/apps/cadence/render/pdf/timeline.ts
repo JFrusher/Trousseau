@@ -17,6 +17,7 @@ export interface TimelineOptions {
 
 const MARGIN_MM = 12;
 const GUTTER_MM = 13;
+const MAX_LANES_PER_PAGE = 4;
 const PAD_MM = 1.3;
 const LEADING = 1.25;
 /** Below this, drawBoxText already refuses to print — see minHeightForPt. */
@@ -98,9 +99,7 @@ export async function renderTimeline(
   // the sheet count.
   const mmPerMin = bodyHeight / (span.toMin - span.fromMin);
 
-  // One page always, however many lanes there are: the width divides between
-  // them instead of the lanes spilling onto a second sheet.
-  const pages: Lane[][] = [lanes];
+  const pages: Lane[][] = paginateLanes(lanes);
 
   pages.forEach((pageLanes, pageIndex) => {
     const sheet = addSheet(pdf, size);
@@ -231,6 +230,28 @@ export async function renderTimeline(
   });
 
   return pdf.save();
+}
+
+/**
+ * Lanes grouped onto pages, at most `MAX_LANES_PER_PAGE` to a page, split as
+ * evenly as the count allows — six lanes make two pages of three, not four
+ * and two, so no page is left narrower than it has to be.
+ */
+export function paginateLanes(lanes: Lane[]): Lane[][] {
+  if (lanes.length === 0) return [[]];
+
+  const pageCount = Math.ceil(lanes.length / MAX_LANES_PER_PAGE);
+  const base = Math.floor(lanes.length / pageCount);
+  const remainder = lanes.length % pageCount;
+
+  const pages: Lane[][] = [];
+  let index = 0;
+  for (let p = 0; p < pageCount; p++) {
+    const size = base + (p < remainder ? 1 : 0);
+    pages.push(lanes.slice(index, index + size));
+    index += size;
+  }
+  return pages;
 }
 
 /** Lanes that carry a block, each packed into as few sub-columns as its overlaps allow. */
