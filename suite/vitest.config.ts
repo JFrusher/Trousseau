@@ -37,6 +37,14 @@ export default defineConfig({
         resolve: { alias: { "@": root } },
         test: {
           name: "suite",
+          /*
+           * Generous, because this project renders real PDFs too now
+           * (`lib/ensemble/render/pdf`). Alone each takes about a second;
+           * sharing a machine with the rest of the suite they can pass five,
+           * and the default timeout then reports a failure about nothing — the
+           * assertions here are page counts and text, never speed.
+           */
+          testTimeout: 20_000,
           sequence: { groupOrder: 0 },
           include: ["*.test.{ts,tsx}", "lib/**/*.test.{ts,tsx}", "components/**/*.test.{ts,tsx}", "app/**/*.test.{ts,tsx}", "apps/*.test.ts"],
           // The store's persistence path is a no-op without `window`, and that
