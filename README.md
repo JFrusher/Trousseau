@@ -1,6 +1,6 @@
 # Trousseau
 
-**One wedding, four tools, and no arguments about which copy is right.**
+**One wedding, five tools, and no arguments about which copy is right.**
 
 A trousseau is the collection carried into a marriage. A `.trousseau.json` is the
 same idea: one file holding the whole wedding, which any of the tools can read
@@ -56,7 +56,7 @@ their table. Move a block of the day and every job hanging off it moves too.
 
 ---
 
-## The four tools
+## The five tools
 
 | Tool | Does | Writes | Reads from the others |
 | --- | --- | --- | --- |
@@ -64,6 +64,7 @@ their table. Move a block of the day and every job hanging off it moves too.
 | **Place cards** | Print-ready cards and table signs | `stationery` | the guest list and their tables |
 | **Timeline** | The running order, and what collides | `timeline`, `day` | the room's named spaces |
 | **Delegation** | The jobs, and the hands doing them | `crew` | the resolved day, the guest list |
+| **Ensemble** (Group shots) | The family photo list, built from who's who | `shots` | the guest list, the room |
 
 Each was a standalone application before this, and each keeps its own store, its
 own undo history and its own stylesheets. Only the file that decides where its
