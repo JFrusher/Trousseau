@@ -61,7 +61,12 @@ export function PrintPanel({
   };
 
   const makeCsv = () => {
-    download(`${slug()}-group-shots.csv`, shotListCsv(shots.sections, guests, seating, shots.cast), "text/csv");
+    setError(null);
+    try {
+      download(`${slug()}-group-shots.csv`, shotListCsv(shots.sections, guests, seating, shots.cast), "text/csv");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The CSV could not be made.");
+    }
   };
 
   return (
