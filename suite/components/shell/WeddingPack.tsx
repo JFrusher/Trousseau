@@ -9,7 +9,7 @@ import { readGuests, readSeating, readShots, readTimeline } from "@/lib/model/sl
 /**
  * The one button that produces everything you carry on the day.
  *
- * It lives here rather than in any of the four tools because it is the only
+ * It lives here rather than in any one tool because it is the only
  * thing in the suite that is not any one tool's job: the plan comes from the
  * room, the running order from the day, the jobs from the crew, and the whole
  * point is that they are printed from the same wedding at the same moment.

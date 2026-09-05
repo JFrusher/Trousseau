@@ -10,7 +10,7 @@ import { TOOLS } from "@/lib/tools";
 /**
  * The one list of what is still to do, across the whole wedding.
  *
- * Only the gaps between the tools. Each of the four already checks its own work
+ * Only the gaps between the tools. Each of the five already checks its own work
  * and says so in its own footer, and repeating that here would mean fixing a
  * thing in one place and watching it sit unfixed in the other.
  *

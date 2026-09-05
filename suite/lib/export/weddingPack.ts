@@ -3,13 +3,14 @@ import { PDFDocument } from "pdf-lib";
 /**
  * Everything you carry on the day, as one document.
  *
- * The floor plan, the run sheet and the job list are made by three different
- * tools, in two different PDF libraries, and were three separate downloads you
- * had to remember to take. On the morning itself that is three chances to be
- * holding a version of one of them from last Tuesday.
+ * The floor plan, the run sheet, the job list and the shot list are made by four
+ * different tools, in two different PDF libraries, and were four separate
+ * downloads you had to remember to take. On the morning itself that is four
+ * chances to be holding a version of one of them from last Tuesday.
  *
  * So they are printed together, in the order you would want them in a binder:
- * what the room looks like, what happens when, and who is doing what.
+ * what the room looks like, what happens when, who is doing what, and who to
+ * photograph.
  *
  * The place cards are deliberately not here. They print on 85×55 card stock
  * through a sheet layout of their own, and an A4 binder and a tray of card are

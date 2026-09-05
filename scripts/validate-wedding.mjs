@@ -9,6 +9,9 @@
 //   node scripts/validate-wedding.mjs [data/wedding.trousseau.json]
 //
 // Exit 1 on any error. Warnings print and exit 0.
+//
+// No shebang, unlike its siblings: this is never executed directly, and one
+// here breaks Vitest's transform on Windows checkouts with CRLF line endings.
 
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";

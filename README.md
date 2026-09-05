@@ -6,13 +6,13 @@ A trousseau is the collection carried into a marriage. A `.trousseau.json` is th
 same idea: one file holding the whole wedding, which any of the tools can read
 and none of them can damage.
 
-This repo holds both halves of that. `suite/` is the web application — four
+This repo holds both halves of that. `suite/` is the web application — five
 planning tools sharing one document, running on Vercel. The rest is the data:
 the schema they agree on, the checks that run before anything is kept, and the
 version history of every state the wedding has been in.
 
 Built for our own wedding, which is the only reason the constraints are honest:
-real guest names and dietary requirements, four tools that must not overwrite
+real guest names and dietary requirements, five tools that must not overwrite
 each other, two laptops, and a date that does not move.
 
 ---
@@ -66,9 +66,11 @@ their table. Move a block of the day and every job hanging off it moves too.
 | **Delegation** | The jobs, and the hands doing them | `crew` | the resolved day, the guest list |
 | **Ensemble** (Group shots) | The family photo list, built from who's who | `shots` | the guest list, the room |
 
-Each was a standalone application before this, and each keeps its own store, its
-own undo history and its own stylesheets. Only the file that decides where its
-work is saved was redirected into the shared document.
+The first four were standalone applications before this, and each keeps its own
+store, its own undo history and its own stylesheets. Only the file that decides
+where its work is saved was redirected into the shared document. Ensemble is the
+first built here rather than adopted, so it has none of that: it reads and writes
+the shared document directly, and undoes on the same history as everything else.
 
 ---
 

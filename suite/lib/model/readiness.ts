@@ -5,7 +5,7 @@ import { resolveShot } from "@/lib/ensemble/resolve";
 /**
  * What is left to do, across the whole wedding.
  *
- * Deliberately only the things no single tool can work out. Each of the four
+ * Deliberately only the things no single tool can work out. Each of the five
  * already checks its own work and is better at it than this could be: Tableaux
  * knows a table is over capacity, Cadence knows two blocks collide, Brigade
  * knows a job has nobody on it and that nobody is in two places at once. None
@@ -14,7 +14,7 @@ import { resolveShot } from "@/lib/ensemble/resolve";
  * in the other.
  *
  * What is left is the gaps *between* the tools, which is exactly what nothing
- * could see while these were four separate applications: place cards printed
+ * could see while these were separate applications: place cards printed
  * from a list that no longer matches the room, a dietary requirement recorded
  * for someone whose card has nowhere to show it, a ceremony happening somewhere
  * that is not anywhere on the floor plan.
