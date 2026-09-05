@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { Sparkles, Wand2 } from "lucide-react";
 import { Button, Empty, Segmented } from "@/components/ui/controls";
+import { ToolUndo } from "@/components/shell/ToolUndo";
 import { useEvent, useGuests, useSeating, useShots, useStatus, useWriters } from "@/lib/model/useSuite";
+import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { propose } from "@/lib/ensemble/propose";
 import { CastPanel } from "./CastPanel";
 import { PrintPanel } from "./PrintPanel";
@@ -20,23 +22,45 @@ export function EnsembleBoard() {
   const shots = useShots();
   const { setShots } = useWriters();
 
+  // Ensemble has no store of its own — its edits land on the suite-wide undo
+  // stack, so that is the one the header's undo has to drive.
+  const past = useTrousseauStore((s) => s.past);
+  const future = useTrousseauStore((s) => s.future);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("shot");
 
   if (status !== "ready") return null;
 
+  // The stack is shared, so the next undo may take back an edit made in another
+  // tool. Saying which is the difference between a safe button and a surprise.
+  const undo = (
+    <ToolUndo
+      canUndo={past.length > 0}
+      canRedo={future.length > 0}
+      onUndo={() => useTrousseauStore.getState().undo()}
+      onRedo={() => useTrousseauStore.getState().redo()}
+      undoLabel={past[past.length - 1]?.label ?? null}
+      redoLabel={future[future.length - 1]?.label ?? null}
+    />
+  );
+
   if (Object.keys(guests).length === 0) {
     return (
-      <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
-        <Empty>Nothing to photograph yet. Add a guest list on the Seating tool first.</Empty>
-      </div>
+      <>
+        {undo}
+        <div className="flex h-[calc(100dvh-var(--shell-header-h))] items-center justify-center">
+          <Empty>Nothing to photograph yet. Add a guest list on the Seating tool first.</Empty>
+        </div>
+      </>
     );
   }
 
   const selectedShot = shots.sections.flatMap((section) => section.shots).find((shot) => shot.id === selectedId);
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)]">
+    <div className="flex h-[calc(100dvh-var(--shell-header-h))]">
+      {undo}
       <div className="flex w-96 shrink-0 flex-col border-r border-charcoal/10">
         <div className="flex gap-2 border-b border-charcoal/10 p-3">
           <Button icon={Wand2} onClick={() => setShots({ ...shots, sections: propose(shots.sections, guests, seating, "template") })}>
