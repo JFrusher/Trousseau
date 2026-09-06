@@ -11,11 +11,16 @@ async function loadPdf() {
 
 // ── one-page seating chart ──────────────────────────────────────────────────
 // Flip PAGE_FORMAT to 'a3' for an entrance-board sized print; everything else
-// (fit scale, type size) follows from the page dimensions.
+// (orientation, fit scale, type size) follows from the page dimensions.
+//
+// The margins are deliberately tight. This is a working sheet that gets pinned
+// up or carried round a room, not a document with a house style, and every
+// point given to a margin comes straight off the names.
 const PAGE_FORMAT = 'a4'
-const MARGIN = 24
-const HEADER = 16 // vertical band above the plan for the title
-const MAX_NAME_PT = 11
+const MARGIN = 8
+const HEADER = 12 // vertical band above the plan for the title
+const PLAN_PAD = 8 // clear ground drawn around the plan itself
+const MAX_NAME_PT = 16
 const FONT_FLOOR_PT = 6 // below this the plan is tiled across two sheets
 const TILE_OVERLAP = 0.05
 
@@ -38,23 +43,19 @@ function seatedGuests(doc) {
   return out
 }
 
-/** 90th-percentile value of a numeric array (empty → 1). */
-function p90(values) {
-  if (!values.length) return 1
-  const sorted = [...values].sort((a, b) => a - b)
-  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))]
-}
-
 /**
  * Work out how the plan is laid across sheets.
  * `pages`: 'auto' splits only when a single sheet would drop below
  * FONT_FLOOR_PT, 'single' always keeps one sheet (however small the type),
  * 'split' always tiles across two.
  * Returns the fit scale, the name point size and one window per sheet.
+ *
+ * The cell size and the type that fits it are solved against the plan itself by
+ * measureFloorPlan; all this does is scale that onto paper.
  */
-export function planSheets(m, tokenW, availW, availH, pages = 'auto') {
+export function planSheets(m, availW, availH, pages = 'auto') {
   const fit = (w, h) => Math.min(availW / w, availH / h)
-  const solve = (s) => Math.min(((m.cellW - 4) * s) / tokenW, (m.cellH * s) / 2.1, MAX_NAME_PT)
+  const solve = (s) => Math.min(m.basePx * s, MAX_NAME_PT)
 
   let scale = fit(m.width, m.height)
   let basePt = solve(scale)
@@ -87,11 +88,11 @@ export function planSheets(m, tokenW, availW, availH, pages = 'auto') {
 
 /**
  * A single-sheet, to-scale seating chart: every seat is a rectangle holding the
- * guest's first and last name, printed where they actually sit. Type is sized
- * off the 90th-percentile name so one very long surname shrinks its own cell
- * rather than the whole page. `opts.pages` picks the sheet count: 'auto'
- * (default) tiles across two sheets only if one sheet would go illegible,
- * 'single' forces one sheet, 'split' always tiles.
+ * guest's first and last name, printed where they actually sit. Every name is set
+ * at one size, chosen so the 90th-percentile name fits its cell — the few longer
+ * than that are cut rather than allowed to shrink the whole sheet. `opts.pages` picks the sheet
+ * count: 'auto' (default) tiles across two sheets only if one sheet would go
+ * illegible, 'single' forces one sheet, 'split' always tiles.
  */
 /**
  * The floor plan as PDF bytes.
@@ -103,7 +104,15 @@ export function planSheets(m, tokenW, availW, availH, pages = 'auto') {
  */
 export async function buildFloorPlanPdf(doc, name, opts = {}) {
   const { jsPDF, svg2pdf } = await loadPdf()
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: PAGE_FORMAT })
+  const planOpts = { ...opts, padPx: PLAN_PAD }
+
+  // The plan's own shape picks the sheet's, so a tall room stops wasting half a
+  // landscape page. Measured with the built-in estimator because there is no
+  // document to measure against yet; the exact fit is redone below.
+  const rough = measureFloorPlan(doc, planOpts)
+  const orientation = rough.width >= rough.height ? 'landscape' : 'portrait'
+
+  const pdf = new jsPDF({ orientation, unit: 'pt', format: PAGE_FORMAT })
   const pageW = pdf.internal.pageSize.getWidth()
   const pageH = pdf.internal.pageSize.getHeight()
   const availW = pageW - MARGIN * 2
@@ -112,30 +121,32 @@ export async function buildFloorPlanPdf(doc, name, opts = {}) {
   // Real metrics from the PDF's own Helvetica, so the fit is exact.
   const measure = (text, size) => pdf.getStringUnitWidth(String(text)) * size
 
-  const m = measureFloorPlan(doc, opts)
-  const tokenW = p90(m.nameTokens.map((t) => measure(t, 1)))
-  const { scale, basePt, windows } = planSheets(m, tokenW, availW, availH, opts.pages)
+  const fit = (b) => Math.min(availW / b.width, availH / b.height)
+  const m = measureFloorPlan(doc, { ...planOpts, measure, fit })
+  const { scale, basePt, windows } = planSheets(m, availW, availH, opts.pages)
 
-  const nameFontPx = basePt / scale
+  // One cell size and one type size for the whole sheet. basePt is what actually
+  // prints, so divide it back out rather than re-solving and risking a disagreement.
+  const cells = { cellW: m.cellW, cellH: m.cellH, basePx: basePt / scale }
   const title = name || 'Seating plan'
 
   for (const [i, win] of windows.entries()) {
-    if (i > 0) pdf.addPage(PAGE_FORMAT, 'landscape')
-    pdf.setFontSize(13)
+    if (i > 0) pdf.addPage(PAGE_FORMAT, orientation)
+    // Title and sheet note share one baseline: a second header line would cost
+    // more of the page than it tells anyone.
+    pdf.setFontSize(11)
     pdf.setTextColor(40)
-    pdf.text(title, MARGIN, MARGIN + 2)
-    pdf.setFontSize(8)
-    pdf.setTextColor(130)
-    pdf.text(
-      windows.length > 1 ? `Seating chart — sheet ${i + 1} of ${windows.length}` : 'Seating chart',
-      MARGIN,
-      MARGIN + 12
-    )
+    pdf.text(title, MARGIN, MARGIN + 8)
+    if (windows.length > 1) {
+      pdf.setFontSize(8)
+      pdf.setTextColor(130)
+      pdf.text(`Sheet ${i + 1} of ${windows.length}`, pageW - MARGIN, MARGIN + 8, { align: 'right' })
+    }
 
     const { svg, width, height } = buildFloorPlanSvg(doc, {
-      ...opts,
+      ...planOpts,
       seatLabels: 'name',
-      nameFontPx,
+      cells,
       measure,
       window: win,
     })

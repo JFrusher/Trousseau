@@ -70,40 +70,195 @@ function getWallSegs(sp) {
 
 // ── name cells ──────────────────────────────────────────────────────────────
 
-const CELL_GAP = 6 // clear space (px) left between two adjacent name cells
-const CELL_ASPECT = 0.52 // cell height as a fraction of its width
-const MAX_CELL_W = 72
+const CELL_GAP = 2 // clear space (px) left between two adjacent name cells
+const CELL_INSET = 2 // horizontal padding inside a cell, each side
+const MAX_CELL_W = 140
 const MIN_CELL_W = 10
+const MIN_CELL_H = 12
+const MAX_CELL_H = 260
+const CELL_H_STEP = 4
+const LEADING = 1.15 // line pitch as a multiple of the type size
+// How far a cell reaches back over its own chair, so a name still reads as
+// belonging to that seat rather than floating off it.
+const INNER_BITE = 6
 export const MIN_NAME_PX = 4.5 // below this, names get ellipsised rather than shrunk further
 
 /** Fallback text metric when no real font metrics are supplied. Linear in size. */
 const estimateWidth = (text, fontPx) => String(text).length * fontPx * 0.52
 
 /**
- * Largest cell size for which no two seats' cells overlap.
+ * Which way is "away from the table" for one seat, in the table's own
+ * coordinates.
  *
- * Two equally sized axis-aligned cells centred `dx`/`dy` apart overlap only if
- * `dx < w` AND `dy < h`, so a pair is safe for any `w <= max(dx, dy / ASPECT)`.
- * Take the minimum of that bound over every pair.
- *
- * ponytail: O(n²) over the seat list — ~100 seats on a real plan, so ~5k
- * distance checks. Swap in a grid/kd-tree only if plans ever reach thousands.
+ * A round table pushes straight out from its centre. A rectangle pushes square
+ * off the edge the seat sits on — taking the direction from the centre instead
+ * would send an end seat's cell out diagonally and straight into its neighbour's,
+ * costing the long tables the width they have least of.
  */
-function cellSizeFor(seats) {
+function seatNormal(seat, geom) {
+  if (geom.shape === 'rect') {
+    if (Math.abs(seat.y) > geom.height / 2) return { x: 0, y: Math.sign(seat.y) }
+    if (Math.abs(seat.x) > geom.width / 2) return { x: Math.sign(seat.x), y: 0 }
+  }
+  const cy = geom.shape === 'half-circle' ? (geom.cy ?? 0) : 0
+  const len = Math.hypot(seat.x, seat.y - cy)
+  return len < 1e-6 ? { x: 0, y: 1 } : { x: seat.x / len, y: (seat.y - cy) / len }
+}
+
+/** A seat's outward direction in world coordinates, table rotation included. */
+function outwardOf(seat) {
+  if (Number.isFinite(seat.nx) && Number.isFinite(seat.ny)) return { x: seat.nx, y: seat.ny }
+  const dx = seat.x - seat.table.x
+  const dy = seat.y - seat.table.y
+  const len = Math.hypot(dx, dy)
+  return len < 1e-6 ? { x: 0, y: 1 } : { x: dx / len, y: dy / len }
+}
+
+/**
+ * Where a seat's name cell sits.
+ *
+ * The cell hangs outward from its table rather than being centred on the chair,
+ * biting back over the chair by INNER_BITE so it still reads as that seat’s.
+ * This is the whole trick: the gap to the next chair is fixed and tight, but the
+ * floor outside the table is usually clear — so height is nearly free and width
+ * is not.
+ */
+function cellCentre(seat, out, cellH) {
+  const reach = Math.max(0, cellH / 2 - INNER_BITE)
+  return { x: seat.x + out.x * reach, y: seat.y + out.y * reach }
+}
+
+/**
+ * Widest cell that fits at a given height with no two cells overlapping.
+ *
+ * Two equally sized axis-aligned cells overlap only when their centres are within
+ * the cell on BOTH axes, so a pair caps the width only once it is already within
+ * `cellH` vertically. Every other pair is free.
+ *
+ * ponytail: O(n²) over the seat list — ~100 seats on a real plan, so ~5k distance
+ * checks per height tried. Swap in a grid/kd-tree only if plans reach thousands.
+ */
+function widthAt(centres, cellH) {
   let bound = MAX_CELL_W + CELL_GAP
-  for (let i = 0; i < seats.length; i++) {
-    for (let j = i + 1; j < seats.length; j++) {
-      const dx = Math.abs(seats[i].x - seats[j].x)
-      const dy = Math.abs(seats[i].y - seats[j].y)
-      const safe = Math.max(dx, dy / CELL_ASPECT)
-      if (safe < bound) bound = safe
+  for (let i = 0; i < centres.length; i++) {
+    for (let j = i + 1; j < centres.length; j++) {
+      if (Math.abs(centres[i].y - centres[j].y) >= cellH) continue
+      const dx = Math.abs(centres[i].x - centres[j].x)
+      if (dx < bound) bound = dx
     }
   }
-  // The MIN_CELL_W clamp can in principle re-introduce an overlap on a plan
-  // with seats stacked almost on top of each other; a readable cell beats an
-  // invisible one there.
-  const cellW = Math.max(MIN_CELL_W, Math.min(bound - CELL_GAP, MAX_CELL_W))
-  return { cellW, cellH: cellW * CELL_ASPECT }
+  // The MIN_CELL_W clamp can in principle re-introduce an overlap on a plan with
+  // seats stacked almost on top of each other; a readable cell beats an invisible
+  // one there.
+  return Math.max(MIN_CELL_W, Math.min(bound - CELL_GAP, MAX_CELL_W))
+}
+
+/**
+ * Largest type size that fits a `w` × `h` cell, where `tokenW` is the width of a
+ * representative name at one unit of type.
+ *
+ * One line each for the given name and the surname. Letting a name run onto more
+ * lines would score a bigger point size on paper, but a surname broken into
+ * three-letter pieces is less readable, not more — so the width of the cell caps
+ * the type however tall the cell is allowed to get.
+ */
+function nameSizeIn(w, h, tokenW) {
+  const textW = w - CELL_INSET * 2
+  if (textW <= 0 || tokenW <= 0) return 0
+  return Math.max(0, Math.min(textW / tokenW, h / (2 * LEADING)))
+}
+
+/**
+ * One cell size for the whole plan — uniform, so every name on the sheet is set the
+ * same and the chart reads as one document.
+ *
+ * A taller cell pushes its seat further out, which on a round table opens the gap
+ * to the next chair and so buys width as well as height — until the cells reach
+ * the next table and it costs width instead. There is no closed form for where
+ * that turns, so walk a ladder of heights and take the exact widest cell each one
+ * allows.
+ *
+ * `rank` scores a candidate. It defaults to the type size in plan units, but the
+ * exporter passes one that scales by the page fit, because a taller cell also
+ * grows the plan and so shrinks everything on the sheet — the two pull against
+ * each other and only the printed size settles it. Of the candidates within a
+ * whisker of the best, take the shortest: a taller cell that reads no better is
+ * just a bigger empty box.
+ */
+export function solveCells(seats, tokenW, rank = (cell) => cell.basePx) {
+  const floor = { cellW: MIN_CELL_W, cellH: MIN_CELL_H, basePx: MIN_NAME_PX }
+  if (!seats.length) return floor
+
+  const outs = seats.map(outwardOf)
+  const candidates = []
+  for (let h = MIN_CELL_H; h <= MAX_CELL_H; h += CELL_H_STEP) {
+    const centres = seats.map((s, i) => cellCentre(s, outs[i], h))
+    const cellW = widthAt(centres, h)
+    candidates.push({ cellW, cellH: h, basePx: nameSizeIn(cellW, h, tokenW) })
+  }
+
+  const best = Math.max(...candidates.map(rank))
+  if (!(best > 0)) return floor
+  return candidates.find((cell) => rank(cell) >= best * 0.98) ?? floor
+}
+
+/**
+ * Plan bounds grown to hold the name cells. They reach further out than the table
+ * halo allows for, so without this the outermost names get clipped off the sheet.
+ */
+function expandForCells(l, cells) {
+  let minX = l.minX
+  let minY = l.minY
+  let maxX = l.minX + l.width
+  let maxY = l.minY + l.height
+  l.seats.forEach((s) => {
+    const c = cellCentre(s, outwardOf(s), cells.cellH)
+    minX = Math.min(minX, c.x - cells.cellW / 2)
+    minY = Math.min(minY, c.y - cells.cellH / 2)
+    maxX = Math.max(maxX, c.x + cells.cellW / 2)
+    maxY = Math.max(maxY, c.y + cells.cellH / 2)
+  })
+  return { minX, minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) }
+}
+
+/** 90th-percentile value of a numeric array (empty → 1). */
+function p90(values) {
+  if (!values.length) return 1
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))]
+}
+
+/**
+ * Width of a representative name at one unit of type: the 90th percentile across
+ * the plan, so one very long surname wraps inside its own cell rather than setting
+ * the type size for the whole sheet.
+ */
+export function tokenWidthOf(seats, measure) {
+  const widths = []
+  for (const s of seats) {
+    if (!s.guest) continue
+    const first = s.guest.firstName || s.guest.fullName || ''
+    const last = s.guest.lastName || ''
+    widths.push(measure(first.length >= last.length ? first : last, 1))
+  }
+  return p90(widths)
+}
+
+/**
+ * Break one name onto a second line, but only at a hyphen. A double-barrelled
+ * surname reads perfectly well split where its own hyphen falls; no name reads
+ * well split mid-word, so anything else is left whole for the caller to cut.
+ */
+function wrapToken(text, fontPx, maxW, measure) {
+  const name = String(text ?? '')
+  if (name === '' || measure(name, fontPx) <= maxW) return [name]
+  const at = name.lastIndexOf('-')
+  if (at > 0 && at < name.length - 1) {
+    const head = name.slice(0, at + 1)
+    const tail = name.slice(at + 1)
+    if (measure(head, fontPx) <= maxW && measure(tail, fontPx) <= maxW) return [head, tail]
+  }
+  return [name]
 }
 
 /** Shrink `text` until it fits `maxW` at `fontPx`, ellipsising as a last resort. */
@@ -136,7 +291,7 @@ const spaceBox = (sp) =>
  * out from buildFloorPlanSvg so the PDF exporter can size type against the
  * cells before anything is drawn.
  */
-function layoutFloorPlan(doc, { ppu } = {}) {
+function layoutFloorPlan(doc, { ppu, padPx } = {}) {
   const settings = doc.settings || {}
   const scale = ppu || settings.pixelsPerUnit || DEFAULT_PPU
   const guests = doc.guests || {}
@@ -155,10 +310,12 @@ function layoutFloorPlan(doc, { ppu } = {}) {
       : [{ shape: 'rect', x: 0, y: 0, width: roomW, height: roomH, backgroundColour: '#FAF8F5' }]
   const joins = Array.isArray(room.joins) ? room.joins : []
 
-  let minX = 0
-  let minY = 0
-  let maxX = 0
-  let maxY = 0
+  // Deliberately not seeded at the origin. A room drawn away from (0,0) would
+  // otherwise drag all the empty ground back to it onto the printed sheet.
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
   const grow = (x1, y1, x2, y2) => {
     minX = Math.min(minX, x1)
     minY = Math.min(minY, y1)
@@ -191,9 +348,12 @@ function layoutFloorPlan(doc, { ppu } = {}) {
     const sin = Math.sin(rad)
     const assigned = t.assignedGuestIds || []
     g.seats.forEach((s, i) => {
+      const n = seatNormal(s, g)
       seats.push({
         x: t.x + s.x * cos - s.y * sin,
         y: t.y + s.x * sin + s.y * cos,
+        nx: n.x * cos - n.y * sin,
+        ny: n.x * sin + n.y * cos,
         index: i,
         table: t,
         guest: guests[assigned[i]] || null,
@@ -202,7 +362,15 @@ function layoutFloorPlan(doc, { ppu } = {}) {
     return { t, g }
   })
 
-  const pad = 32
+  // An empty plan still needs a page to draw on.
+  if (!Number.isFinite(minX)) {
+    minX = 0
+    minY = 0
+    maxX = roomW
+    maxY = roomH
+  }
+
+  const pad = padPx ?? 32
   minX -= pad
   minY -= pad
   maxX += pad
@@ -225,22 +393,21 @@ function layoutFloorPlan(doc, { ppu } = {}) {
 }
 
 /**
- * Measure a plan without drawing it: overall size in px plus the name-cell size
- * the seats can support. `nameTokens` is the widest name token per seated guest,
- * so a caller can pick a base type size off a percentile rather than the single
- * longest name on the plan.
+ * Measure a plan without drawing it: the bounds the sheet has to hold, the one
+ * cell size every seat gets, and the type size that fits it. Split out from
+ * buildFloorPlanSvg so the exporter can fit the page before anything is drawn,
+ * then hand the same solved cells back in so the two cannot disagree.
  */
 export function measureFloorPlan(doc, opts = {}) {
   const l = layoutFloorPlan(doc, opts)
-  const { cellW, cellH } = cellSizeFor(l.seats)
-  const nameTokens = []
-  for (const s of l.seats) {
-    if (!s.guest) continue
-    const first = s.guest.firstName || s.guest.fullName || ''
-    const last = s.guest.lastName || ''
-    nameTokens.push(first.length >= last.length ? first : last)
-  }
-  return { minX: l.minX, minY: l.minY, width: l.width, height: l.height, cellW, cellH, nameTokens }
+  const measure = opts.measure || estimateWidth
+  // `fit` maps the bounds a cell size produces to the scale the page would then
+  // print at, so the solver can rank candidates by their size on paper.
+  const rank = opts.fit
+    ? (cell) => cell.basePx * opts.fit(expandForCells(l, cell))
+    : undefined
+  const cells = solveCells(l.seats, tokenWidthOf(l.seats, measure), rank)
+  return { ...expandForCells(l, cells), ...cells }
 }
 
 // ── drawing ─────────────────────────────────────────────────────────────────
@@ -262,45 +429,60 @@ function renderNumberSeats(g, rot, withNumbers) {
 /**
  * Name cells, in world coordinates so they stay upright regardless of the
  * table's rotation — a rotated top table's names must still read normally.
+ *
+ * Every cell on the sheet is the same size and every name the same type size, so
+ * the chart reads as one document. A name too wide for its cell wraps onto more
+ * lines; only when it runs out of lines is it cut.
  */
 function renderNameCells(seats, cellW, cellH, basePx, measure) {
   const r1 = (n) => Math.round(n * 10) / 10
-  const textW = cellW - 4
+  const textW = cellW - CELL_INSET * 2
+  // Round DOWN to the precision actually written to the SVG, so the fit test
+  // measures the same type the renderer will draw.
+  const base = Math.floor(Math.min(basePx, cellH / (2 * LEADING)) * 10) / 10
+  const budget = Math.max(2, Math.floor(cellH / (LEADING * base)))
+
   return seats
     .map((s) => {
-      const x = r1(s.x - cellW / 2)
-      const y = r1(s.y - cellH / 2)
+      const c = cellCentre(s, outwardOf(s), cellH)
+      const x = r1(c.x - cellW / 2)
+      const y = r1(c.y - cellH / 2)
       const box = `<rect x="${x}" y="${y}" width="${r1(cellW)}" height="${r1(cellH)}" rx="2"`
       if (!s.guest) {
         return `${box} fill="#fff" fill-opacity="0.6" stroke="#ddd" stroke-width="0.75" stroke-dasharray="3 2"/>`
       }
+
       const first = s.guest.firstName || s.guest.fullName || ''
       const last = s.guest.lastName || ''
-      const base = Math.min(basePx, cellH / 2.1)
-      // Each line is shrunk on its own, so one long surname costs only its own
-      // line — not the given name above it, and not any other cell on the page.
-      const sizeFor = (tok) => {
-        const w = measure(tok, base)
-        const f = w > textW ? Math.max(MIN_NAME_PX, (base * textW) / w) : base
-        // Round DOWN to the precision actually written to the SVG, so the fit
-        // test measures the same type the renderer will draw — otherwise a name
-        // that just fits gets needlessly ellipsised.
-        return Math.floor(f * 10) / 10
+      const styled = (tokens, weight, fill) => tokens.map((t) => ({ t, weight, fill }))
+      let lines = [
+        ...styled(wrapToken(first, base, textW, measure), 700, '#1f1b16'),
+        ...styled(wrapToken(last, base, textW, measure), 400, '#4a4238'),
+      ].filter((l) => l.t !== '')
+
+      // Splitting a hyphenated surname only pays if the cell has the line to spare.
+      // Where it does not, one line per name and a cut surname keeps more of it:
+      // "Gadd-Chap…" tells you more than "Gadd-" does.
+      if (lines.length > budget) {
+        lines = [
+          ...styled([first], 700, '#1f1b16'),
+          ...styled([last], 400, '#4a4238'),
+        ].filter((l) => l.t !== '')
       }
-      // Baselines are driven by `base`, not the per-line size, so names stay on
-      // a common baseline across the whole sheet even where a line has shrunk.
-      const line = (tok, dy, weight, fill) => {
-        if (!tok) return ''
-        const f = sizeFor(tok)
-        return (
-          `<text x="${r1(s.x)}" y="${r1(s.y + dy)}" text-anchor="middle" font-size="${f}"` +
-          ` font-weight="${weight}" fill="${fill}">${escAttr(fitToken(tok, f, textW, measure))}</text>`
-        )
-      }
+      // Still over budget only when a guest has no surname to drop; cut the rest.
+      if (lines.length > budget) lines.length = budget
+
+      const top = c.y - (lines.length * LEADING * base) / 2 + base * 0.85
       return (
         `${box} fill="#fff" stroke="#c9c2b6" stroke-width="0.75"/>` +
-        line(first, -0.225 * base, 700, '#1f1b16') +
-        line(last, 0.925 * base, 400, '#4a4238')
+        lines
+          .map(
+            (l, i) =>
+              `<text x="${r1(c.x)}" y="${r1(top + i * LEADING * base)}" text-anchor="middle"` +
+              ` font-size="${base}" font-weight="${l.weight}" fill="${l.fill}">` +
+              `${escAttr(fitToken(l.t, base, textW, measure))}</text>`
+          )
+          .join('')
       )
     })
     .join('')
@@ -438,13 +620,16 @@ export function buildFloorPlanSvg(doc, opts = {}) {
     )
   })
 
+  let bounds = { minX: l.minX, minY: l.minY, width: l.width, height: l.height }
   if (names) {
-    const { cellW, cellH } = cellSizeFor(seats)
-    const base = nameFontPx || Math.min(cellH / 2.1, 14)
-    parts.push(renderNameCells(seats, cellW, cellH, base, measure))
+    // The exporter solves the cells once and passes them back in, so the sheet it
+    // measured and the sheet it draws are the same sheet.
+    const cells = opts.cells || solveCells(seats, tokenWidthOf(seats, measure))
+    parts.push(renderNameCells(seats, cells.cellW, cells.cellH, nameFontPx || cells.basePx, measure))
+    bounds = expandForCells(l, cells)
   }
 
-  const vb = win || { minX: l.minX, minY: l.minY, width: l.width, height: l.height }
+  const vb = win || bounds
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${vb.width}" height="${vb.height}" viewBox="${vb.minX} ${vb.minY} ${vb.width} ${vb.height}">` +
     parts.join('') +

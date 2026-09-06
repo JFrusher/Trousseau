@@ -72,6 +72,16 @@ describe('measureFloorPlan', () => {
     expect(m.minX).toBeLessThanOrEqual(-103)
   })
 
+  it('does not drag the origin in when the room is drawn away from it', () => {
+    const doc = makeDoc()
+    doc.room.spaces = [{ id: 'sp1', shape: 'rect', x: 600, y: 400, width: 500, height: 400 }]
+    doc.zones = {}
+    doc.tables = {}
+    const m = measureFloorPlan(doc)
+    expect(m.minX).toBeGreaterThan(0)
+    expect(m.minY).toBeGreaterThan(0)
+  })
+
   it('sizes name cells so no two overlap', () => {
     const doc = makeDoc()
     const m = measureFloorPlan(doc)
@@ -116,30 +126,49 @@ describe('buildFloorPlanSvg seatLabels', () => {
     expect(svg).not.toContain('font-size="9" font-weight="600" fill="#555"')
   })
 
-  it('shrinks only the line whose own token overflows', () => {
-    const { svg } = buildFloorPlanSvg(makeDoc(), { seatLabels: 'name', nameFontPx: 12 })
-    const sizeOf = (token) => {
-      const m = new RegExp(`font-size="([\\d.]+)"[^>]*>${token}<`).exec(svg)
-      return m ? +m[1] : null
-    }
-    expect(sizeOf('Silk')).toBe(12)
-    expect(sizeOf('Gadd-Chapman')).toBeLessThan(12)
-    // The long surname costs only its own line...
-    expect(sizeOf('Ewan')).toBe(12)
-    // ...and no other cell on the page.
-    expect(sizeOf('Sparkes')).toBe(12)
+  it('sets every name on the sheet at one size', () => {
+    const { svg } = buildFloorPlanSvg(makeDoc(), { seatLabels: 'name' })
+    const sizes = new Set(
+      [...svg.matchAll(/<text [^>]*font-size="([\d.]+)"[^>]*fill="#(?:1f1b16|4a4238)"/g)].map(
+        (m) => m[1]
+      )
+    )
+    expect(sizes.size).toBe(1)
   })
 
-  it('keeps every name on a common baseline even where a line has shrunk', () => {
-    const { svg } = buildFloorPlanSvg(makeDoc(), { seatLabels: 'name', nameFontPx: 12 })
+  it('cuts a name too long for its cell rather than shrinking it', () => {
+    const { svg } = buildFloorPlanSvg(makeDoc(), { seatLabels: 'name' })
+    // Every other surname survives whole, at the size the rest of the sheet uses...
+    expect(svg).toContain('>Mihaylova<')
+    expect(svg).toContain('>Loveridge<')
+    // ...and the one that will not fit is cut, not set smaller than its neighbours.
+    expect(svg).not.toContain('>Gadd-Chapman<')
+    expect(svg).toMatch(/>Gadd-[A-Za-z]*…</)
+  })
+
+  it('keeps names sharing an edge on a common baseline', () => {
+    const { svg } = buildFloorPlanSvg(makeDoc(), { seatLabels: 'name' })
     const yOf = (token) => {
       const m = new RegExp(`<text x="[-\\d.]+" y="([-\\d.]+)"[^>]*>${token}<`).exec(svg)
       return m ? +m[1] : null
     }
-    // Gadd-Chapman and Sparkes both sit on a top edge, so their surname lines
-    // must share a baseline despite one of them having been shrunk.
-    expect(yOf('Gadd-Chapman')).toBe(yOf('Sparkes'))
-    expect(yOf('Ewan')).toBe(yOf('Sam'))
+    // Sparkes and Silk both sit on the top edge of Table 1, so their surname
+    // lines share a baseline, and their given names share the one above.
+    expect(yOf('Sparkes')).toBe(yOf('Silk'))
+    expect(yOf('Sam')).toBe(yOf('Jude'))
+  })
+
+  it('hangs a cell outward from its table rather than centring it on the chair', () => {
+    const doc = makeDoc()
+    const { cellH } = measureFloorPlan(doc)
+    const { svg } = buildFloorPlanSvg(doc, { seatLabels: 'name' })
+    const tops = [...svg.matchAll(/<rect x="-?[\d.]+" y="(-?[\d.]+)" width="[\d.]+" height="[\d.]+" rx="2"/g)].map(
+      (m) => +m[1]
+    )
+    // Table 1's top row of chairs sits at y ≈ 67.3. A cell centred on the chair
+    // would start at 67.3 - cellH / 2; these start higher, because they hang out
+    // over the clear floor instead of eating the gap to the next chair.
+    expect(Math.min(...tops)).toBeLessThan(67.3 - cellH / 2)
   })
 
   it('draws unassigned seats as empty dashed cells', () => {
