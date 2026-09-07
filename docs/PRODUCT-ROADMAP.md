@@ -43,7 +43,7 @@ instead (see subsystem F).
 | D | Tableaux's future | — | ✅ [spec written](superpowers/specs/2026-09-02-tableaux-migration-design.md) |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
 | F | Onboarding, billing & legal at product scale | A | ✅ [spec written](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md) |
-| G | Multi-tenant suite mechanics | A, B | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-mechanics-design.md) — dependencies now met, ready to plan |
+| G | Multi-tenant suite mechanics | A, B | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-mechanics-design.md), [plan](superpowers/plans/2026-09-07-multitenant-mechanics.md) complete 2026-09-07 |
 
 ## Decisions log
 
@@ -248,7 +248,17 @@ yet. Kept additive-safe: multi-wedding-per-account can be layered on later
 without a redesign, since it's a superset of the one-wedding case, not a
 different shape.
 
-**Spec written:** [`2026-09-02-multitenant-mechanics-design.md`](superpowers/specs/2026-09-02-multitenant-mechanics-design.md)
+**Built.** [`2026-09-07-multitenant-mechanics.md`](superpowers/plans/2026-09-07-multitenant-mechanics.md)
+executed in full on 2026-09-07 (branch `multitenant-mechanics`). The write path
+is rate limited per account, and `GET /api/documents/export` plus a button on
+the account page give a couple their whole wedding as a file.
+
+Two things the spec asserted turned out not to hold, and the plan records both:
+the `/seat/[token]` limiter had **no** test coverage at all (added before making
+it load-bearing), and the RLS negative test it asks for already existed at the
+database layer, so the application-layer half was added instead of a duplicate.
+
+**Spec:** [`2026-09-02-multitenant-mechanics-design.md`](superpowers/specs/2026-09-02-multitenant-mechanics-design.md)
 — no built-in admin/support access to user data by design, reuse of the
 existing in-memory rate limiter until real usage demands better, and data
 export from day one (reusing the existing `bundle.mjs` pack format almost

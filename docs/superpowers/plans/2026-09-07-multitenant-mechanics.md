@@ -21,6 +21,30 @@ migration, no new dependency.
 
 **Spec:** [docs/superpowers/specs/2026-09-02-multitenant-mechanics-design.md](../specs/2026-09-02-multitenant-mechanics-design.md)
 
+## Status
+
+**Complete — all 6 tasks, 2026-09-07.**
+
+Verified on the finished branch, not from memory:
+
+| Check | Result |
+|---|---|
+| `vitest run` (all five projects) | 162 files / 1,574 tests pass |
+| `vitest run --project suite lib/sync` | 9 files / 121 tests — the predicted 115 + Task 1's 6 |
+| `npm test` (contract package) | 7 files / 98 tests pass |
+| `tsc --noEmit -p suite/tsconfig.json` | clean |
+| `next build` | clean; `/api/documents/export` registered as dynamic |
+| `git diff main -- suite/lib/sync/` | one additive hunk, `EXPORT_LIMIT` only |
+| Account page, with and without a wedding | checked by hand in `next dev` |
+
+The account-page check drove the real page with a seeded `@supabase/ssr`
+session cookie (`sb-localhost-auth-token`, `base64-` + base64url JSON): the
+section appears only when the account has a wedding, and the button fires a
+real download named `charis-and-jacob.trousseau.json`.
+
+No corrections to this plan were needed during execution. The two corrections
+it makes to the *spec* are recorded above under "Two corrections to the spec".
+
 ## Global Constraints
 
 - **Reuse the existing in-memory limiter.** No shared/Postgres/Redis limiter.
@@ -102,7 +126,7 @@ typo'd import.
 `windows` is module-level state shared by every test in the file, so **every
 test must use its own unique key**. Do not reuse a key between tests.
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
 
 Create `suite/lib/sync/rateLimit.test.ts`:
 
@@ -183,13 +207,13 @@ test("the sweep drops expired windows without touching live ones", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests**
+- [x] **Step 2: Run the tests**
 
 Run from `suite/`: `npx vitest run --project suite lib/sync/rateLimit.test.ts`
 Expected: PASS, 6 tests. If any fail, the limiter does not behave as this plan
 assumes — stop and report rather than editing `rateLimit.ts` to suit the test.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add suite/lib/sync/rateLimit.test.ts
@@ -210,7 +234,7 @@ git commit -m "Cover the rate limiter before making it load-bearing"
 - Produces: `EXPORT_LIMIT: Limit` exported from `suite/lib/sync/rateLimit.ts`,
   consumed by Task 4.
 
-- [ ] **Step 1: Add the export limit constant**
+- [x] **Step 1: Add the export limit constant**
 
 In `suite/lib/sync/rateLimit.ts`, add directly below the existing
 `WRITE_LIMIT` declaration:
@@ -225,7 +249,7 @@ In `suite/lib/sync/rateLimit.ts`, add directly below the existing
 export const EXPORT_LIMIT: Limit = { max: 20, windowMs: 60 * 60 * 1000 };
 ```
 
-- [ ] **Step 2: Add the limit check to `PUT /api/documents`**
+- [x] **Step 2: Add the limit check to `PUT /api/documents`**
 
 In `suite/app/api/documents/route.ts`, add to the imports at the top of the
 file:
@@ -261,7 +285,7 @@ are shown so the insertion point is unambiguous:
 Leave `GET` exactly as it is. Cloud-sync hydration calls it once per page
 load, and throttling that would break boot for a user with several tabs.
 
-- [ ] **Step 3: Write the route test**
+- [x] **Step 3: Write the route test**
 
 Create `suite/app/api/documents/route.test.ts`:
 
@@ -359,18 +383,18 @@ test("writes past the limit are throttled, and the budget is per account", async
 });
 ```
 
-- [ ] **Step 4: Run the route test**
+- [x] **Step 4: Run the route test**
 
 Run from `suite/`: `npx vitest run --project suite app/api/documents/route.test.ts`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Confirm the sync system still passes**
+- [x] **Step 5: Confirm the sync system still passes**
 
 Run from `suite/`: `npx vitest run --project suite lib/sync`
 Expected: PASS, 9 files / 121 tests — the 8 files and 115 tests that existed
 before this plan, plus Task 1's new file and its 6 tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add suite/lib/sync/rateLimit.ts suite/app/api/documents/route.ts suite/app/api/documents/route.test.ts
@@ -393,7 +417,7 @@ git commit -m "Rate limit the authenticated document write path, keyed by accoun
   `type ExportReply = { status: 200; file: ExportFile } | { status: 404; body: unknown }`.
   All three are consumed by Task 4.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `suite/lib/documents/handlers.test.ts` uses `describe`/`it`, not bare `test`,
 and already defines a `validDoc` fixture in the shape the contract actually
@@ -443,12 +467,12 @@ describe("exportDocumentHandler", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run from `suite/`: `npx vitest run --project suite lib/documents/handlers.test.ts`
 Expected: FAIL — `exportDocumentHandler` is not exported from `./handlers`.
 
-- [ ] **Step 3: Implement the handler**
+- [x] **Step 3: Implement the handler**
 
 Add to the imports at the top of `suite/lib/documents/handlers.ts`:
 
@@ -507,12 +531,12 @@ function exportFilename(document: unknown): string {
 }
 ```
 
-- [ ] **Step 4: Run to verify they pass**
+- [x] **Step 4: Run to verify they pass**
 
 Run from `suite/`: `npx vitest run --project suite lib/documents/handlers.test.ts`
 Expected: PASS — the file's existing tests plus the three new ones.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add suite/lib/documents/handlers.ts suite/lib/documents/handlers.test.ts
@@ -534,7 +558,7 @@ git commit -m "Add the pure export handler, which never lets validation block a 
   already uses.
 - Produces: the URL `/api/documents/export`, consumed by Task 5.
 
-- [ ] **Step 1: Write the route**
+- [x] **Step 1: Write the route**
 
 Create `suite/app/api/documents/export/route.ts`:
 
@@ -607,7 +631,7 @@ export async function GET() {
 }
 ```
 
-- [ ] **Step 2: Write the route test**
+- [x] **Step 2: Write the route test**
 
 Create `suite/app/api/documents/export/route.test.ts`:
 
@@ -718,12 +742,12 @@ test("downloads past the limit are throttled, per account", async () => {
 });
 ```
 
-- [ ] **Step 3: Run the route test**
+- [x] **Step 3: Run the route test**
 
 Run from `suite/`: `npx vitest run --project suite app/api/documents/export/route.test.ts`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add suite/app/api/documents/export/route.ts suite/app/api/documents/export/route.test.ts
@@ -751,7 +775,7 @@ A plain navigation is enough: the route sets `Content-Disposition: attachment`,
 so the browser downloads rather than navigates, and the session cookie rides
 along without any token handling in the client.
 
-- [ ] **Step 1: Add the section**
+- [x] **Step 1: Add the section**
 
 In `suite/app/(app)/account/page.tsx`, change the `lucide-react` import line to
 add `Download`:
@@ -783,7 +807,7 @@ section, whose opening tag is
           )}
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run from `suite/`: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors.
@@ -793,7 +817,7 @@ a real error and not caused by this change: `LayoutProps` is generated by Next
 into `.next/types`, which is gitignored and so absent from a fresh worktree.
 Run `npx next build` once, then re-run the type-check.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add "suite/app/(app)/account/page.tsx"
@@ -808,47 +832,47 @@ git commit -m "Offer the wedding as a download from the account page"
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Confirm the E2E sync system was not touched beyond the one constant**
+- [x] **Step 1: Confirm the E2E sync system was not touched beyond the one constant**
 
 Run: `git diff main -- suite/lib/sync/ ':(exclude)suite/lib/sync/rateLimit.test.ts'`
 Expected: exactly one hunk — the `EXPORT_LIMIT` constant added to
 `rateLimit.ts`. No other file in `suite/lib/sync/` appears, and no existing
 line in `rateLimit.ts` is changed.
 
-- [ ] **Step 2: Run the sync suite**
+- [x] **Step 2: Run the sync suite**
 
 Run from `suite/`: `npx vitest run --project suite lib/sync`
 Expected: PASS, 9 files / 121 tests — the 8 files and 115 tests that existed
 before this plan, plus Task 1's file and its 6 tests.
 
-- [ ] **Step 3: Run the whole suite project**
+- [x] **Step 3: Run the whole suite project**
 
 Run from `suite/`: `npx vitest run --project suite`
 Expected: PASS, no failures.
 
-- [ ] **Step 4: Run every project**
+- [x] **Step 4: Run every project**
 
 Run from `suite/`: `npx vitest run`
 Expected: PASS across `suite`, `plaque`, `brigade`, `tableaux` and `cadence`.
 
-- [ ] **Step 5: Run the contract package's tests**
+- [x] **Step 5: Run the contract package's tests**
 
 Run from the repo root: `npm test`
 Expected: PASS. Unaffected by this plan, but it confirms the workspace is
 healthy before review.
 
-- [ ] **Step 6: Type-check**
+- [x] **Step 6: Type-check**
 
 Run from `suite/`: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors. See Task 5 Step 2 if `LayoutProps` appears.
 
-- [ ] **Step 7: Build**
+- [x] **Step 7: Build**
 
 Run from `suite/`: `npx next build`
 Expected: builds clean, and `/api/documents/export` appears in the route list
 as a dynamic (`ƒ`) route.
 
-- [ ] **Step 8: Nothing to commit**
+- [x] **Step 8: Nothing to commit**
 
 This task is a gate, not a change. If every check passed, the branch is ready
 for review. If any failed, fix it, re-run that check, then re-run Steps 1-7 in
