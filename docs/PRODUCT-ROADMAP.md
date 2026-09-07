@@ -43,6 +43,7 @@ instead (see subsystem F).
 | D | Tableaux's future | — | 🟡 **pass one built** — data boundary typed ([plan](superpowers/plans/2026-09-07-tableaux-data-boundary-typing.md), 2026-09-07); 108 files still JS |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
 | F | Onboarding, billing & legal at product scale | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md), [plan](superpowers/plans/2026-09-07-licensing-and-self-hosting.md) complete 2026-09-07; privacy/terms rewrite still open |
+| H | Guided tour & example wedding | — | ✅ [spec written](superpowers/specs/2026-09-07-guided-tour-design.md), ready for a plan |
 | G | Multi-tenant suite mechanics | A, B | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-mechanics-design.md), [plan](superpowers/plans/2026-09-07-multitenant-mechanics.md) complete 2026-09-07 |
 
 ## Decisions log
@@ -109,6 +110,26 @@ against, not a discussion to reopen without a reason.
 - **2026-09-02** — Accounts-to-weddings: one active wedding per account for
   v1, no switcher UI. Additive-safe — can extend to multiple weddings per
   account later without redesigning the model.
+
+## Subsystem H — Guided tour & example wedding
+
+**Why:** Trousseau opens on an empty document with five unfamiliar tools and
+nothing explaining that they share one wedding — which is the entire point of
+the product and is invisible until you have done enough work to notice it. The
+README explains it; almost nobody reads a README before using a web app.
+
+**Decided:** an in-app guided overlay rather than a written guide (written ones
+drift the moment the UI moves); explain-and-invite rather than gating steps on
+real actions (every gate is somewhere a first-time user gets stuck); six
+chapters of four to six steps, about five minutes end to end; hand-rolled
+rather than a tour library; and a committed example wedding produced by driving
+the real app and exporting, offered with a backup prompt rather than silently
+replacing existing work.
+
+**Spec written:** [`2026-09-07-guided-tour-design.md`](superpowers/specs/2026-09-07-guided-tour-design.md)
+— includes fixing Timeline's **Sample day** button, which today replaces the
+current day with no confirmation while the **New** button beside it does
+confirm. Ready for an implementation plan.
 
 ## Subsystem A — Identity & accounts
 
