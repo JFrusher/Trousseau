@@ -45,6 +45,14 @@ export const AUTH_LIMIT: Limit = { max: 20, windowMs: 15 * 60 * 1000 };
 /** Ordinary reads and writes by somebody already holding the passphrase. */
 export const WRITE_LIMIT: Limit = { max: 600, windowMs: 60 * 1000 };
 
+/**
+ * Downloading the whole wedding. The largest single response the API serves,
+ * so it gets its own ceiling rather than sharing the write budget — but
+ * generous enough that a person clicking "download" a few times, or a script
+ * taking periodic backups, never notices it.
+ */
+export const EXPORT_LIMIT: Limit = { max: 20, windowMs: 60 * 60 * 1000 };
+
 export function allow(key: string, limit: Limit): boolean {
   const now = Date.now();
   sweep(now);

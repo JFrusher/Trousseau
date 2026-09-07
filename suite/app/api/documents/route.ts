@@ -4,6 +4,7 @@ import { currentUser, serverClient } from "@/lib/accounts/serverClient";
 import { accountsStore } from "@/lib/accounts/supabaseStore";
 import { documentStore } from "@/lib/documents/supabaseStore";
 import { getDocumentHandler, saveDocumentHandler } from "@/lib/documents/handlers";
+import { allow, WRITE_LIMIT } from "@/lib/sync/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,9 @@ const unauthenticated = () => NextResponse.json({ error: "Sign in first." }, { s
 
 const noWedding = () =>
   NextResponse.json({ error: "You don't have a wedding yet." }, { status: 404 });
+
+const throttled = () =>
+  NextResponse.json({ error: "Too many requests. Wait a minute and try again." }, { status: 429 });
 
 const failed = (where: string, error: unknown) => {
   console.error(`[documents] ${where}`, error);
@@ -55,6 +59,14 @@ export async function PUT(request: Request) {
     if (!accountsConfigured()) return unconfigured();
     const user = await currentUser();
     if (!user) return unauthenticated();
+
+    // Keyed by account, not by IP: two couples on one office or mobile-carrier
+    // NAT must not share a budget. The trade is that an *unauthenticated*
+    // flood is not throttled here at all — those requests are refused by
+    // `currentUser()` above before any document work happens, which is cheap
+    // but not free. Accepted deliberately; revisit if it ever shows up in
+    // real traffic.
+    if (!allow(`documents:write:${user.id}`, WRITE_LIMIT)) return throttled();
 
     const client = await serverClient();
     if (!client) return unconfigured();
