@@ -1,3 +1,4 @@
+import { migrate, suggestedFilename, TROUSSEAU_EXTENSION } from "@jfrusher/trousseau";
 import { checkCrossSlice } from "./crossSliceValidation";
 import type { DocumentStore } from "./store";
 
@@ -46,4 +47,51 @@ export async function saveDocumentHandler(
   }
 
   return ok({ version: result.record.version, warnings: validation.warnings });
+}
+
+export interface ExportFile {
+  filename: string;
+  text: string;
+}
+
+export type ExportReply = { status: 200; file: ExportFile } | { status: 404; body: unknown };
+
+/**
+ * Hand the caller their own wedding as a file.
+ *
+ * Returns the **stored** document, not a re-validated copy. Every other read
+ * path in the suite is free to refuse a document it cannot parse; this one is
+ * not, because it is the path a person uses when something has gone wrong and
+ * they want their data out. A validator standing between somebody and their
+ * own guest list is the single worst failure this endpoint could have.
+ */
+export async function exportDocumentHandler(
+  store: DocumentStore,
+  weddingId: string,
+): Promise<ExportReply> {
+  const record = await store.getDocument(weddingId);
+  if (!record || record.document === null || record.document === undefined) {
+    return { status: 404, body: { error: "Nothing has been saved to your account yet." } };
+  }
+
+  return {
+    status: 200,
+    file: {
+      filename: exportFilename(record.document),
+      text: JSON.stringify(record.document, null, 2),
+    },
+  };
+}
+
+/**
+ * A name a person will recognise in their downloads folder, falling back
+ * rather than throwing. Parsing here is only ever to read the couple's names;
+ * if it fails, the document is still exported untouched under a generic name.
+ */
+function exportFilename(document: unknown): string {
+  try {
+    return suggestedFilename(migrate(document));
+  } catch {
+    return `wedding${TROUSSEAU_EXTENSION}`;
+  }
 }
