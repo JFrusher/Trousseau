@@ -12,3 +12,7 @@
 !sample-day.day.json
 !wedding-day.cadence.json
 !wedding-day.day.json
+
+# The example wedding the guided tour loads. Exported from the running app,
+# built from the synthetic guests-150.csv — no real guest is in it.
+!example-wedding.trousseau.json
