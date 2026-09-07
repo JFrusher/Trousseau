@@ -1,21 +1,29 @@
-MIT License
+Trousseau is released under two licences, because this repository holds two
+different things.
+
+  The contract package — @jfrusher/trousseau
+  ------------------------------------------
+  MIT. See LICENSE-MIT.
+
+  This is the published npm package: the schemas and the file format that
+  describe a wedding. It is deliberately permissive so that a tool nobody has
+  written yet can depend on it, which is the entire point of the format
+  existing. If you installed @jfrusher/trousseau from npm, this is the licence
+  that applies to you, and you can stop reading here.
+
+  The application — everything in suite/
+  --------------------------------------
+  GNU Affero General Public License v3.0 or later. See LICENSE-AGPL.
+
+  This is Trousseau itself: the five tools, the shell, the sync and account
+  layers. The AGPL is chosen deliberately. Trousseau is free and always will
+  be, and the AGPL is what stops someone running a paid, closed fork of the
+  hosted service against the intent of everyone who worked on the free one.
+  Run it yourself, change it, host it for your friends — but if you host a
+  modified version for others, they get the source too.
+
+Fonts bundled under suite/public/fonts/ and suite/apps/plaque/assets/fonts/ are
+licensed separately under the SIL Open Font License; see the OFL-*.txt files
+beside them.
 
 Copyright (c) 2026 Jacob Frusher
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
