@@ -9,6 +9,12 @@ import {
   type SliceName,
   type Trousseau,
 } from "@jfrusher/trousseau";
+import {
+  fetchCloudDocument,
+  pushDocument,
+  replayPendingWrite,
+  type PushResult,
+} from "@/lib/documents/cloudSync";
 
 /**
  * The one store the whole suite reads.
@@ -104,9 +110,29 @@ export interface TrousseauState {
    */
   setSlices: (entries: Array<[SliceName, unknown]>, options?: WriteOptions) => void;
   /** Replace the whole document — a JSON restore, or a fresh start. */
-  replaceDocument: (next: unknown) => void;
+  replaceDocument: (next: unknown, options?: WriteOptions) => void;
   undo: () => void;
   redo: () => void;
+
+  /**
+   * `"disabled"` until `startCloudSync()` runs (accounts configured and the
+   * caller has a wedding) — every other state is only reachable after that.
+   */
+  cloudStatus: "disabled" | "idle" | "syncing" | "queued" | "conflict" | "error";
+  cloudError: string | null;
+  /** The version this device last confirmed the cloud holds, or null before the first sync. */
+  cloudVersion: number | null;
+  /** Set when a write was rejected as a conflict — surfaced, never auto-merged. */
+  cloudConflict: { document: unknown; version: number } | null;
+
+  /** Called once, after local hydration, when accounts + a wedding are both available. */
+  startCloudSync: () => Promise<void>;
+  /** Push the current document now. Called after every local write, and on reconnect for the queue. */
+  syncToCloud: () => Promise<void>;
+  /** Discard the local change, adopt the cloud's version. */
+  resolveConflictTakeTheirs: () => void;
+  /** Overwrite the cloud with the local document, at the cloud's own version — a deliberate second attempt, not a merge. */
+  resolveConflictKeepMine: () => Promise<void>;
 }
 
 function freshDoc(): { raw: Record<string, unknown>; doc: Trousseau } {
@@ -196,7 +222,7 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
     schedulePersist(raw);
   },
 
-  replaceDocument: (next) => {
+  replaceDocument: (next, options = {}) => {
     const state = get();
     // A collected document keeps each tool's export under `sources` and leaves
     // the slices empty. Both shapes are valid and both are called
@@ -210,8 +236,15 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
       doc: migrate(raw),
       generation: state.generation + 1,
       // A restore is undoable: opening the wrong file should not cost the work.
-      past: state.status === "ready" ? pushHistory(state.past, state.raw, "restore") : [],
-      future: [],
+      // Adopting the cloud's copy is `silent`, though — the user did not make
+      // that change, and offering to undo it would offer to overwrite the
+      // cloud with the document it just replaced.
+      past: options.silent
+        ? state.past
+        : state.status === "ready"
+          ? pushHistory(state.past, state.raw, options.label ?? "restore")
+          : [],
+      future: options.silent ? state.future : [],
     });
     schedulePersist(raw);
   },
@@ -252,6 +285,53 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
     } catch {
       set({ future: state.future.slice(0, -1) });
     }
+  },
+
+  cloudStatus: "disabled",
+  cloudError: null,
+  cloudVersion: null,
+  cloudConflict: null,
+
+  startCloudSync: async () => {
+    set({ cloudStatus: "syncing" });
+    const result = await fetchCloudDocument();
+    if (!result.ok) {
+      // "unavailable" covers both "accounts not configured" and "no wedding
+      // yet" — either way, cloud sync simply does not start, and local-only
+      // behaviour continues exactly as it already does.
+      set({ cloudStatus: result.reason === "unreachable" ? "error" : "disabled" });
+      return;
+    }
+    if (result.document !== null) {
+      get().replaceDocument(result.document, { silent: true });
+    }
+    set({ cloudStatus: "idle", cloudVersion: result.version, cloudError: null });
+
+    const replay = await replayPendingWrite();
+    if (replay) applyCloudResult(replay);
+  },
+
+  syncToCloud: async () => {
+    const state = get();
+    if (state.cloudStatus === "disabled") return;
+    set({ cloudStatus: "syncing" });
+    const result = await pushDocument(state.raw, state.cloudVersion ?? 0);
+    applyCloudResult(result);
+  },
+
+  resolveConflictTakeTheirs: () => {
+    const conflict = get().cloudConflict;
+    if (!conflict) return;
+    get().replaceDocument(conflict.document, { silent: true });
+    set({ cloudStatus: "idle", cloudVersion: conflict.version, cloudConflict: null });
+  },
+
+  resolveConflictKeepMine: async () => {
+    const conflict = get().cloudConflict;
+    if (!conflict) return;
+    set({ cloudConflict: null, cloudStatus: "syncing" });
+    const result = await pushDocument(get().raw, conflict.version);
+    applyCloudResult(result);
   },
 }));
 
@@ -298,14 +378,58 @@ function schedulePersist(raw: Record<string, unknown>): void {
       // one throws here rather than rejecting. Outside a promise chain and
       // inside a timer, that escapes to the top as an uncaught exception and
       // takes the message below with it.
-      void idbSet(STORAGE_KEY, raw).then(
-        () => useTrousseauStore.setState({ savedAt: new Date().toISOString(), error: null }),
-        noted,
-      );
+      void idbSet(STORAGE_KEY, raw).then(() => {
+        useTrousseauStore.setState({ savedAt: new Date().toISOString(), error: null });
+        // Only after the local write has landed. Local storage is the record
+        // of what the user has if the cloud is unreachable, so it goes first.
+        void useTrousseauStore.getState().syncToCloud();
+      }, noted);
     } catch (cause) {
       noted(cause);
     }
   }, PERSIST_DELAY_MS);
+}
+
+/**
+ * Fold a write's answer back into the store.
+ *
+ * Shared by every path that pushes, and deliberately not a store action: it is
+ * called from `schedulePersist`'s timer as well as from the actions, and
+ * reaching for `setState` directly is what the persist path already does.
+ *
+ * A conflict is recorded, never merged. The cloud's document is parked in
+ * `cloudConflict` for the user to choose between, and nothing overwrites the
+ * document they are looking at until they say so.
+ */
+function applyCloudResult(result: PushResult): void {
+  if (result.ok) {
+    useTrousseauStore.setState({
+      cloudStatus: "idle",
+      cloudVersion: result.version,
+      cloudConflict: null,
+      cloudError: null,
+    });
+    return;
+  }
+  if (result.reason === "conflict") {
+    useTrousseauStore.setState({
+      cloudStatus: "conflict",
+      cloudConflict: { document: result.document, version: result.version },
+    });
+    return;
+  }
+  if (result.reason === "queued") {
+    useTrousseauStore.setState({ cloudStatus: "queued" });
+    return;
+  }
+  if (result.reason === "invalid") {
+    useTrousseauStore.setState({
+      cloudStatus: "error",
+      cloudError: `This wedding could not be saved to the cloud: ${result.errors.join("; ")}`,
+    });
+    return;
+  }
+  useTrousseauStore.setState({ cloudStatus: "error", cloudError: "The cloud could not be reached." });
 }
 
 /** Exposed for tests and for the Data Manager's "save now". */

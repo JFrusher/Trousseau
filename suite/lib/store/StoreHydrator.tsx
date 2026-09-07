@@ -13,8 +13,24 @@ import { useTrousseauStore } from "./useTrousseauStore";
  */
 export function StoreHydrator() {
   const hydrate = useTrousseauStore((s) => s.hydrate);
+  const startCloudSync = useTrousseauStore((s) => s.startCloudSync);
   useEffect(() => {
-    void hydrate().then(reconcileLoadedDocument);
-  }, [hydrate]);
+    // Cloud sync starts only after the local read has finished. Starting them
+    // together would race the two documents, and the local one is what the
+    // user already has on this device.
+    void hydrate()
+      .then(reconcileLoadedDocument)
+      .then(() => startCloudSync());
+  }, [hydrate, startCloudSync]);
+
+  useEffect(() => {
+    // Guarded the same way `schedulePersist` is: this file is imported by
+    // tests that run without a `window`.
+    if (typeof window === "undefined") return;
+    const onOnline = () => void useTrousseauStore.getState().syncToCloud();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, []);
+
   return null;
 }

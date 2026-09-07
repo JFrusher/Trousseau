@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Download, FileUp, Upload, X } from "lucide-react";
+import { AlertTriangle, CloudOff, Download, FileUp, RefreshCw, Upload, X } from "lucide-react";
 import { migrate, serialise, suggestedFilename } from "@jfrusher/trousseau";
 import { flushPersist, useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { readGuests } from "@/lib/model/slices";
@@ -63,6 +63,11 @@ function Body({ onClose }: { onClose: () => void }) {
   const replaceDocument = useTrousseauStore((s) => s.replaceDocument);
   const guestCount = useTrousseauStore((s) => Object.keys(s.doc.guests).length);
   const event = useTrousseauStore((s) => s.doc.event);
+  const cloudStatus = useTrousseauStore((s) => s.cloudStatus);
+  const cloudError = useTrousseauStore((s) => s.cloudError);
+  const cloudConflict = useTrousseauStore((s) => s.cloudConflict);
+  const resolveConflictTakeTheirs = useTrousseauStore((s) => s.resolveConflictTakeTheirs);
+  const resolveConflictKeepMine = useTrousseauStore((s) => s.resolveConflictKeepMine);
   const { setEvent, setGuests } = useWriters();
 
   const [notice, setNotice] = useState<string | null>(null);
@@ -216,6 +221,42 @@ function Body({ onClose }: { onClose: () => void }) {
       <Section title="Sharing">
         <SharePanel onProblem={setProblem} />
       </Section>
+
+      {/*
+        Absent entirely without an account. `cloudStatus` is "disabled" until
+        `startCloudSync` finds both a configured deployment and a wedding, so
+        the local-only user never sees a section about a cloud they have not
+        opted into.
+      */}
+      {cloudStatus !== "disabled" ? (
+        <Section title="Cloud">
+          {cloudStatus === "conflict" && cloudConflict ? (
+            <div>
+              <p className="mb-3 text-sm text-slate">
+                Someone else saved a change to this wedding from another device. Choose which
+                version to keep — nothing is merged automatically.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Action onClick={resolveConflictTakeTheirs} icon={RefreshCw} primary>
+                  Use their version
+                </Action>
+                <Action onClick={() => void resolveConflictKeepMine()} icon={Upload}>
+                  Keep mine and overwrite theirs
+                </Action>
+              </div>
+            </div>
+          ) : cloudStatus === "queued" ? (
+            <p className="flex items-center gap-2 text-sm text-slate">
+              <CloudOff size={16} /> You&rsquo;re offline. Changes will sync once you&rsquo;re back
+              online.
+            </p>
+          ) : cloudStatus === "error" ? (
+            <p className="text-sm text-slate">{cloudError ?? "The cloud could not be reached."}</p>
+          ) : (
+            <p className="text-sm text-slate">Synced to your account.</p>
+          )}
+        </Section>
+      ) : null}
 
       <Section title="Guest list">
         {pending ? (
