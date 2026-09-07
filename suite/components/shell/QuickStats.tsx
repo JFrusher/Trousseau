@@ -5,6 +5,7 @@ import { useShallow } from "zustand/shallow";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { readCrew, readGuests, readSeating, readTimeline } from "@/lib/model/slices";
 import { TOOLS } from "@/lib/tools";
+import { TakeTheTour } from "./TourButtons";
 
 /**
  * What is actually on this device, right now.
@@ -81,6 +82,8 @@ export function QuickStats() {
           </Link>
         ))}
       </nav>
+
+      <TakeTheTour />
     </div>
   );
 }

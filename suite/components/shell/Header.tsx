@@ -7,6 +7,7 @@ import { Database, Users } from "lucide-react";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { TOOLS } from "@/lib/tools";
 import { AccountStatus } from "./AccountStatus";
+import { HowThisWorks } from "./TourButtons";
 import { ChromeSlot } from "./chrome";
 import { DataManager } from "./DataManager";
 
@@ -86,6 +87,7 @@ export function Header() {
             <span className="hidden sm:inline">Data</span>
           </button>
 
+          <HowThisWorks />
           <AccountStatus />
         </div>
       </header>
