@@ -22,7 +22,7 @@ export const LIMITS = {
   snapshots: 50,
 }
 
-const entityMap = (max, label) =>
+const entityMap = (max: number, label: string) =>
   z
     .record(z.string(), z.object({}).passthrough())
     .refine((m) => Object.keys(m).length <= max, { message: `Too many ${label} (max ${max})` })
@@ -46,20 +46,33 @@ export const planDocSchema = z
 // from bloating storage even when entity counts are within their caps.
 export const MAX_DOC_BYTES = 8 * 1024 * 1024
 
+/**
+ * An error carrying the HTTP status the old Express server would have sent.
+ *
+ * Nothing reads `status` any more — there is no server — but it is part of
+ * what this function throws today, and this pass changes no behaviour. Typed
+ * rather than dropped.
+ */
+class PlanDocError extends Error {
+  status: number
+
+  constructor(message: string, status = 400) {
+    super(message)
+    this.name = 'PlanDocError'
+    this.status = status
+  }
+}
+
 /** Validate an incoming plan document. Throws a 400-tagged error on failure. */
-export function validatePlanDoc(doc) {
+export function validatePlanDoc(doc: unknown) {
   const parsed = planDocSchema.safeParse(doc)
   if (!parsed.success) {
     const msg = parsed.error.issues?.[0]?.message || 'Invalid plan document'
-    const err = new Error(msg)
-    err.status = 400
-    throw err
+    throw new PlanDocError(msg)
   }
   const bytes = Buffer.byteLength(JSON.stringify(parsed.data))
   if (bytes > MAX_DOC_BYTES) {
-    const err = new Error('Plan document is too large')
-    err.status = 400
-    throw err
+    throw new PlanDocError('Plan document is too large')
   }
   return parsed.data
 }

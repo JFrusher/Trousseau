@@ -25,8 +25,10 @@ no runtime validation is added to the load path.
 - **No behaviour changes.** This is a typing and validation hardening pass.
   Nothing renders differently, nothing saves differently, no dead code is
   removed. Where existing code does something odd, it gets typed, not fixed.
-- **The existing 159 Tableaux tests stay green at every step**, not just at
-  the end. This is a regression gate per task, not a final check.
+- **The existing 162 Tableaux tests stay green at every step**, not just at
+  the end. This is a regression gate per task, not a final check. (The spec and
+  the audit both say 159 — that figure is stale; three tests were added between
+  the audit and now. Verified on `main` before this plan ran.)
 - **No restructuring.** Tableaux is not being moved toward the other three
   apps' core/render/state/ui layout. Out of scope, per the spec.
 - **Unknown keys must still survive.** Objects stay loose, never `.strict()`.
@@ -210,8 +212,8 @@ Expected: no errors (ignoring `LayoutProps`, per Step 2).
 - [ ] **Step 5: Run every Tableaux test**
 
 Run from `suite/`: `npx vitest run --project tableaux`
-Expected: PASS, 159 tests. The conversion changed no behaviour, so the count
-and the results are identical to `main`.
+Expected: PASS, 24 files / 162 tests. The conversion changed no behaviour, so
+the count and the results are identical to `main`.
 
 - [ ] **Step 6: Commit**
 
@@ -494,7 +496,7 @@ Expected: PASS, 12 tests.
 - [ ] **Step 5: Run every Tableaux test — the real gate**
 
 Run from `suite/`: `npx vitest run --project tableaux`
-Expected: PASS, 171 tests (the existing 159 plus this file's 12).
+Expected: PASS, 174 tests (the existing 162 plus this file's 12).
 
 This is the step that matters. `persistRoundtrip.test.js` and
 `roomSpaces.test.js` serialize the live store and push the result through
@@ -668,7 +670,7 @@ Expected: no errors.
 - [ ] **Step 5: Run every Tableaux test**
 
 Run from `suite/`: `npx vitest run --project tableaux`
-Expected: PASS, 171 tests. No behaviour changed, so nothing should move.
+Expected: PASS, 174 tests. No behaviour changed, so nothing should move.
 
 - [ ] **Step 6: Run the suite project too**
 
@@ -709,7 +711,7 @@ to the spec".
 
 Run from `suite/`: `npx vitest run`
 Expected: PASS across `suite`, `plaque`, `brigade`, `tableaux` and `cadence`.
-Tableaux is 171 (159 + 12); the total is 1,586 (1,574 + 12).
+Tableaux is 174 (162 + 12); the total is 1,586 (1,574 + 12).
 
 - [ ] **Step 4: Run the contract package's tests**
 
