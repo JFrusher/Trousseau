@@ -38,12 +38,12 @@ instead (see subsystem F).
 | # | Subsystem | Depends on | Status |
 |---|---|---|---|
 | A | Identity & accounts | — | ✅ [spec written](superpowers/specs/2026-09-02-identity-accounts-design.md) |
-| B | Multi-tenant data & storage | A | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-storage-design.md) |
+| B | Multi-tenant data & storage | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-storage-design.md), [plan](superpowers/plans/2026-09-02-multitenant-storage.md) complete 2026-09-07 |
 | C | Cadence/suite de-duplication | — | ✅ [spec written](superpowers/specs/2026-09-02-cadence-deduplication-design.md), execution blocked on `gh` access |
 | D | Tableaux's future | — | ✅ [spec written](superpowers/specs/2026-09-02-tableaux-migration-design.md) |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
 | F | Onboarding, billing & legal at product scale | A | ✅ [spec written](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md) |
-| G | Multi-tenant suite mechanics | A, B | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-mechanics-design.md) |
+| G | Multi-tenant suite mechanics | A, B | ✅ [spec written](superpowers/specs/2026-09-02-multitenant-mechanics-design.md) — dependencies now met, ready to plan |
 
 ## Decisions log
 
@@ -152,7 +152,11 @@ JSON document per wedding stored as JSONB, matching the existing zod
 contract; compare-and-set conflict detection with a refresh-and-reapply
 notice, not real-time collaboration.
 
-**Spec written:** [`2026-09-02-multitenant-storage-design.md`](superpowers/specs/2026-09-02-multitenant-storage-design.md)
+**Built.** [`2026-09-02-multitenant-storage.md`](superpowers/plans/2026-09-02-multitenant-storage.md)
+executed in full on 2026-09-07 (branch `multitenant-storage`). This unblocks
+subsystem G, which was waiting on it.
+
+**Spec:** [`2026-09-02-multitenant-storage-design.md`](superpowers/specs/2026-09-02-multitenant-storage-design.md)
 — `wedding_documents` + append-only `wedding_document_history` (the DVC
 version-history replacement), CAS-gated write path that also runs the
 ported `validate-wedding.mjs` as a hard gate (errors block, warnings don't),

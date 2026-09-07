@@ -36,6 +36,34 @@ local persistence), `zustand`.
 
 **Spec:** `docs/superpowers/specs/2026-09-02-multitenant-storage-design.md`
 
+## Status
+
+**Complete — all 9 tasks, 2026-09-07.** Tasks 1-7 landed 2026-09-03; Tasks 8
+and 9 on 2026-09-07, after rebasing the branch onto `main` (it was 41 commits
+behind, and Ensemble had since changed `useTrousseauStore.ts`).
+
+Verified on the finished branch, not from memory:
+
+| Check | Result |
+|---|---|
+| `vitest run --project suite` | 46 files / 466 tests pass |
+| `vitest run --project suite lib/sync` | 8 files / 115 tests pass — identical count to `main` |
+| `npm test` (contract package) | 7 files / 98 tests pass |
+| `tsc --noEmit -p suite/tsconfig.json` | clean |
+| `next build` | clean |
+| Data Manager, all four cloud states | checked by hand in `next dev` |
+
+One correction to this plan was needed during execution, and is recorded at
+Task 9 Step 1: adding a migration changes the table inventory that
+`suite/lib/sync/migrations.test.ts` asserts, so Steps 1 and 2 as originally
+written could not both hold.
+
+Note on `tsc`: this plan's Task 9 Step 5 records two pre-existing errors on
+`main` as the expected baseline. Neither appears now — `main` typechecks
+clean. The `LayoutProps` one is not a real error at all; it comes from
+Next's generated `.next/types`, so it appears in any checkout that has never
+been built and disappears after `next build`.
+
 ## Global Constraints
 
 - Accounts (and therefore cloud document sync) are entirely opt-in. Nothing
@@ -135,7 +163,7 @@ This is the highest-value task to get right, for the same reason Task 2 was
 in subsystem A's plan: it's where the actual access rules live, and it's
 the layer every later task's confidence rests on.
 
-- [ ] **Step 1: Write the migration**
+- [x] **Step 1: Write the migration**
 
 Create `supabase/migrations/20260903000001_wedding_documents.sql`:
 
@@ -312,7 +340,7 @@ revoke all on function public.save_wedding_document(uuid, jsonb, integer) from p
 grant execute on function public.save_wedding_document(uuid, jsonb, integer) to authenticated;
 ```
 
-- [ ] **Step 2: Write the failing migration test — setup and the RLS/CAS core**
+- [x] **Step 2: Write the failing migration test — setup and the RLS/CAS core**
 
 Create `suite/lib/documents/migrations.test.ts`. Follow
 `suite/lib/accounts/migrations.test.ts`'s exact pattern (read that file
@@ -515,17 +543,17 @@ test("deleting the account that last saved a document does not fail on a foreign
 });
 ```
 
-- [ ] **Step 3: Run the tests written so far to verify they fail**
+- [x] **Step 3: Run the tests written so far to verify they fail**
 
 Run: `npx vitest run --project suite lib/documents/migrations.test.ts`
 Expected: FAIL — the migration file doesn't exist yet.
 
-- [ ] **Step 4: Confirm the migration file from Step 1 is saved, then run the tests**
+- [x] **Step 4: Confirm the migration file from Step 1 is saved, then run the tests**
 
 Run: `npx vitest run --project suite lib/documents/migrations.test.ts`
 Expected: PASS (all 6 tests so far)
 
-- [ ] **Step 5: Add the RLS-under-a-real-session test — the one this plan's Global Constraints call out by name**
+- [x] **Step 5: Add the RLS-under-a-real-session test — the one this plan's Global Constraints call out by name**
 
 Append to the same file. This is the test that would have caught subsystem
 A's Critical bug C1 had an equivalent existed for the accounts migration:
@@ -580,12 +608,12 @@ test("a member reads their own wedding's history through a plain select; a non-m
 });
 ```
 
-- [ ] **Step 6: Run the full test file to verify everything passes**
+- [x] **Step 6: Run the full test file to verify everything passes**
 
 Run: `npx vitest run --project suite lib/documents/migrations.test.ts`
 Expected: PASS (all 8 tests)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add supabase/migrations/20260903000001_wedding_documents.sql suite/lib/documents/migrations.test.ts
@@ -611,7 +639,7 @@ spec calls for. The logic and its existing test suite
 caught two real bugs in production use (per that file's own comments); this
 task transcribes both, not redesigns either.
 
-- [ ] **Step 1: Write the failing tests — transcribed from `scripts/validate-wedding.test.mjs`**
+- [x] **Step 1: Write the failing tests — transcribed from `scripts/validate-wedding.test.mjs`**
 
 Create `suite/lib/documents/crossSliceValidation.test.ts`:
 
@@ -790,12 +818,12 @@ describe("warnings do not block", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run --project suite lib/documents/crossSliceValidation.test.ts`
 Expected: FAIL — `./crossSliceValidation` doesn't exist yet.
 
-- [ ] **Step 3: Write the ported module**
+- [x] **Step 3: Write the ported module**
 
 Create `suite/lib/documents/crossSliceValidation.ts`:
 
@@ -956,12 +984,12 @@ export function checkCrossSlice(doc: unknown): CrossSliceResult {
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run --project suite lib/documents/crossSliceValidation.test.ts`
 Expected: PASS (all tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add suite/lib/documents/crossSliceValidation.ts suite/lib/documents/crossSliceValidation.test.ts
@@ -979,7 +1007,7 @@ git commit -m "Port validate-wedding.mjs's cross-slice check into suite/lib/docu
 - Consumes: nothing.
 - Produces: `DocumentStore` interface, `memoryStore(): DocumentStore`, `DocumentRecord` — consumed by `handlers.ts` (Task 4) and `supabaseStore.ts` (Task 5).
 
-- [ ] **Step 1: Write the store interface and in-memory implementation**
+- [x] **Step 1: Write the store interface and in-memory implementation**
 
 Create `suite/lib/documents/store.ts`:
 
@@ -1046,12 +1074,12 @@ export function memoryStore(): DocumentStore {
 }
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run: `npx tsc --noEmit -p suite/tsconfig.json`
 Expected: no errors
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add suite/lib/documents/store.ts
@@ -1077,7 +1105,7 @@ error-level cross-slice violation is rejected before `store.saveDocument`
 is even called; a warning-level violation does not block; a genuine CAS
 conflict returns the current state.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `suite/lib/documents/handlers.test.ts`:
 
@@ -1157,12 +1185,12 @@ describe("saveDocumentHandler", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run --project suite lib/documents/handlers.test.ts`
 Expected: FAIL — `./handlers` doesn't exist yet.
 
-- [ ] **Step 3: Write the handlers**
+- [x] **Step 3: Write the handlers**
 
 Create `suite/lib/documents/handlers.ts`:
 
@@ -1218,12 +1246,12 @@ export async function saveDocumentHandler(
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run --project suite lib/documents/handlers.test.ts`
 Expected: PASS (all tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add suite/lib/documents/handlers.ts suite/lib/documents/handlers.test.ts
@@ -1246,7 +1274,7 @@ are already tested in Task 4 against the fake, and in Task 1 at the SQL
 layer directly; this file's only job is calling the right RPC/select with
 the right arguments.
 
-- [ ] **Step 1: Write the implementation**
+- [x] **Step 1: Write the implementation**
 
 Create `suite/lib/documents/supabaseStore.ts`:
 
@@ -1300,12 +1328,12 @@ export function documentStore(client: SupabaseClient): DocumentStore {
 }
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run: `npx tsc --noEmit -p suite/tsconfig.json`
 Expected: no errors
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add suite/lib/documents/supabaseStore.ts
@@ -1330,7 +1358,7 @@ resolved server-side via `accountsStore(client).memberOf(user.id)`, the
 same way subsystem A's Task 8 ruled `create_invite`'s wedding id should be
 derived rather than trusted from the client.
 
-- [ ] **Step 1: Write the route**
+- [x] **Step 1: Write the route**
 
 Create `suite/app/api/documents/route.ts`:
 
@@ -1417,12 +1445,12 @@ export async function PUT(request: Request) {
 }
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run: `npx tsc --noEmit -p suite/tsconfig.json`
 Expected: no errors
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add suite/app/api/documents/route.ts
@@ -1451,7 +1479,7 @@ latest write; ordering only matters in the sense that a second local edit
 made while offline must overwrite the first one's queued entry rather than
 both being sent.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `suite/lib/documents/cloudSync.test.ts`:
 
@@ -1615,12 +1643,12 @@ describe("replayPendingWrite", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run --project suite lib/documents/cloudSync.test.ts`
 Expected: FAIL — `./cloudSync` doesn't exist yet.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `suite/lib/documents/cloudSync.ts`:
 
@@ -1735,12 +1763,12 @@ export async function replayPendingWrite(): Promise<PushResult | null> {
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run --project suite lib/documents/cloudSync.test.ts`
 Expected: PASS (all tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add suite/lib/documents/cloudSync.ts suite/lib/documents/cloudSync.test.ts
@@ -1767,7 +1795,7 @@ sync a no-op unless a caller explicitly starts it, so the no-account
 local-only mode (Global Constraint) is unaffected by construction, not by
 a runtime check added in every code path.
 
-- [ ] **Step 1: Add cloud-sync state and actions to `useTrousseauStore.ts`**
+- [x] **Step 1: Add cloud-sync state and actions to `useTrousseauStore.ts`**
 
 Add to `suite/lib/store/useTrousseauStore.ts`. Read the existing file in
 full first (already read as part of this plan's research — the additions
@@ -1930,7 +1958,7 @@ is unreachable) has actually landed:
       }, noted);
 ```
 
-- [ ] **Step 2: Start cloud sync from `StoreHydrator.tsx`, after local hydration**
+- [x] **Step 2: Start cloud sync from `StoreHydrator.tsx`, after local hydration**
 
 Modify `suite/lib/store/StoreHydrator.tsx`:
 
@@ -1953,7 +1981,7 @@ export function StoreHydrator() {
 }
 ```
 
-- [ ] **Step 3: Replay the queue on reconnect**
+- [x] **Step 3: Replay the queue on reconnect**
 
 Still in `StoreHydrator.tsx`, add a `window` `online` listener in the same
 effect (guarded the same way `schedulePersist` already guards
@@ -1969,7 +1997,7 @@ non-browser tests):
   }, []);
 ```
 
-- [ ] **Step 4: Write a test for the cloud-sync wiring**
+- [x] **Step 4: Write a test for the cloud-sync wiring**
 
 Create `suite/lib/store/useTrousseauStore.cloudSync.test.ts`:
 
@@ -2046,17 +2074,17 @@ test("resolveConflictTakeTheirs adopts the cloud document and clears the conflic
 });
 ```
 
-- [ ] **Step 5: Run the new test file**
+- [x] **Step 5: Run the new test file**
 
 Run: `npx vitest run --project suite lib/store/useTrousseauStore.cloudSync.test.ts`
 Expected: PASS (all tests)
 
-- [ ] **Step 6: Run the full existing store test suite to confirm nothing regressed**
+- [x] **Step 6: Run the full existing store test suite to confirm nothing regressed**
 
 Run: `npx vitest run --project suite lib/store`
 Expected: PASS (every existing file, including `persistFailure.test.ts`, `history.test.ts`, `migrateKeys.test.ts`, `useTrousseauStore.test.ts`)
 
-- [ ] **Step 7: Add a minimal "Cloud" section to `DataManager.tsx`**
+- [x] **Step 7: Add a minimal "Cloud" section to `DataManager.tsx`**
 
 Modify `suite/components/shell/DataManager.tsx`. Add these two imports near
 the top:
@@ -2112,12 +2140,12 @@ Add a new `<Section>` after the existing `"Sharing"` section (before
       ) : null}
 ```
 
-- [ ] **Step 8: Type-check**
+- [x] **Step 8: Type-check**
 
 Run: `npx tsc --noEmit -p suite/tsconfig.json`
 Expected: no errors
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add suite/lib/store/useTrousseauStore.ts suite/lib/store/StoreHydrator.tsx suite/components/shell/DataManager.tsx suite/lib/store/useTrousseauStore.cloudSync.test.ts
@@ -2137,7 +2165,7 @@ test suite (the `/seat/[token]` backend) must pass completely unmodified,
 proving this plan never touched it. This task also runs everything else
 once, together, the way it will actually ship.
 
-- [ ] **Step 1: Confirm `suite/lib/sync/`'s implementation was never touched**
+- [x] **Step 1: Confirm `suite/lib/sync/`'s implementation was never touched**
 
 Run: `git diff --stat main -- suite/lib/sync/ ':(exclude)suite/lib/sync/migrations.test.ts' supabase/migrations/20260830000001_suite_sync.sql supabase/migrations/20260830000002_suite_sync_fixes.sql supabase/migrations/20260901000001_delete_wedding.sql supabase/migrations/20260901000002_retention.sql supabase/migrations/20260901000003_storage_budget.sql`
 Expected: empty output — no changes to any file in this list.
@@ -2158,23 +2186,23 @@ a table will do this again — that is the assertion working, not failing.
 Step 2 below is what actually proves the backend is unharmed: the sync
 suite passes with its test count unchanged.
 
-- [ ] **Step 2: Run the sync suite specifically**
+- [x] **Step 2: Run the sync suite specifically**
 
 Run: `npx vitest run --project suite lib/sync`
 Expected: PASS, same test count as on `main` before this plan started.
 
-- [ ] **Step 3: Run the full suite test project**
+- [x] **Step 3: Run the full suite test project**
 
 Run: `npx vitest run --project suite`
 Expected: PASS, no unrelated failures.
 
-- [ ] **Step 4: Run the root contract package's tests**
+- [x] **Step 4: Run the root contract package's tests**
 
 Run: `npm test`
 Expected: PASS (unaffected by this plan, but confirms the workspace as a
 whole is healthy before this branch is reviewed).
 
-- [ ] **Step 5: Type-check the whole `suite` project**
+- [x] **Step 5: Type-check the whole `suite` project**
 
 Run: `npx tsc --noEmit -p suite/tsconfig.json`
 Expected: no new errors. (Subsystem A's ledger records two pre-existing,
@@ -2183,12 +2211,12 @@ unrelated tsc errors already present on `main` — `app/layout.tsx`'s
 `vi.stubEnv` — confirm the error count matches that known baseline, not a
 higher one.)
 
-- [ ] **Step 6: Build**
+- [x] **Step 6: Build**
 
 Run: `npx next build` (from `suite/`)
 Expected: builds clean.
 
-- [ ] **Step 7: Commit if Step 5 required no changes; otherwise fix and re-verify first**
+- [x] **Step 7: Commit if Step 5 required no changes; otherwise fix and re-verify first**
 
 If every check above passed with no code changes, there is nothing to
 commit for this task — it is a verification gate, and the branch is ready
