@@ -40,7 +40,7 @@ instead (see subsystem F).
 | A | Identity & accounts | — | ✅ [spec written](superpowers/specs/2026-09-02-identity-accounts-design.md) |
 | B | Multi-tenant data & storage | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-storage-design.md), [plan](superpowers/plans/2026-09-02-multitenant-storage.md) complete 2026-09-07 |
 | C | Cadence/suite de-duplication | — | ✅ [spec written](superpowers/specs/2026-09-02-cadence-deduplication-design.md), execution blocked on `gh` access |
-| D | Tableaux's future | — | ✅ [spec written](superpowers/specs/2026-09-02-tableaux-migration-design.md) |
+| D | Tableaux's future | — | 🟡 **pass one built** — data boundary typed ([plan](superpowers/plans/2026-09-07-tableaux-data-boundary-typing.md), 2026-09-07); 108 files still JS |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
 | F | Onboarding, billing & legal at product scale | A | ✅ [spec written](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md) |
 | G | Multi-tenant suite mechanics | A, B | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-mechanics-design.md), [plan](superpowers/plans/2026-09-07-multitenant-mechanics.md) complete 2026-09-07 |
@@ -188,7 +188,26 @@ later pass, not this one.
 **Revised same day:** first decided as a full TypeScript rewrite, then
 reconsidered in favor of keeping current function and workings intact.
 
-**Spec written:** [`2026-09-02-tableaux-migration-design.md`](superpowers/specs/2026-09-02-tableaux-migration-design.md)
+**Pass one built.** [`2026-09-07-tableaux-data-boundary-typing.md`](superpowers/plans/2026-09-07-tableaux-data-boundary-typing.md)
+converted `store/planSchema` and `store/sliceBridge` to TypeScript and replaced
+`planDocSchema`'s `.passthrough()` with real guest/table/room shapes.
+`store/useStore.js` and the other 108 JS files are the obvious next pass.
+
+Two corrections to the spec, both checked first: `checkJs` was deliberately
+**not** enabled (it would type-check all 110 JS files at once — the flag day the
+spec itself rules out; converting a file to `.ts` already opts it into
+checking), and `planDocSchema` turned out to have no production callers at all,
+so hardening it strengthens the round-trip tests rather than adding a runtime
+guard.
+
+**Worth carrying to the other apps:** typing a file does not catch a renamed
+field on a loose slice. `eventSchema` is a `looseObject`, so its inferred type
+has a catch-all index signature and `doc.event.anything` is `unknown`. Verified
+by renaming `coupleNames` and watching `tsc` stay silent. `sliceBridge.ts` now
+asserts against `eventSchema.shape` instead. **Cadence, Plaque and Brigade have
+the same blind spot and no such guard.**
+
+**Spec:** [`2026-09-02-tableaux-migration-design.md`](superpowers/specs/2026-09-02-tableaux-migration-design.md)
 — incremental in-place TS migration (allowJs during transition, data
 boundary converted first), real zod validation replacing `.passthrough()`,
 no behavior changes bundled in, proceeds independently of subsystem B.
