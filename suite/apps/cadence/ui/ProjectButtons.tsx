@@ -52,7 +52,16 @@ export function ProjectButtons() {
       >
         New
       </button>
-      <button type="button" className={styles.button} onClick={() => loadDoc(sampleDoc())}>
+      <button
+        type="button"
+        className={styles.button}
+        onClick={() => {
+          // The same guard New has. Replacing a real day with a demo one
+          // silently is the one thing this button must not do.
+          if (doc.blocks.length > 0 && !confirm("Load the sample day? The current one will be replaced.")) return;
+          loadDoc(sampleDoc());
+        }}
+      >
         Sample day
       </button>
       <LinkedFileButton />
