@@ -42,7 +42,7 @@ instead (see subsystem F).
 | C | Cadence/suite de-duplication | — | ✅ [spec written](superpowers/specs/2026-09-02-cadence-deduplication-design.md), execution blocked on `gh` access |
 | D | Tableaux's future | — | 🟡 **pass one built** — data boundary typed ([plan](superpowers/plans/2026-09-07-tableaux-data-boundary-typing.md), 2026-09-07); 108 files still JS |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
-| F | Onboarding, billing & legal at product scale | A | ✅ [spec written](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md) |
+| F | Onboarding, billing & legal at product scale | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md), [plan](superpowers/plans/2026-09-07-licensing-and-self-hosting.md) complete 2026-09-07; privacy/terms rewrite still open |
 | G | Multi-tenant suite mechanics | A, B | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-mechanics-design.md), [plan](superpowers/plans/2026-09-07-multitenant-mechanics.md) complete 2026-09-07 |
 
 ## Decisions log
@@ -251,7 +251,31 @@ paid fork of the hosted service can't undercut the free-forever intent (the
 root contract package is currently MIT — needs reconciling, see open
 questions).
 
-**Spec written:** [`2026-09-02-onboarding-billing-legal-design.md`](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md)
+**Built.** [`2026-09-07-licensing-and-self-hosting.md`](superpowers/plans/2026-09-07-licensing-and-self-hosting.md)
+executed in full on 2026-09-07 (branch `licensing-selfhosting`).
+
+**Licence decision refined during implementation.** The spec said to relicense
+every `package.json` including the root. The root package *is*
+`@jfrusher/trousseau`, published to npm, and the founding design expects a
+fifth app to depend on it — AGPL there would make it unadoptable while adding
+nothing, since the stated aim (stopping a paid fork of the hosted service) is
+served by AGPL on the application alone. **So: the application in `suite/` is
+AGPL-3.0-or-later; the contract package stays MIT.**
+
+`LICENSE` is now a notice naming both, because `npm pack --dry-run` shows npm
+force-includes a root `LICENSE` in the tarball even when `files` omits it — an
+AGPL `LICENSE` would have shipped inside a package declaring itself MIT.
+Accepted cost: GitHub's licence detection shows "Other" rather than a badge.
+
+Also found and fixed: `suite/.env.example` predated accounts and omitted
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, so anyone
+setting up from it got an instance where sign-in silently never worked.
+
+**Still open:** the privacy/terms content rewrite, deliberately deferred by the
+spec as a writing task. It should happen before real strangers' data is at
+stake. Donations remain deferred until real usage exists.
+
+**Spec:** [`2026-09-02-onboarding-billing-legal-design.md`](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md)
 — mechanical MIT→AGPL relicensing, self-hosting via a thorough markdown
 runbook (no Docker), privacy/terms flagged for a real content rewrite
 before real users' data is at stake, donations/sponsorship explicitly

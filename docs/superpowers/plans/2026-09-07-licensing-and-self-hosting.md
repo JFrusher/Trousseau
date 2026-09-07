@@ -17,6 +17,35 @@ MIT. The runbook is one new markdown file under `docs/`.
 
 **Spec:** [docs/superpowers/specs/2026-09-02-onboarding-billing-legal-design.md](../specs/2026-09-02-onboarding-billing-legal-design.md)
 
+## Status
+
+**Complete — all 5 tasks, 2026-09-07.**
+
+Verified on the finished branch:
+
+| Check | Result |
+|---|---|
+| `git diff --stat main -- suite/lib suite/app suite/components suite/apps src` | empty — no source file changed |
+| `git diff main -- suite/lib/legal.ts` | empty — the privacy/terms rewrite stays deferred |
+| `vitest run` (all five projects) | 163 files / 1,588 tests pass |
+| `npm test` (contract package) | 7 files / 98 tests pass |
+| `tsc --noEmit` (cache cleared) and `next build` | both clean |
+| `npm pack --dry-run` | ships `LICENSE`, `LICENSE-MIT`, `LICENSE-AGPL`, `README.md`, `dist/` — 17 files; root `package.json` still `"license": "MIT"` |
+| `LICENSE-AGPL` | 661 lines, sha256 `0d96a4ff…9abcb0`, matching gnu.org |
+
+**The runbook was verified against a genuinely cold clone**, not this worktree:
+cloned to a scratch directory with no `node_modules`, then every command in the
+document was run. That is what turned up the failure it now documents — `npm
+install` at the root does not create `dist/`, and `suite`'s own install
+*succeeds* without it, so nothing goes wrong until `next build` emits four
+copies of `Module not found: Can't resolve '@jfrusher/trousseau'` with no
+mention of build order. The runbook quotes that error verbatim.
+
+One small thing this plan did not anticipate: inserting the two account
+variables into `.env.example` left an existing comment reading "Both of the
+above, or neither" pointing at the wrong pair. Reworded to name its two
+variables explicitly.
+
 ## Global Constraints
 
 - **No billing infrastructure, ever.** Structural, not deferred. Nothing in
@@ -107,7 +136,7 @@ Root `package.json` is **not** modified — it stays MIT.
 
 **Interfaces:** none — no code.
 
-- [ ] **Step 1: Preserve the MIT text under its own name**
+- [x] **Step 1: Preserve the MIT text under its own name**
 
 ```bash
 git mv LICENSE LICENSE-MIT
@@ -116,7 +145,7 @@ git mv LICENSE LICENSE-MIT
 `LICENSE-MIT` now holds the existing MIT text unchanged, including the
 `Copyright (c) 2026 Jacob Frusher` line. Do not edit it.
 
-- [ ] **Step 2: Fetch the AGPL text**
+- [x] **Step 2: Fetch the AGPL text**
 
 ```bash
 curl -sS -o LICENSE-AGPL https://www.gnu.org/licenses/agpl-3.0.txt
@@ -138,7 +167,7 @@ Expected: sha256
 file; do not commit a licence you have not verified. Report it rather than
 guessing.
 
-- [ ] **Step 3: Write the root notice**
+- [x] **Step 3: Write the root notice**
 
 Create `LICENSE`:
 
@@ -174,7 +203,7 @@ beside them.
 Copyright (c) 2026 Jacob Frusher
 ```
 
-- [ ] **Step 4: Give the application its licence field**
+- [x] **Step 4: Give the application its licence field**
 
 In `suite/package.json`, add a `license` field immediately after `"version"`.
 It has none today. The result should read:
@@ -189,7 +218,7 @@ It has none today. The result should read:
 Leave the root `package.json` alone — it stays `"license": "MIT"`, and that is
 the whole point of this task.
 
-- [ ] **Step 5: Confirm the npm tarball is still coherent**
+- [x] **Step 5: Confirm the npm tarball is still coherent**
 
 Run from the repo root: `npm pack --dry-run`
 Expected: the tarball still contains `LICENSE`, `README.md` and `dist/`.
@@ -212,13 +241,13 @@ Fix it by adding both to `files` in the root `package.json`:
 
 Then re-run `npm pack --dry-run` and confirm both now appear.
 
-- [ ] **Step 6: Confirm nothing else broke**
+- [x] **Step 6: Confirm nothing else broke**
 
 Run from the repo root: `npm test`
 Expected: PASS, 7 files / 98 tests. Nothing here touches code, so this only
 confirms the workspace is healthy.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add LICENSE LICENSE-MIT LICENSE-AGPL package.json suite/package.json
@@ -238,7 +267,7 @@ Done before the runbook, because the runbook tells people to copy this file. It
 currently omits the two variables accounts need, so an instance built from it
 would run with sign-in silently unavailable and no error explaining why.
 
-- [ ] **Step 1: Add the accounts variables**
+- [x] **Step 1: Add the accounts variables**
 
 In `suite/.env.example`, immediately after the existing
 `SUPABASE_SERVICE_ROLE_KEY=` line, add:
@@ -259,7 +288,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
-- [ ] **Step 2: Check the file against the real schema**
+- [x] **Step 2: Check the file against the real schema**
 
 Read `suite/lib/env.ts` and confirm every variable it names appears in
 `.env.example`, either set or commented. As of writing that is:
@@ -270,7 +299,7 @@ Read `suite/lib/env.ts` and confirm every variable it names appears in
 `VERCEL_PROJECT_PRODUCTION_URL` is supplied by Vercel and is not something a
 self-hoster sets; note that in the runbook rather than adding it here.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add suite/.env.example
@@ -291,7 +320,7 @@ of the runbook is that it works on a fresh clone; a plausible-looking one that
 fails is worse than nothing. Several of the steps below exist specifically
 because they caught out the person writing this plan.
 
-- [ ] **Step 1: Verify the build sequence from a clean state**
+- [x] **Step 1: Verify the build sequence from a clean state**
 
 Before writing anything, confirm the order actually required. In a scratch
 clone or worktree with no `node_modules`:
@@ -308,7 +337,7 @@ is the trap: `suite/package.json` depends on `"@jfrusher/trousseau": "file:.."`,
 which resolves to the root's `dist/`, and `suite`'s own `dev` script does not
 build it.
 
-- [ ] **Step 2: Write the runbook**
+- [x] **Step 2: Write the runbook**
 
 Create `docs/SELF-HOSTING.md`:
 
@@ -488,14 +517,14 @@ running the hosted instance can read a couple's wedding either. Open an issue
 with what you did and what happened. Do not paste your guest list.
 ````
 
-- [ ] **Step 3: Run every command in the runbook**
+- [x] **Step 3: Run every command in the runbook**
 
 Go through the file and actually execute each command block in this worktree:
 the build sequence, `npm run build`, `npx vitest run`, `npx tsc --noEmit`,
 `npx next build`. Correct the runbook wherever reality disagrees with it —
 including the test count, which changes as the suite grows.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/SELF-HOSTING.md
@@ -511,7 +540,7 @@ git commit -m "Write a self-hosting runbook that works on a fresh clone"
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Rewrite the Licence section**
+- [x] **Step 1: Rewrite the Licence section**
 
 Replace the existing section at the end of `README.md`:
 
@@ -536,12 +565,12 @@ them.
 There is no paid tier and never will be. That is the reason this exists.
 ```
 
-- [ ] **Step 2: Correct the stale test count**
+- [x] **Step 2: Correct the stale test count**
 
 `README.md`'s "Running it" section says `npm test # 1,233 tests`. Run
 `npx vitest run` from `suite/` and use the real number.
 
-- [ ] **Step 3: Link the runbook from "Deploying"**
+- [x] **Step 3: Link the runbook from "Deploying"**
 
 At the end of the `### Deploying` section, add:
 
@@ -550,7 +579,7 @@ Running your own instance — environment variables, migrations, and how to chec
 it works — is in [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md).
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add README.md
@@ -565,40 +594,40 @@ git commit -m "Point the README at both licences and the self-hosting runbook"
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Confirm no code changed**
+- [x] **Step 1: Confirm no code changed**
 
 Run: `git diff --stat main -- suite/lib suite/app suite/components suite/apps src`
 Expected: empty. This subsystem changes documentation, two `package.json` files
 and one `.env.example`. If a source file appears here, something went wrong.
 
-- [ ] **Step 2: Confirm the legal content was not touched**
+- [x] **Step 2: Confirm the legal content was not touched**
 
 Run: `git diff main -- suite/lib/legal.ts`
 Expected: empty. The privacy/terms rewrite is deferred, and `legal.test.ts`
 would fail if the text moved without its digest.
 
-- [ ] **Step 3: Run every project**
+- [x] **Step 3: Run every project**
 
 Run from `suite/`: `npx vitest run`
 Expected: PASS, no failures. Includes `legal.test.ts`, which proves the policy
 digests still match.
 
-- [ ] **Step 4: Run the contract package's tests**
+- [x] **Step 4: Run the contract package's tests**
 
 Run from the repo root: `npm test`
 Expected: PASS, 7 files / 98 tests.
 
-- [ ] **Step 5: Type-check and build**
+- [x] **Step 5: Type-check and build**
 
 Run from `suite/`: `npx tsc --noEmit -p tsconfig.json` then `npx next build`
 Expected: both clean.
 
-- [ ] **Step 6: Confirm the package still packs correctly**
+- [x] **Step 6: Confirm the package still packs correctly**
 
 Run from the repo root: `npm pack --dry-run`
 Expected: `LICENSE`, `LICENSE-MIT`, `LICENSE-AGPL`, `README.md` and `dist/`
 all present, and the root `package.json` still declares `"license": "MIT"`.
 
-- [ ] **Step 7: Nothing to commit**
+- [x] **Step 7: Nothing to commit**
 
 A gate, not a change. If everything passed, the branch is ready for review.
