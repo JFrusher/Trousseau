@@ -320,7 +320,7 @@ export function Button({
   variant?: "normal" | "primary" | "quiet";
   disabled?: boolean;
   title?: string;
-}) {
+} & React.HTMLAttributes<HTMLButtonElement>) {
   const className = [styles.button, variant === "primary" ? styles.primary : "", variant === "quiet" ? styles.quiet : ""]
     .filter(Boolean)
     .join(" ");
@@ -331,6 +331,7 @@ export function Button({
       onClick={onClick}
       disabled={disabled}
       {...(title === undefined ? {} : { title })}
+      {...rest}
     >
       {children}
     </button>
