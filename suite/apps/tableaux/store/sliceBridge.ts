@@ -1,5 +1,31 @@
+import { eventSchema } from '@jfrusher/trousseau'
 import { mayWrite, noteRead } from '@/lib/store/toolGeneration'
 import { useTrousseauStore } from '@/lib/store/useTrousseauStore'
+import type { Guest, TableEntity } from './planSchema.js'
+
+/**
+ * A build-time check that the three `event` fields this file reads still exist
+ * in the contract package.
+ *
+ * Typing the file is not enough on its own, which is worth writing down because
+ * it is genuinely counter-intuitive. `eventSchema` is a `looseObject`, so the
+ * `Event` type it infers carries a catch-all index signature — which means
+ * `doc.event.anythingAtAll` type-checks happily as `unknown`, and renaming a
+ * field in the contract produces no error anywhere. Verified by doing it:
+ * renaming `coupleNames` in the contract and rebuilding gave a clean `tsc`.
+ *
+ * `eventSchema.shape` has no index signature, so asserting against its keys is
+ * the check the inferred type cannot give. Rename one of these in the contract
+ * and this file stops compiling, which is the whole point.
+ *
+ * The same blind spot applies to every loose slice, in every app — this guards
+ * only the three fields read below.
+ */
+type EventKeys = keyof typeof eventSchema.shape
+type Assert<T extends true> = T
+type _CoupleNamesExists = Assert<'coupleNames' extends EventKeys ? true : false>
+type _VenueNameExists = Assert<'venueName' extends EventKeys ? true : false>
+type _DateExists = Assert<'date' extends EventKeys ? true : false>
 
 /**
  * Where Tableaux's document actually lives.
@@ -48,7 +74,8 @@ const SEATING_KEYS = [
   'settings',
 ]
 
-const isRecord = (v) => typeof v === 'object' && v !== null && !Array.isArray(v)
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
 
 /**
  * Tableaux's factory name for a plan nobody has named yet.
@@ -59,12 +86,27 @@ const isRecord = (v) => typeof v === 'object' && v !== null && !Array.isArray(v)
  */
 const UNNAMED = 'Our Wedding'
 
+/**
+ * The plan as Tableaux's own store holds it.
+ *
+ * Deliberately not `PlanDoc` from `planSchema.ts`: that is the validated
+ * *saved* shape, and this is the live in-memory one, which carries whatever
+ * the store happens to hold. The two agree on the parts named here and this
+ * type stays open about the rest — the seating half is read and written raw
+ * on purpose, as the comment above explains.
+ */
+export interface TableauxDoc extends Record<string, unknown> {
+  guests: Record<string, Guest>
+  tables?: Record<string, TableEntity>
+  meta?: Record<string, unknown>
+}
+
 /** The plan as Tableaux's store wants it, assembled from the shared wedding. */
-export function readDoc() {
+export function readDoc(): TableauxDoc {
   noteRead('tableaux')
   const { raw, doc } = useTrousseauStore.getState()
   const seating = isRecord(raw.seating) ? raw.seating : {}
-  const guests = isRecord(raw.guests) ? raw.guests : {}
+  const guests = isRecord(raw.guests) ? (raw.guests as Record<string, Guest>) : {}
   const meta = isRecord(seating.meta) ? seating.meta : {}
 
   return {
@@ -72,6 +114,8 @@ export function readDoc() {
     guests,
     meta: {
       ...meta,
+      // These three names are held to the contract by the assertions at the
+      // top of this file, not by `Event` itself — see the comment there.
       weddingName: doc.event.coupleNames || meta.weddingName || UNNAMED,
       venue: doc.event.venueName || meta.venue || '',
       date: doc.event.date || meta.date || '',
@@ -80,16 +124,16 @@ export function readDoc() {
 }
 
 /** True when this wedding has nothing in it yet, so a fresh plan is not overwritten. */
-export function isEmpty() {
+export function isEmpty(): boolean {
   const doc = readDoc()
   return Object.keys(doc.guests).length === 0 && Object.keys(doc.tables ?? {}).length === 0
 }
 
-export function writeDoc(doc) {
+export function writeDoc(doc: TableauxDoc): void {
   // Refused when the document has been replaced since this was read — see
   // `toolGeneration`. Writing here would put the previous wedding back.
   if (!mayWrite('tableaux')) return
-  const seating = {}
+  const seating: Record<string, unknown> = {}
   for (const key of SEATING_KEYS) {
     if (doc[key] !== undefined) seating[key] = doc[key]
   }
@@ -99,7 +143,9 @@ export function writeDoc(doc) {
   // rest of the suite should see it.
   const { event } = useTrousseauStore.getState().doc
   const meta = isRecord(doc.meta) ? doc.meta : {}
-  const named = meta.weddingName && meta.weddingName !== UNNAMED
+  // The `typeof` check is what the JavaScript's truthiness already meant: a
+  // non-empty string. Made explicit because `meta` is a Record of `unknown`.
+  const named = typeof meta.weddingName === 'string' && meta.weddingName !== UNNAMED
 
   useTrousseauStore.getState().setSlices(
     [
