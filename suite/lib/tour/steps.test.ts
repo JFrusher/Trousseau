@@ -86,3 +86,21 @@ describe("every anchor exists in the source", () => {
     }
   }
 });
+
+describe("the example wedding", () => {
+  it("is a document the app can actually read", async () => {
+    const { migrate } = await import("@jfrusher/trousseau");
+    const raw = JSON.parse(
+      readFileSync("fixtures/example-wedding.trousseau.json", "utf8"),
+    ) as unknown;
+    const doc = migrate(raw);
+    expect(Object.keys(doc.guests).length).toBeGreaterThan(20);
+    expect(doc.event.coupleNames.length).toBeGreaterThan(0);
+  });
+
+  it("is served to the browser as well as read by tests", () => {
+    const served = readFileSync("public/fixtures/example-wedding.trousseau.json", "utf8");
+    const source = readFileSync("fixtures/example-wedding.trousseau.json", "utf8");
+    expect(served).toBe(source);
+  });
+});
