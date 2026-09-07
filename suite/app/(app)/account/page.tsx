@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogOut, Trash2, UserPlus } from "lucide-react";
+import { Download, LogOut, Trash2, UserPlus } from "lucide-react";
 import { browserClient } from "@/lib/accounts/browserClient";
 import { Button, TextField } from "@/components/ui/controls";
 
@@ -158,6 +158,23 @@ export default function AccountPage() {
                   Send invite
                 </Button>
               </form>
+            </section>
+          )}
+
+          {state.weddingId && (
+            <section className="space-y-3 border-t border-charcoal/10 pt-6">
+              <h2 className="text-xs tracking-widest text-slate uppercase">Your data</h2>
+              <p className="text-sm text-slate">
+                Download everything saved to your account as one file — guests, seating, the day,
+                the crew and the stationery. It opens in Trousseau anywhere, including your own
+                copy if you ever run one.
+              </p>
+              <Button
+                onClick={() => window.location.assign("/api/documents/export")}
+                icon={Download}
+              >
+                Download my wedding
+              </Button>
             </section>
           )}
 
