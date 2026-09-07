@@ -1,76 +1,73 @@
 # Trousseau
 
-**One wedding, five tools, and no arguments about which copy is right.**
+**Plan a whole wedding in one place, without five tools disagreeing about it.**
 
-A trousseau is the collection carried into a marriage. A `.trousseau.json` is the
-same idea: one file holding the whole wedding, which any of the tools can read
-and none of them can damage.
+[**Open Trousseau →**](https://trousseau-suite.vercel.app) &nbsp;·&nbsp;
+[Run your own copy](docs/SELF-HOSTING.md) &nbsp;·&nbsp;
+[How it works](#how-it-works)
 
-This repo holds both halves of that. `suite/` is the web application — five
-planning tools sharing one document, running on Vercel. The rest is the data:
-the schema they agree on, the checks that run before anything is kept, and the
-version history of every state the wedding has been in.
+Free, open source, and free forever. No paid tier, no upsell, no trial.
 
-Built for our own wedding, which is the only reason the constraints are honest:
-real guest names and dietary requirements, five tools that must not overwrite
-each other, two laptops, and a date that does not move.
-
----
-
-## The problem
-
-Four apps, each owning part of one wedding. Seating in one, the running order in
-another, the crew in a third, the place cards in a fourth. Every one of them can
-export a file. None of them agrees with the others for long.
-
-You find out at the worst possible moment: the place cards say table 6 and the
-seating plan says table 8, or two apps quietly disagree about what day you are
-getting married. That last one is not hypothetical — it happened here, and the
-checks in this repo are what caught it.
-
-So the four became one application over one document.
-
-```mermaid
-flowchart LR
-  S["Seating<br/>the room"]
-  P["Place cards<br/>the stationery"]
-  T["Timeline<br/>the day"]
-  D["Delegation<br/>the crew"]
-
-  DOC[("wedding.trousseau.json<br/>one document")]
-
-  S -->|guests, seating| DOC
-  P -->|stationery| DOC
-  T -->|timeline, day| DOC
-  D -->|crew| DOC
-
-  DOC -.->|table numbers| P
-  DOC -.->|the resolved day| D
-  DOC -.->|the guest list| D
-  DOC -.->|room spaces| T
-```
-
-Solid lines are what a tool writes. Dotted lines are what it reads from the
-others — and those are the point. Seat someone and the place cards already know
-their table. Move a block of the day and every job hanging off it moves too.
+<!-- IMAGE PLACEHOLDER 1 — hero
+     What to capture: the front page of a wedding with real content in it.
+     Couple's name, venue and date across the top, the four stat tiles
+     (Guests / Seated / Tables / Day blocks) showing non-zero numbers, and
+     the five tool cards below.
+     Suggested size: 1440×900, light theme.
+     Save as: docs/images/home.png and replace this comment with:
+     ![The Trousseau front page](docs/images/home.png)
+-->
 
 ---
 
-## The five tools
+## What it is
 
-| Tool | Does | Writes | Reads from the others |
-| --- | --- | --- | --- |
-| **Seating** | Builds the room to scale and puts people in it | `guests`, `seating` | — |
-| **Place cards** | Print-ready cards and table signs | `stationery` | the guest list and their tables |
-| **Timeline** | The running order, and what collides | `timeline`, `day` | the room's named spaces |
-| **Delegation** | The jobs, and the hands doing them | `crew` | the resolved day, the guest list |
-| **Ensemble** (Group shots) | The family photo list, built from who's who | `shots` | the guest list, the room |
+Five planning tools that share one document, so a change in any of them shows
+up correctly in the others.
 
-The first four were standalone applications before this, and each keeps its own
-store, its own undo history and its own stylesheets. Only the file that decides
-where its work is saved was redirected into the shared document. Ensemble is the
-first built here rather than adopted, so it has none of that: it reads and writes
-the shared document directly, and undoes on the same history as everything else.
+Seat someone in the room and the place cards already know their table. Move the
+ceremony by ten minutes and every job hanging off it moves with it. Nothing is
+re-typed, and nothing quietly disagrees.
+
+| Tool | What it does |
+| --- | --- |
+| 🪑 **Seating** | Draw the room to scale, then put people in it |
+| 💌 **Place cards** | Print-ready cards and table signs, with the table numbers already filled in |
+| 🕒 **Timeline** | The running order — what happens when, and what collides |
+| 📋 **Delegation** | The jobs, and the people doing them |
+| 📷 **Group shots** | The family photo list, built from who's related to whom |
+
+> [!NOTE]
+> You do not need an account. Open the app and start — everything is saved in
+> your browser. An account only adds syncing between devices and sharing with
+> your partner.
+
+---
+
+## Getting started
+
+### The quickest possible start
+
+1. Open **[trousseau-suite.vercel.app](https://trousseau-suite.vercel.app)**.
+2. Press **Data**, and put in your names, your venue and the date.
+3. Import your guest list as a CSV — exports from Joy, Zola, The Knot or your
+   own spreadsheet all work, and the column mapper will ask about anything it
+   cannot guess.
+4. Open **Seating** and drag a few tables onto the canvas.
+
+That is enough to be useful. Everything else builds on it.
+
+### Planning together
+
+Weddings have two people in them, so an account has room for two.
+
+1. Sign in with your email. There is no password — you get a link, you click
+   it, you are in.
+2. From **Your account**, invite your partner by email.
+3. You are both now editing the same wedding, from your own devices.
+
+If you both change the same thing at once, Trousseau says so and asks which
+version to keep. It never silently picks one.
 
 ---
 
@@ -78,41 +75,65 @@ the shared document directly, and undoes on the same history as everything else.
 
 ### 1. Start with the room
 
-Open **Seating**. Import a guest list as CSV — the column mapper handles exports
-from Joy, Zola, or a spreadsheet you have been keeping yourself. Drag table
-shapes from the toolbar onto the canvas, then drag guests onto seats.
+Open **Seating**. Drag table shapes from the toolbar onto the canvas, then drag
+guests from the left-hand list onto seats.
 
-The room is drawn to scale in real units, so a table that does not fit is a
-table that will not fit on the day.
+The room is drawn to scale in real units, so a table that does not fit on the
+canvas is a table that will not fit on the day.
+
+The panel on the right keeps a running count of who is seated, and breaks the
+guest list down by dietary requirement as you go.
+
+<!-- IMAGE PLACEHOLDER 2 — seating
+     What to capture: the Seating tool with a room that has ten or so tables
+     on the canvas and most guests seated. Ideally the left guest panel is
+     visible with some names, and the right Overview panel shows the
+     Seated / Unseated counts and the dietary breakdown.
+     Suggested size: 1440×900.
+     Save as: docs/images/seating.png and replace this comment with:
+     ![Building the room in Seating](docs/images/seating.png)
+-->
 
 ### 2. Plan the day
 
 Open **Timeline**. Add blocks in lanes — the main day, suppliers, transport,
-whatever the day needs. Give a block a duration and either pin it to a time or
-let it follow whatever comes before it.
+whatever your day actually needs. Give a block a duration, then either pin it
+to a time or let it follow whatever comes before it.
+
+That distinction is the useful part. Pin the ceremony, let everything after it
+follow, and moving the ceremony moves the rest of the day with it.
+
+Anything that collides, or runs past your curfew, is flagged while you work.
 
 The Location field offers the names of spaces you drew in the room, so
 "Orangery" on the run sheet is the same Orangery on the floor plan. It still
-takes free text; a church nobody is going to draw a plan of is a real place.
+takes free text — a church nobody is going to draw a floor plan of is a real
+place.
 
-Anything that collides, or runs past your curfew, is flagged as you work.
+<!-- IMAGE PLACEHOLDER 3 — timeline
+     What to capture: the Timeline tool with a full day loaded across two or
+     three lanes, showing blocks with times. If a collision or curfew warning
+     can be shown without looking broken, that is worth including.
+     Suggested size: 1440×900.
+     Save as: docs/images/timeline.png and replace this comment with:
+     ![The running order in Timeline](docs/images/timeline.png)
+-->
 
 ### 3. Hand out the jobs
 
-Open **Delegation**. Every block of the day is a row you can hang jobs off.
-Add teams and people, then click a job and click who is doing it.
+Open **Delegation**. Every block of the day is a row you can hang jobs off. Add
+teams and people, then click a job and click who is doing it.
 
-Someone already on the guest list is added by picking them, not by typing their
-name again — their name is then read from the guest list, so it is only ever
-corrected in one place.
+Someone already on your guest list is added by picking them, not by typing
+their name again — so their name is only ever corrected in one place.
 
 ### 4. Print the cards
 
-Open **Place cards**. Press **Use the room** and the guest list arrives with the
-table numbers already on it. Design the card by binding `{{First Name}}`,
-`{{Table}}` and the rest to text on the artwork.
+Open **Place cards**. Press **Use the room** and the guest list arrives with
+table numbers already attached. Design the card by binding `{{First Name}}`,
+`{{Table}}` and the rest onto your artwork.
 
-```
+```text
 ┌─────────────────────────────┐
 │                             │
 │        Charis Smith         │   85 × 55mm, 9 per A4 sheet
@@ -122,195 +143,224 @@ table numbers already on it. Design the card by binding `{{First Name}}`,
 └─────────────────────────────┘
 ```
 
-Print two test cards on plain paper first and hold them against your real stock.
-The export refuses to print a card with a missing font or a hole where a
-monogram should be, which is cheaper than finding out after the card stock has
-gone through.
+> [!TIP]
+> Print two test cards on plain paper and hold them against your real card
+> stock before committing. The export refuses to print a card with a missing
+> font or a hole where a monogram should be — cheaper than finding out after
+> the good stock has gone through.
 
 ### 5. Take the pack
 
-The front page has one button that produces the floor plan, the run sheet and
-the job list as a single PDF, printed from the wedding as it stands.
+The front page has one button that produces the floor plan, the run sheet, the
+job list and the group shot list as a single PDF, printed from the wedding as
+it currently stands.
 
-Place cards are deliberately not in it — they go on card stock, and an A4 binder
+Place cards are deliberately not in it. They go on card stock, and an A4 binder
 and a tray of card are two different trips to the printer.
 
 ### 6. Send guests their table
 
-A share link shows a guest their own seat and nothing else. The key travels in
-the URL fragment, which browsers never send to a server, so the link works
-without anyone holding a decryptable copy of your guest list.
+A share link shows one guest their own seat and nothing else.
+
+The decryption key travels in the URL fragment, which browsers never send to a
+server. The link works without anyone — including whoever is hosting the
+app — holding a readable copy of your guest list.
 
 ---
 
-## One document, one owner per slice
+## Your data
 
-The rule the whole design rests on:
+**Everything works with no account.** Open the app and it saves to your
+browser. Nothing leaves the device.
 
-> A tool rewrites **only its own slice** and copies every other key
-> byte-for-byte — including keys belonging to tools that do not exist yet.
+**With an account**, your wedding syncs so you and your partner can both work
+on it. It is stored encrypted at rest, and database-level rules mean no other
+account can read it — not even by accident.
 
-```mermaid
-flowchart TD
-  E["event<br/>couple, venue, date, curfew"]
-  G["guests"]
-  SE["seating"]
-  TL["timeline<br/>anchors and gaps"]
-  DY["day<br/>the times they work out to"]
-  CR["crew"]
-  ST["stationery"]
+**You can always take it out.** From **Your account**, *Download my wedding*
+gives you the whole thing as one `.trousseau.json` file. That is the same
+format the app itself uses, so it opens straight back into Trousseau — hosted
+here, or on a copy you run yourself.
 
-  TL -->|resolved by Timeline| DY
-  DY -->|read by Delegation| CR
-  G -->|read by Place cards| ST
-  SE -->|read by Place cards| ST
-  E -.->|owns the date| TL
-```
+**Deleting your account deletes your data.** If your partner is still on the
+wedding, the wedding stays with them; if you were the last one, it goes.
 
-`timeline` holds the source — which block is anchored, which follows after a
-gap. `day` holds what those work out to. Delegation reads the second and never
-runs a scheduler of its own, which is why a ceremony moving by ten minutes moves
-every job hanging off it without anybody recalculating anything.
-
-`mergeSlice` enforces the rule, and takes *raw stored data* rather than a parsed
-document on purpose: a wrong schema should at worst refuse a read, never destroy
-a write. Unknown keys survive at every level, which is how a fifth tool could
-join without a release of anything.
-
-### Checks no single tool can run
-
-A tool only ever sees its own slice, so the interesting checks are the ones that
-span them. These run as a pre-commit hook; errors exit 1 and stop the commit.
-
-| | |
-| --- | --- |
-| error | two slices claiming different wedding dates |
-| error | one seat holding two people |
-| error | a table holding a guest who does not exist |
-| error | a table over its own capacity |
-| error | a guest and their table disagreeing about where they sit |
-| error | a day block in a lane that does not exist |
-| warning | confirmed guests with no table, or no dietary answer |
-
-The application has its own version of this on the front page: cards printed
-from a file rather than the room, a dietary requirement recorded for someone
-whose card has nowhere to show it, a block happening somewhere that is not on
-the floor plan. Only the gaps between tools — anything one tool can already see
-for itself, it reports itself.
+> [!IMPORTANT]
+> There is no admin panel and no support login. Nobody running a Trousseau
+> instance — including the hosted one — has a way to read your wedding. That is
+> a deliberate design choice, and the reason support is "send us a screenshot"
+> rather than "let me look at your account".
 
 ---
 
-## Running it
+## Run it yourself
+
+The hosted instance is the easy path, but it is not the only one. Trousseau is
+AGPL software and self-hosting is genuinely supported, not theoretically
+possible.
 
 ```sh
+git clone https://github.com/JFrusher/Trousseau.git
+cd Trousseau
+
+npm install
+npm run build      # builds the shared contract package — do not skip
+
 cd suite
 npm install
 npm run dev
 ```
 
-Everything is local-first. There is no account, and nothing leaves the browser
-unless you turn on sync.
+That gives you the whole suite locally, with no backend and no account.
 
-```sh
-npm test          # 1,588 tests
-npm run build
-```
-
-### Deploying
-
-Vercel, with **Root Directory** set to `suite`. Pushes to `main` deploy.
-
-Sharing and sync are the only features that need a backend. Leave these unset
-and the suite is exactly what it was — local-first, no account, nothing leaving
-the device:
-
-```sh
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-```
-
-Everything stored server-side is ciphertext. The credentials give access to
-bytes that cannot be decrypted without a passphrase the server never sees. Full
-setup is in [scratch/docs/SETUP.md](scratch/docs/SETUP.md).
-
-Running your own instance — environment variables, migrations, and how to check
-it actually works — is in [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md).
+Adding accounts and sync means a Supabase project and seven migrations.
+**[docs/SELF-HOSTING.md](docs/SELF-HOSTING.md)** covers all of it — every
+environment variable, the migration order, and a section on how to check your
+instance actually works rather than merely starting.
 
 ---
 
-## Working across two laptops
+## How it works
 
-Two arrangements, for two different jobs.
+### One document, one owner per slice
 
-**In the browser**, turn on sync and the wedding travels end-to-end encrypted.
-Each slice carries a version and a fingerprint; a slice edited in two places at
-once is reported rather than silently resolved, and you choose which wins.
+The rule everything rests on:
 
-**On disk**, Git carries pointers and a private remote carries bytes:
+> A tool rewrites **only its own slice**, and copies every other key
+> byte-for-byte — including keys belonging to tools that do not exist yet.
 
-```sh
-npm run sync              # collect, check, upload, commit the pointer, push
-npm run sync -- --dry-run # stops before anything leaves the machine
+```mermaid
+flowchart LR
+  S["Seating<br/>the room"]
+  P["Place cards<br/>the stationery"]
+  T["Timeline<br/>the day"]
+  D["Delegation<br/>the crew"]
+  G["Group shots<br/>the photo list"]
+
+  DOC[("one wedding document")]
+
+  S -->|guests, seating| DOC
+  P -->|stationery| DOC
+  T -->|timeline, day| DOC
+  D -->|crew| DOC
+  G -->|shots| DOC
+
+  DOC -.->|table numbers| P
+  DOC -.->|the resolved day| D
+  DOC -.->|the guest list| D
+  DOC -.->|room spaces| T
+  DOC -.->|who is related| G
 ```
 
-Each step is a gate. The daily loop, milestones, and what to do when two
-machines disagree are in [docs/DATA.md](docs/DATA.md).
+Solid lines are what a tool writes. Dotted lines are what it reads from the
+others — and those are the whole point.
 
-### Bringing an existing wedding in
+`timeline` holds the source of the day: which block is anchored, which follows
+after a gap. `day` holds what those work out to as actual clock times.
+Delegation reads the second and never runs a scheduler of its own, which is why
+a ceremony moving by ten minutes moves every job hanging off it without
+anything recalculating.
 
-Restore any `.trousseau.json` through the **Data** button — the one with the
-wedding in its slices, or the one the collector writes with each tool's export
-under `sources`. The app fills empty slices from the sources on the way in, and
-rebuilds an editable day from the published one.
+The merge is enforced in one place, and deliberately operates on *raw stored
+data* rather than a parsed document: a bug in a schema should at worst refuse a
+read, never destroy a write. Unknown keys survive at every level, which is how
+a sixth tool could be added without releasing a new version of the other five.
 
-That rebuild pins every block to the time it already has. What produced those
-times — which block was anchored, which followed after a gap — was never part
-of the export and cannot be worked back out, so the day reads exactly as it did
-but will not ripple until those anchors are cleared.
+### Checks no single tool can run
 
----
+Each tool only sees its own slice, so the interesting problems live between
+them.
 
-## What is in here
+| | |
+| --- | --- |
+| 🔴 error | two parts of the wedding claiming different dates |
+| 🔴 error | one seat holding two people |
+| 🔴 error | a table holding a guest who does not exist |
+| 🔴 error | a table over its own capacity |
+| 🔴 error | a guest and their table disagreeing about where they sit |
+| 🔴 error | a day block in a lane that does not exist |
+| 🟡 warning | confirmed guests with no table, or no dietary answer |
 
-```
+The front page runs its own version of this and shows what is left: cards
+printed from a stale file rather than the live room, a dietary requirement
+recorded for someone whose card has nowhere to show it, a block happening
+somewhere that is not on the floor plan.
+
+Only the gaps *between* tools. Anything one tool can see for itself, it reports
+itself.
+
+### What is in here
+
+The first four tools were standalone applications before this and keep their
+own stores and stylesheets; only the file deciding where their work is saved
+was redirected into the shared document. Group shots was the first built here
+rather than adopted, so it has none of that and reads the shared document
+directly.
+
+```text
 suite/           the web application
-  apps/          the four tools, near enough as they were standalone
-  lib/           the shared document, sync, design tokens
-  components/    the shell around the tools
-src/             the data contract, as a TypeScript package
-scripts/         collect, validate, promote
-data/            pointers only — see below
+  apps/          Seating, Place cards, Timeline, Delegation
+  lib/           the shared document, sync, accounts, Group shots, design tokens
+  components/    the shell around the tools, and Group shots' panels
+  app/           routes, API, account and guest-link pages
+src/             the data contract, published as @jfrusher/trousseau
+supabase/        database migrations
+docs/            self-hosting, data notes, specs and plans
 ```
 
 ---
 
-## What is not in here
+## Where this came from
 
-This repo is public, and the data has real guests in it. No name, email address
-or dietary requirement is committed anywhere — Git holds only md5 hashes and
-byte counts. Machine-specific paths live in files Git ignores, because they name
-one person's computer.
+Trousseau was built for one specific wedding — which is the only reason its
+constraints were ever honest. Real guest names and dietary requirements, tools
+that genuinely must not overwrite each other, and a date that does not move.
 
-If you fork this, keep that arrangement. It is the only reason the rest of it
-can be public.
+Two apps once disagreed about what day the wedding was. The cross-slice checks
+above exist because of that, not because they seemed like a good idea.
+
+That wedding has happened. Trousseau is now being built as something other
+couples can use, which is why it grew accounts, real cloud storage and a
+self-hosting story. The design did not change, because the design was the part
+that was working.
+
+Where it is going next is in
+**[docs/PRODUCT-ROADMAP.md](docs/PRODUCT-ROADMAP.md)** — a living document
+covering what is built, what is decided, and what is still open.
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome.
+
+- **Found a bug?** Open an issue describing what you did and what happened.
+  **Never paste your guest list** — a screenshot with names blurred, or a
+  description, is plenty.
+- **Want to change something?** The roadmap explains what is planned and why.
+  Design decisions are written down in `docs/superpowers/specs/` rather than
+  living in anyone's head, so it should be possible to tell whether an idea
+  fits before writing any code.
+- **Running the tests:** `npx vitest run` from `suite/` covers all five tools
+  and the shell; `npm test` at the root covers the contract package.
 
 ---
 
 ## Licence
 
-Two licences, because this repository holds two things.
+Two licences, because this repository holds two different things.
 
 The **application** — everything in `suite/` — is
-[AGPL-3.0-or-later](LICENSE-AGPL). Trousseau is free and always will be. The
-AGPL is what keeps it that way: run it yourself, change it, host it for
-friends, but host a modified version for other people and they get the source
+**[AGPL-3.0-or-later](LICENSE-AGPL)**. Trousseau is free and always will be,
+and the AGPL is what keeps it that way: run it, change it, host it for friends.
+Host a modified version for other people and they are entitled to your source
 too.
 
-The **contract package**, `@jfrusher/trousseau`, is [MIT](LICENSE-MIT). It is
-the schemas and the file format, kept permissive on purpose so a tool nobody
-has written yet can depend on it.
+The **contract package**, `@jfrusher/trousseau`, is **[MIT](LICENSE-MIT)**. It
+is the schemas and the file format, kept permissive on purpose so that a tool
+nobody has written yet can depend on it.
 
 Fonts are under the SIL Open Font Licence; see the `OFL-*.txt` files beside
 them.
 
-There is no paid tier and never will be. That is the reason this exists.
+There is no paid tier and there never will be. That is the reason this exists.
