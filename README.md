@@ -212,7 +212,7 @@ Everything is local-first. There is no account, and nothing leaves the browser
 unless you turn on sync.
 
 ```sh
-npm test          # 1,233 tests
+npm test          # 1,588 tests
 npm run build
 ```
 
@@ -232,6 +232,9 @@ SUPABASE_SERVICE_ROLE_KEY=
 Everything stored server-side is ciphertext. The credentials give access to
 bytes that cannot be decrypted without a passphrase the server never sees. Full
 setup is in [scratch/docs/SETUP.md](scratch/docs/SETUP.md).
+
+Running your own instance — environment variables, migrations, and how to check
+it actually works — is in [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md).
 
 ---
 
@@ -295,4 +298,19 @@ can be public.
 
 ## Licence
 
-[MIT](LICENSE) — free to clone, adapt, and use for your own wedding.
+Two licences, because this repository holds two things.
+
+The **application** — everything in `suite/` — is
+[AGPL-3.0-or-later](LICENSE-AGPL). Trousseau is free and always will be. The
+AGPL is what keeps it that way: run it yourself, change it, host it for
+friends, but host a modified version for other people and they get the source
+too.
+
+The **contract package**, `@jfrusher/trousseau`, is [MIT](LICENSE-MIT). It is
+the schemas and the file format, kept permissive on purpose so a tool nobody
+has written yet can depend on it.
+
+Fonts are under the SIL Open Font Licence; see the `OFL-*.txt` files beside
+them.
+
+There is no paid tier and never will be. That is the reason this exists.
