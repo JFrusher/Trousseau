@@ -30,7 +30,7 @@ export function CastPanel({
   const [newRoleName, setNewRoleName] = useState("");
 
   return (
-    <div data-tour="groupshots.cast" className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4">
       {CAST_ROLES.map((role) => {
         const chosen = shots.cast[role];
         const single = SINGLE_ROLES.has(role);

@@ -313,6 +313,7 @@ export function Button({
   variant = "normal",
   disabled = false,
   title,
+  ...rest
 }: {
   children: ReactNode;
   onClick: () => void;

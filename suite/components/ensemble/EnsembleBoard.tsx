@@ -62,7 +62,7 @@ export function EnsembleBoard() {
     <div className="flex h-[calc(100dvh-var(--shell-header-h))]">
       {undo}
       <div className="flex w-96 shrink-0 flex-col border-r border-charcoal/10">
-        <div className="flex gap-2 border-b border-charcoal/10 p-3">
+        <div data-tour="groupshots.seed" className="flex gap-2 border-b border-charcoal/10 p-3">
           <Button icon={Wand2} onClick={() => setShots({ ...shots, sections: propose(shots.sections, guests, seating, "template") })}>
             Seed the classic list
           </Button>
@@ -84,7 +84,7 @@ export function EnsembleBoard() {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="border-b border-charcoal/10 p-3">
+        <div data-tour="groupshots.tabs" className="border-b border-charcoal/10 p-3">
           <Segmented
             value={tab}
             onChange={setTab}
@@ -96,7 +96,7 @@ export function EnsembleBoard() {
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div data-tour="groupshots.panel" className="flex-1 overflow-y-auto">
           {tab === "shot" &&
             (selectedShot ? (
               <ShotInspector shot={selectedShot} shots={shots} guests={guests} seating={seating} onChange={setShots} />
