@@ -43,7 +43,7 @@ instead (see subsystem F).
 | D | Tableaux's future | — | 🟡 **pass one built** — data boundary typed ([plan](superpowers/plans/2026-09-07-tableaux-data-boundary-typing.md), 2026-09-07); 108 files still JS |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
 | F | Onboarding, billing & legal at product scale | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md), [plan](superpowers/plans/2026-09-07-licensing-and-self-hosting.md) complete 2026-09-07; privacy/terms rewrite still open |
-| H | Guided tour & example wedding | — | ✅ [spec written](superpowers/specs/2026-09-07-guided-tour-design.md), ready for a plan |
+| H | Guided tour & example wedding | — | ✅ **built** — [spec](superpowers/specs/2026-09-07-guided-tour-design.md), [plan](superpowers/plans/2026-09-07-guided-tour.md) complete 2026-09-07 |
 | G | Multi-tenant suite mechanics | A, B | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-mechanics-design.md), [plan](superpowers/plans/2026-09-07-multitenant-mechanics.md) complete 2026-09-07 |
 
 ## Decisions log
@@ -126,7 +126,18 @@ rather than a tour library; and a committed example wedding produced by driving
 the real app and exporting, offered with a backup prompt rather than silently
 replacing existing work.
 
-**Spec written:** [`2026-09-07-guided-tour-design.md`](superpowers/specs/2026-09-07-guided-tour-design.md)
+**Built.** [`2026-09-07-guided-tour.md`](superpowers/plans/2026-09-07-guided-tour.md)
+executed in full on 2026-09-07 (branch `guided-tour`). Six chapters, 29 steps,
+an example wedding of 100 guests and 27 day blocks, and no new dependencies.
+
+Executing it turned up five places where the app disagreed with the plan, and
+the plan bent each time. The most useful: `Panel` in `components/ui/fields.tsx`
+silently dropped any prop but `title` and `children`, several components render
+different roots in their empty and populated states, and two Place cards panels
+return fragments that cannot carry an attribute at all. Full list in the plan's
+status section.
+
+**Spec:** [`2026-09-07-guided-tour-design.md`](superpowers/specs/2026-09-07-guided-tour-design.md)
 — includes fixing Timeline's **Sample day** button, which today replaces the
 current day with no confirmation while the **New** button beside it does
 confirm. Ready for an implementation plan.

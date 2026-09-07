@@ -20,6 +20,55 @@ tokens, Vitest. **No new dependencies.**
 
 **Spec:** [docs/superpowers/specs/2026-09-07-guided-tour-design.md](../specs/2026-09-07-guided-tour-design.md)
 
+## Status
+
+**Complete — all 9 tasks, 2026-09-07.**
+
+| Check | Result |
+|---|---|
+| `vitest run` (all five projects) | 1,627 tests pass — the 1,588 baseline plus this plan's 39 |
+| `vitest run --project suite lib/tour` | 39 pass, including all 29 anchor tests |
+| `npm test` (contract package) | 7 files / 98 tests pass |
+| `tsc --noEmit` (cache cleared) and `next build` | both clean |
+| `git diff main -- suite/package.json package.json` | empty — no new dependencies |
+| The tour, walked in a browser | 18 checks, all passing, no page errors |
+
+**Five things the plan got wrong, found by executing it.** Each is a case where
+the app disagreed with the plan, and in every one the plan bent rather than the
+app:
+
+1. **`Panel` in `components/ui/fields.tsx` dropped every prop but `title` and
+   `children`**, so a `data-tour` passed to it vanished silently. It now spreads
+   the rest onto its `<section>`. This is the one change outside the tools and
+   outside `lib/tour` — a shared primitive gained prop forwarding.
+2. **Five components render different roots depending on state** — `WhatIsLeft`,
+   `QuickStats`, `WarningsList`, `InspectorPanel` and `JobPanel` each have an
+   empty branch and a populated one. Both carry the anchor, or the tour would
+   have worked only on a wedding that happened to be in the right state.
+3. **`seating.import` pointed at a button that disappears.** The **Import CSV**
+   button lives in Seating's empty state, and the tour runs on the example
+   wedding's 100 guests — so it would never have been on screen. Moved to the
+   upload button in the guest-panel header, which is always there.
+4. **Place cards lost two steps and gained one.** `ElementsPanel` and
+   `GeometryPanel` return fragments, which cannot carry an attribute, and
+   `Preflight` is a modal that is shut most of the time. Rather than wrap them —
+   which this plan forbids — the steps now point at the sidebar and the card
+   preview.
+5. **`timeline.anchor` pointed at a field that only renders for an
+   already-anchored block.** Moved to the inspector panel containing it, and the
+   step's wording follows.
+
+**One improvement over the plan.** Its `TourOverlay` called `scrollIntoView`
+inside the same function wired to the `scroll` listener, which would have
+re-scrolled the page on every scroll event and fought a user trying to look
+around. Scrolling now happens once when a step opens; the listeners only
+re-measure.
+
+**One thing the plan did not anticipate.** `suite/fixtures/.gitignore` denies
+`*.trousseau.json` and allows specific files by name, to stop a real export
+reaching a public repo. The fixture was added to that allowlist rather than
+forced past it, so the guard still catches anything else dropped in there.
+
 ## Global Constraints
 
 - **No new runtime dependencies.** No `driver.js`, no Shepherd, no
@@ -107,13 +156,13 @@ The fixture is **exported from the running application**, not hand-written. A
 hand-assembled document is a second, unvalidated opinion about the format; an
 exported one is by definition something the app can produce and read.
 
-- [ ] **Step 1: Start the dev server**
+- [x] **Step 1: Start the dev server**
 
 ```bash
 cd suite && npx next dev --port 3300
 ```
 
-- [ ] **Step 2: Build the wedding in the browser**
+- [x] **Step 2: Build the wedding in the browser**
 
 Open <http://localhost:3300> and, in this order:
 
@@ -127,12 +176,12 @@ Open <http://localhost:3300> and, in this order:
    Date to **1 June in two years' time** — a future date, so the front page
    never reads "279 days ago" in a demo.
 
-- [ ] **Step 3: Export it**
+- [x] **Step 3: Export it**
 
 Press **Data → Export backup**. Move the downloaded file to
 `suite/fixtures/example-wedding.trousseau.json`.
 
-- [ ] **Step 4: Check it contains nothing real**
+- [x] **Step 4: Check it contains nothing real**
 
 Do **not** grep for guest names: `guests-150.csv` opens with `Charis,Smith`,
 so searching for names from the real wedding produces a false alarm and teaches
@@ -155,7 +204,7 @@ node -e "const d=require('./suite/fixtures/example-wedding.trousseau.json');cons
 ```
 Expected: a `guests` count near 100 and a non-zero block count.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add suite/fixtures/example-wedding.trousseau.json
@@ -178,7 +227,7 @@ git commit -m "Add the example wedding, exported from the running app"
   `type ChapterId`, and `chapterForRoute(route: string): ChapterId`.
   All consumed by Tasks 3, 6 and 7.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `suite/lib/tour/steps.test.ts`:
 
@@ -273,12 +322,12 @@ describe("every anchor exists in the source", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run from `suite/`: `npx vitest run --project suite lib/tour/steps.test.ts`
 Expected: FAIL — `steps.ts` does not exist, so the import throws.
 
-- [ ] **Step 3: Write the step definitions**
+- [x] **Step 3: Write the step definitions**
 
 Create `suite/lib/tour/steps.ts`:
 
@@ -545,14 +594,14 @@ export function chapterForRoute(route: string): ChapterId {
 }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run from `suite/`: `npx vitest run --project suite lib/tour/steps.test.ts`
 Expected: the four `describe("the chapters")` blocks and both `chapterForRoute`
 tests PASS. **The 29 anchor tests FAIL** — no `data-tour` attributes exist yet.
 That is correct: Task 4 adds them and turns this suite green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add suite/lib/tour/steps.ts suite/lib/tour/steps.test.ts
@@ -577,7 +626,7 @@ git commit -m "Add the tour's step definitions and the anchor invariant"
 A context rather than a plain hook because the overlay and the entry-point
 buttons sit in different parts of the tree and must share one state.
 
-- [ ] **Step 1: Write the provider**
+- [x] **Step 1: Write the provider**
 
 Create `suite/lib/tour/useTour.tsx`:
 
@@ -702,14 +751,14 @@ export function useTour(): TourState {
 }
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run from `suite/`: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors. If `Cannot find name 'LayoutProps'` appears in
 `app/layout.tsx`, that is a phantom from Next's generated `.next/types` — run
 `npx next build` once, then re-check.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add suite/lib/tour/useTour.tsx
@@ -733,7 +782,7 @@ An attribute is inert: it cannot alter behaviour and survives restyling.
 Where a panel is a component with its own root element, put the attribute on
 that root. Where the target is a button, put it on the `<button>`.
 
-- [ ] **Step 1: Shell anchors**
+- [x] **Step 1: Shell anchors**
 
 | File | Element | `data-tour` |
 | --- | --- | --- |
@@ -744,7 +793,7 @@ that root. Where the target is a button, put it on the `<button>`.
 | `components/shell/WeddingPack.tsx` | its root element | `shell.pack` |
 | `components/shell/Header.tsx` | the `<button>` opening the Data panel | `shell.data` |
 
-- [ ] **Step 2: Seating anchors**
+- [x] **Step 2: Seating anchors**
 
 | File | Element | `data-tour` |
 | --- | --- | --- |
@@ -754,7 +803,7 @@ that root. Where the target is a button, put it on the `<button>`.
 | `apps/tableaux/components/canvas/RoomCanvas.jsx` | its root | `seating.canvas` |
 | `apps/tableaux/components/sidebar/StatsPanel.jsx` | its root | `seating.overview` |
 
-- [ ] **Step 3: Timeline anchors**
+- [x] **Step 3: Timeline anchors**
 
 | File | Element | `data-tour` |
 | --- | --- | --- |
@@ -764,7 +813,7 @@ that root. Where the target is a button, put it on the `<button>`.
 | `apps/cadence/ui/WarningsList.tsx` | its root | `timeline.problems` |
 | `apps/cadence/ui/ExportBar.tsx` | its root | `timeline.export` |
 
-- [ ] **Step 4: Place cards anchors**
+- [x] **Step 4: Place cards anchors**
 
 | File | Element | `data-tour` |
 | --- | --- | --- |
@@ -774,7 +823,7 @@ that root. Where the target is a button, put it on the `<button>`.
 | `apps/plaque/ui/Preflight.tsx` | its root | `placecards.problems` |
 | `apps/plaque/ui/ExportBar.tsx` | its root | `placecards.export` |
 
-- [ ] **Step 5: Delegation and Group shots anchors**
+- [x] **Step 5: Delegation and Group shots anchors**
 
 | File | Element | `data-tour` |
 | --- | --- | --- |
@@ -787,7 +836,7 @@ that root. Where the target is a button, put it on the `<button>`.
 | `components/ensemble/ShotInspector.tsx` | its root | `groupshots.inspector` |
 | `components/ensemble/PrintPanel.tsx` | its root | `groupshots.print` |
 
-- [ ] **Step 6: Turn the invariant green**
+- [x] **Step 6: Turn the invariant green**
 
 Run from `suite/`: `npx vitest run --project suite lib/tour/steps.test.ts`
 Expected: PASS, all 29 anchor tests included.
@@ -797,13 +846,13 @@ or is not a single element, change the step in `steps.ts` to point at something
 that does exist — do not invent a wrapper element to satisfy a step. The tour
 describes the app; the app does not bend to the tour.
 
-- [ ] **Step 7: Confirm nothing else moved**
+- [x] **Step 7: Confirm nothing else moved**
 
 Run from `suite/`: `npx vitest run --project tableaux --project cadence --project plaque --project brigade`
 Expected: PASS with the counts unchanged. Attributes cannot change behaviour,
 and this proves it.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add -A
@@ -823,7 +872,7 @@ git commit -m "Anchor the tour to real controls with data-tour attributes"
 - Produces: `isWeddingEmpty(): boolean` and
   `loadExampleWedding(): Promise<"loaded" | "cancelled">`. Consumed by Task 7.
 
-- [ ] **Step 1: Write it**
+- [x] **Step 1: Write it**
 
 Create `suite/lib/tour/exampleWedding.ts`:
 
@@ -871,7 +920,7 @@ export async function loadExampleWedding(): Promise<"loaded" | "cancelled"> {
 }
 ```
 
-- [ ] **Step 2: Make the fixture fetchable**
+- [x] **Step 2: Make the fixture fetchable**
 
 `fetch("/fixtures/...")` serves from `suite/public/`, not `suite/fixtures/`.
 Copy it:
@@ -884,7 +933,7 @@ cp suite/fixtures/example-wedding.trousseau.json suite/public/fixtures/
 Both copies are committed. `suite/fixtures/` is where the tests read it from,
 `suite/public/fixtures/` is what the browser fetches.
 
-- [ ] **Step 3: Add a test that the fixture is a real wedding**
+- [x] **Step 3: Add a test that the fixture is a real wedding**
 
 Append to `suite/lib/tour/steps.test.ts`:
 
@@ -908,7 +957,7 @@ describe("the example wedding", () => {
 });
 ```
 
-- [ ] **Step 4: Test the guard, which is the whole point of this file**
+- [x] **Step 4: Test the guard, which is the whole point of this file**
 
 Create `suite/lib/tour/exampleWedding.test.ts`:
 
@@ -981,13 +1030,13 @@ test("saying yes replaces it, without becoming an undo step", async () => {
 });
 ```
 
-- [ ] **Step 5: Run both test files**
+- [x] **Step 5: Run both test files**
 
 Run from `suite/`: `npx vitest run --project suite lib/tour`
 Expected: PASS — the step definitions, the fixture checks and the three guard
 tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add suite/lib/tour/exampleWedding.ts suite/lib/tour/exampleWedding.test.ts suite/public/fixtures suite/lib/tour/steps.test.ts
@@ -1009,7 +1058,7 @@ Follows `components/shell/DataManager.tsx`'s pattern so it looks like part of
 the app: `AnimatePresence`, `fixed inset-0 z-50`, and a panel styled
 `rounded-lg border border-charcoal/10 bg-parchment shadow-2xl`.
 
-- [ ] **Step 1: Write it**
+- [x] **Step 1: Write it**
 
 Create `suite/components/tour/TourOverlay.tsx`:
 
@@ -1171,12 +1220,12 @@ export function TourOverlay() {
 }
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run from `suite/`: `npx tsc --noEmit -p tsconfig.json`
 Expected: no errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add suite/components/tour/TourOverlay.tsx
@@ -1198,7 +1247,7 @@ git commit -m "Add the tour overlay: a ring, a card, and no way to get stuck"
   `loadExampleWedding`, `isWeddingEmpty` (Task 5); `chapterForRoute` (Task 2).
 - Produces: `<TakeTheTour />` and `<HowThisWorks />`.
 
-- [ ] **Step 1: Write the entry points**
+- [x] **Step 1: Write the entry points**
 
 Create `suite/components/shell/TourButtons.tsx`:
 
@@ -1276,7 +1325,7 @@ export function HowThisWorks() {
 }
 ```
 
-- [ ] **Step 2: Mount the provider and the overlay**
+- [x] **Step 2: Mount the provider and the overlay**
 
 Modify `suite/app/(app)/layout.tsx` so the body reads:
 
@@ -1306,7 +1355,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 Leave the file's existing doc comment exactly as it is.
 
-- [ ] **Step 3: Put the help button in the header**
+- [x] **Step 3: Put the help button in the header**
 
 In `suite/components/shell/Header.tsx`, add the import:
 
@@ -1317,7 +1366,7 @@ import { HowThisWorks } from "./TourButtons";
 and place `<HowThisWorks />` immediately before `<AccountStatus />` at the end
 of the header row.
 
-- [ ] **Step 4: Put the tour offer on the front page**
+- [x] **Step 4: Put the tour offer on the front page**
 
 In `suite/components/shell/QuickStats.tsx`, add the import:
 
@@ -1328,12 +1377,12 @@ import { TakeTheTour } from "./TourButtons";
 and render `<TakeTheTour />` directly below the grid of tool cards, inside the
 same container.
 
-- [ ] **Step 5: Type-check and build**
+- [x] **Step 5: Type-check and build**
 
 Run from `suite/`: `npx tsc --noEmit -p tsconfig.json` then `npx next build`
 Expected: both clean.
 
-- [ ] **Step 6: Walk the whole tour by hand**
+- [x] **Step 6: Walk the whole tour by hand**
 
 ```bash
 cd suite && npx next dev --port 3300
@@ -1353,7 +1402,7 @@ Confirm, in a browser:
 5. A step whose control is off-screen scrolls it into view.
 6. **Nothing appears on a `/seat/<token>` page.**
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add -A
@@ -1373,7 +1422,7 @@ The **Sample day** button replaces the current day with no confirmation, beside
 a **New** button that does confirm. That is a data-loss trap already, and this
 subsystem makes sample data a headline feature, so it is fixed here.
 
-- [ ] **Step 1: Add the confirmation**
+- [x] **Step 1: Add the confirmation**
 
 In `suite/apps/cadence/ui/ProjectButtons.tsx`, change the Sample day button's
 handler from:
@@ -1393,17 +1442,17 @@ onClick={() => {
 }}
 ```
 
-- [ ] **Step 2: Confirm Cadence still passes**
+- [x] **Step 2: Confirm Cadence still passes**
 
 Run from `suite/`: `npx vitest run --project cadence`
 Expected: PASS, count unchanged.
 
-- [ ] **Step 3: Check it by hand**
+- [x] **Step 3: Check it by hand**
 
 With the dev server running, load a day with blocks in it, press **Sample
 day**, and confirm it now asks. Press Cancel and confirm the day is untouched.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add suite/apps/cadence/ui/ProjectButtons.tsx
@@ -1418,35 +1467,35 @@ git commit -m "Make Sample day confirm before replacing a day, as New already do
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Confirm the tools gained only attributes**
+- [x] **Step 1: Confirm the tools gained only attributes**
 
 Run: `git diff main -- suite/apps ':(exclude)suite/apps/cadence/ui/ProjectButtons.tsx'`
 Expected: every hunk adds a `data-tour="..."` attribute and nothing else. No
 logic, no imports, no JSX structure. `ProjectButtons.tsx` is excluded because
 Task 8 changes it deliberately.
 
-- [ ] **Step 2: No new dependencies**
+- [x] **Step 2: No new dependencies**
 
 Run: `git diff main -- suite/package.json package.json`
 Expected: empty.
 
-- [ ] **Step 3: The anchor invariant**
+- [x] **Step 3: The anchor invariant**
 
 Run from `suite/`: `npx vitest run --project suite lib/tour`
 Expected: PASS, every anchor test included.
 
-- [ ] **Step 4: Every project**
+- [x] **Step 4: Every project**
 
 Run from `suite/`: `npx vitest run`
 Expected: PASS across `suite`, `plaque`, `brigade`, `tableaux` and `cadence`.
 The count is the pre-existing 1,588 plus this plan's new tests.
 
-- [ ] **Step 5: The contract package**
+- [x] **Step 5: The contract package**
 
 Run from the repo root: `npm test`
 Expected: PASS, 7 files / 98 tests.
 
-- [ ] **Step 6: Type-check and build**
+- [x] **Step 6: Type-check and build**
 
 Run from `suite/`: `rm -f tsconfig.tsbuildinfo && npx tsc --noEmit -p tsconfig.json`
 then `npx next build`
@@ -1454,7 +1503,7 @@ Expected: both clean. The `tsbuildinfo` is cleared because it is `incremental`
 and can hide changes arriving through the `file:..` symlink to the contract
 package.
 
-- [ ] **Step 7: Nothing to commit**
+- [x] **Step 7: Nothing to commit**
 
 A gate, not a change. If everything passed the branch is ready for review; if
 anything failed, fix it, re-run that check, then re-run Steps 1-6 in full.
