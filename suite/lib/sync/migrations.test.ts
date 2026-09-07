@@ -94,14 +94,17 @@ test("every migration applies in order, from empty", async () => {
   const tables = await db.query<{ table_name: string }>(
     "select table_name from information_schema.tables where table_schema = 'public' order by 1",
   );
-  // Includes the accounts feature's tables too — this reads every migration
-  // file in the directory, not just the sync ones.
+  // Includes the accounts and wedding-document features' tables too — this
+  // reads every migration file in the directory, not just the sync ones, so
+  // every new migration that creates a table belongs in this list.
   expect(tables.rows.map((r) => r.table_name)).toEqual([
     "account_weddings",
     "blobs",
     "invites",
     "shares",
     "slices",
+    "wedding_document_history",
+    "wedding_documents",
     "wedding_members",
     "weddings",
   ]);

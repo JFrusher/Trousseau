@@ -2137,10 +2137,26 @@ test suite (the `/seat/[token]` backend) must pass completely unmodified,
 proving this plan never touched it. This task also runs everything else
 once, together, the way it will actually ship.
 
-- [ ] **Step 1: Confirm `suite/lib/sync/` was never touched**
+- [ ] **Step 1: Confirm `suite/lib/sync/`'s implementation was never touched**
 
-Run: `git diff --stat main -- suite/lib/sync/ supabase/migrations/20260830000001_suite_sync.sql supabase/migrations/20260830000002_suite_sync_fixes.sql supabase/migrations/20260901000001_delete_wedding.sql supabase/migrations/20260901000002_retention.sql supabase/migrations/20260901000003_storage_budget.sql`
+Run: `git diff --stat main -- suite/lib/sync/ ':(exclude)suite/lib/sync/migrations.test.ts' supabase/migrations/20260830000001_suite_sync.sql supabase/migrations/20260830000002_suite_sync_fixes.sql supabase/migrations/20260901000001_delete_wedding.sql supabase/migrations/20260901000002_retention.sql supabase/migrations/20260901000003_storage_budget.sql`
 Expected: empty output — no changes to any file in this list.
+
+`migrations.test.ts` is excluded, and this is not a loophole around the
+spec's regression requirement. That file holds one assertion that is a
+repo-wide inventory rather than a test of the sync backend: it applies
+*every* migration in `supabase/migrations/` and asserts the full list of
+tables that results, as its own comment says. Task 1 adds a migration, so
+the list gains two names. Nothing about the `/seat/[token]` backend's
+behaviour changes, and no other assertion in the file moves.
+
+The precedent is exact: subsystem A hit the same thing and resolved it the
+same way in `94d7984`, which added `account_weddings`, `invites` and
+`wedding_members` to this identical list. Any future migration that creates
+a table will do this again — that is the assertion working, not failing.
+
+Step 2 below is what actually proves the backend is unharmed: the sync
+suite passes with its test count unchanged.
 
 - [ ] **Step 2: Run the sync suite specifically**
 
