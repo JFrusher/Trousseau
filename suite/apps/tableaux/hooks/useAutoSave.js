@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useStore } from '../store/useStore.js'
-import { readDoc, writeDoc } from '../store/sliceBridge.js'
+import { readDoc, writeDoc } from '../store/sliceBridge'
 
 /**
  * Loads the plan on mount and writes it back as it changes.

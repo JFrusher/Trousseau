@@ -111,7 +111,7 @@ export function WeddingPack() {
 async function floorPlan(): Promise<Uint8Array | null> {
   const [{ buildFloorPlanPdf }, { readDoc }] = await Promise.all([
     import("@/apps/tableaux/utils/exportPdf.js"),
-    import("@/apps/tableaux/store/sliceBridge.js"),
+    import("@/apps/tableaux/store/sliceBridge"),
   ]);
   const doc = readDoc();
   if (Object.keys(doc.tables ?? {}).length === 0) return null;

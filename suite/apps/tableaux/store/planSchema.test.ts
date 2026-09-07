@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { guestSchema, planDocSchema, tableSchema, validatePlanDoc } from './planSchema.js'
+import { guestSchema, planDocSchema, tableSchema, validatePlanDoc } from './planSchema'
 
 /**
  * The concrete regression test for the bug class the whole Tableaux typing

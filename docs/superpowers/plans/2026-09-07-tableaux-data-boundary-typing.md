@@ -49,11 +49,26 @@ no runtime validation is added to the load path.
 These were checked by probe in a scratch worktree, not assumed. Do not
 re-litigate them mid-execution.
 
-1. **Existing `.js` import specifiers keep working.** Tableaux imports with
-   explicit extensions everywhere (`from './planSchema.js'`), and never
-   extensionless. Renaming `planSchema.js` to `planSchema.ts` and running
-   `persistRoundtrip.test.js` **unchanged** passes: Vite resolves `./x.js` to
-   `x.ts` transparently. **No importer needs editing**, in either task.
+1. **Import specifiers must be made extensionless. Vitest and Turbopack
+   disagree.** ⚠️ *This item was wrong when first written and is corrected
+   here — see Task 4 Step 6.*
+
+   Tableaux imports with explicit extensions everywhere
+   (`from './planSchema.js'`), never extensionless. Vitest resolves `./x.js` to
+   `x.ts` transparently, so the whole test suite passes after a rename with no
+   importer change — which is what the original probe checked, and why this
+   was recorded as "no importer needs editing".
+
+   **`next build` does not.** Turbopack fails with `Module not found: Can't
+   resolve '../store/sliceBridge.js'`. A probe that only runs the tests cannot
+   see this; only the build step catches it.
+
+   So every specifier pointing at a converted file becomes extensionless. For
+   `sliceBridge` that is two production importers —
+   `apps/tableaux/hooks/useAutoSave.js` and
+   `components/shell/WeddingPack.tsx`'s dynamic `import()`. For consistency the
+   test and type-only specifiers are changed too, so the rule is uniform:
+   **a converted file is imported without an extension.**
 
 2. **`tsc` picks the file up automatically once renamed.** `suite/tsconfig.json`
    already sets `allowJs: true` and `strict: true`, and its `include` covers
@@ -109,7 +124,7 @@ Both were checked against the codebase before this plan was written.
 | `suite/apps/tableaux/store/planSchema.test.ts` | **Create.** The rejection tests — the concrete regression test for the bug class this migration exists to prevent. |
 | `suite/apps/tableaux/store/sliceBridge.js` → `.ts` | **Rename + type.** The real boundary: typed against the contract's `Event` and against Task 2's plan types. |
 
-No other file changes. No tsconfig change. No importer changes (see Verified, 1).
+No tsconfig change. Importers of the two converted files become extensionless — two production files (`apps/tableaux/hooks/useAutoSave.js`, `components/shell/WeddingPack.tsx`) plus the test and type-only specifiers (see Verified, 1).
 
 ---
 
@@ -134,9 +149,11 @@ conversion does not have to be unpicked with them.
 git mv suite/apps/tableaux/store/planSchema.js suite/apps/tableaux/store/planSchema.ts
 ```
 
-Do **not** edit any importer. `persistRoundtrip.test.js` and
-`roomSpaces.test.js` keep importing `'./planSchema.js'`, and that resolves to
-the `.ts` file (see Verified, 1).
+Change every specifier that points at this file to extensionless —
+`'./planSchema'` — in `persistRoundtrip.test.js` and `roomSpaces.test.js`.
+Vitest would resolve `'./planSchema.js'` to the `.ts` file, but Turbopack will
+not, and consistency is cheaper than remembering which resolver sees which file
+(see Verified, 1).
 
 - [ ] **Step 2: Confirm the five expected type errors, and only those**
 
@@ -547,8 +564,10 @@ this pass does not make.
 git mv suite/apps/tableaux/store/sliceBridge.js suite/apps/tableaux/store/sliceBridge.ts
 ```
 
-Again, do not edit `hooks/useAutoSave.js` — its `'../store/sliceBridge.js'`
-import resolves to the `.ts` file (see Verified, 1).
+Then make its importers extensionless — `hooks/useAutoSave.js` and the dynamic
+`import()` in `components/shell/WeddingPack.tsx`. **Both are production code, so
+`next build` fails without this even though every test passes** (see
+Verified, 1).
 
 - [ ] **Step 2: See what the type-checker says**
 

@@ -1,7 +1,7 @@
 import { eventSchema } from '@jfrusher/trousseau'
 import { mayWrite, noteRead } from '@/lib/store/toolGeneration'
 import { useTrousseauStore } from '@/lib/store/useTrousseauStore'
-import type { Guest, TableEntity } from './planSchema.js'
+import type { Guest, TableEntity } from './planSchema'
 
 /**
  * A build-time check that the three `event` fields this file reads still exist

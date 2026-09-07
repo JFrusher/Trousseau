@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useStore } from './useStore.js'
-import { validatePlanDoc } from './planSchema.js'
+import { validatePlanDoc } from './planSchema'
 
 const s = () => useStore.getState()
 
