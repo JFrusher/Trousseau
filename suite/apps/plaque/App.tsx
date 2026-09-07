@@ -479,7 +479,7 @@ export function App() {
         })}
 
         <div className={sheetCollapsed ? `${styles.workspace} ${styles.workspaceWide}` : styles.workspace}>
-          <section className={styles.pane} aria-label="Card">
+          <section data-tour="placecards.canvas" className={styles.pane} aria-label="Card">
             <h2 className={styles.paneTitle}>
               Card{hasBackSide(template) ? ` — ${editingSide}` : ""}
               {artefacts.length > 0 && (

@@ -315,13 +315,14 @@ export default function GuestPanel() {
     ungrouped.length === 0
 
   return (
-    <div className={styles.panel}>
+    <div data-tour="seating.guests" className={styles.panel}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <WeddingName />
           <div className={styles.headerActions}>
             <IconButton icon="plus" label="Add guest" onDark onClick={handleAddGuest} />
             <IconButton
+              data-tour="seating.import"
               icon="upload"
               label="Import guests"
               onDark

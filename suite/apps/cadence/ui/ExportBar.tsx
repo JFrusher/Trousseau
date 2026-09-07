@@ -79,7 +79,7 @@ export function ExportBar() {
   };
 
   return (
-    <div className={styles.bar}>
+    <div data-tour="timeline.export" className={styles.bar}>
       <select
         className={styles.select}
         value={output}

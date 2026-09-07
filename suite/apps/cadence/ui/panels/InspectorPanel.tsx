@@ -36,7 +36,7 @@ export function InspectorPanel() {
   const block = doc.blocks.find((entry) => entry.id === selectedId);
   if (!block) {
     return (
-      <Panel title="Block">
+      <Panel title="Block" data-tour="timeline.anchor">
         <p className={styles.none}>Pick a block on the timeline to edit it.</p>
       </Panel>
     );
@@ -47,7 +47,7 @@ export function InspectorPanel() {
   const moment = isMoment(block);
 
   return (
-    <Panel title="Block">
+    <Panel title="Block" data-tour="timeline.anchor">
       <TextField label="Label" value={block.label} onChange={(label) => updateBlock(block.id, { label })} />
 
       <CheckField

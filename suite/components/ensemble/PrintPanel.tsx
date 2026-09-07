@@ -81,7 +81,7 @@ export function PrintPanel({
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div data-tour="groupshots.print" className="flex flex-col gap-4 p-4">
       <Panel title="Problems">
         {problems.length === 0 ? (
           <Empty>Nothing wrong that this list can see.</Empty>

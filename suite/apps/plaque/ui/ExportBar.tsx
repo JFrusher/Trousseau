@@ -175,7 +175,7 @@ export function ExportBar({ sheetCount, issues, artefacts, warnings, missing }: 
   }
 
   return (
-    <div className={styles.bar}>
+    <div data-tour="placecards.export" className={styles.bar}>
       {preflight && (
         <Preflight
           sheetCount={sheetCount}

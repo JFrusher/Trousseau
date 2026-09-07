@@ -28,7 +28,10 @@ export function WhatIsLeft() {
 
   if (items.length === 0) {
     return (
-      <p className="flex items-center gap-2 rounded border border-sage/40 bg-sage/10 px-4 py-3 text-sm text-charcoal">
+      <p
+        data-tour="shell.whatisleft"
+        className="flex items-center gap-2 rounded border border-sage/40 bg-sage/10 px-4 py-3 text-sm text-charcoal"
+      >
         <Check size={16} className="shrink-0 text-sage" />
         Nothing left that spans the tools. Each one will tell you about its own work.
       </p>
@@ -36,7 +39,7 @@ export function WhatIsLeft() {
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul data-tour="shell.whatisleft" className="flex flex-col gap-2">
       {items.map((item) => {
         const tool = TOOLS.find((entry) => entry.href === item.href);
         return (

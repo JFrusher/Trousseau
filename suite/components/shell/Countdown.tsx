@@ -24,7 +24,7 @@ export function Countdown() {
   }
 
   return (
-    <header>
+    <header data-tour="shell.countdown">
       <h1 className="font-display text-4xl text-charcoal sm:text-5xl">
         {couple || "This wedding"}
       </h1>

@@ -20,7 +20,7 @@ function SidebarInner() {
   };
 
   return (
-    <aside className={styles.sidebar} aria-label="Controls">
+    <aside data-tour="placecards.sidebar" className={styles.sidebar} aria-label="Controls">
       <div className={styles.scroll} ref={scroll}>
         {NAV.map((section) => {
           const active = section.items.some((item) => item.active?.(counts));

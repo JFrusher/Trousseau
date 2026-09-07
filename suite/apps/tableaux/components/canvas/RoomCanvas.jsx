@@ -282,6 +282,7 @@ export default function RoomCanvas() {
 
   return (
     <div
+      data-tour="seating.canvas"
       ref={viewportRef}
       className={clsx(
         styles.viewport,

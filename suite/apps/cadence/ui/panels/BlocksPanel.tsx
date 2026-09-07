@@ -54,14 +54,19 @@ export function BlocksPanel() {
   };
 
   return (
-    <Panel title="Blocks">
+    <Panel title="Blocks" data-tour="timeline.lanes">
       {doc.lanes.map((lane) => {
         const blocks = doc.blocks.filter((block) => block.lane === lane);
         return (
           <div key={lane} className={styles.lane}>
             <div className={styles.laneHead}>
               <LaneName lane={lane} />
-              <Button variant="quiet" onClick={() => addBlock(lane)} title={`Add a block to ${lane}`}>
+              <Button
+                data-tour="timeline.add"
+                variant="quiet"
+                onClick={() => addBlock(lane)}
+                title={`Add a block to ${lane}`}
+              >
                 + Add
               </Button>
               <Button

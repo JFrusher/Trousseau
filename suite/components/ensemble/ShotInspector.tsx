@@ -45,7 +45,7 @@ export function ShotInspector({
   );
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div data-tour="groupshots.inspector" className="flex flex-col gap-4 p-4">
       <Panel title="Shot">
         <TextField
           label="Label"

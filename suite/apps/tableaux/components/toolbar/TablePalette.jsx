@@ -66,7 +66,12 @@ export default function TablePalette() {
   const presets = useStore((s) => s.settings.customTablePresets || [])
   const deleteTablePreset = useStore((s) => s.deleteTablePreset)
   return (
-    <div className={styles.palette} role="list" aria-label="Table types — drag onto the canvas">
+    <div
+      data-tour="seating.toolbar"
+      className={styles.palette}
+      role="list"
+      aria-label="Table types — drag onto the canvas"
+    >
       {TABLE_TYPE_LIST.map((def) => (
         <PaletteItem key={def.id} def={def} />
       ))}

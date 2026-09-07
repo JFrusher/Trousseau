@@ -75,7 +75,7 @@ export function WeddingPack() {
   }
 
   return (
-    <div className="rounded-lg border border-charcoal/10 bg-stone/60 p-6">
+    <div data-tour="shell.pack" className="rounded-lg border border-charcoal/10 bg-stone/60 p-6">
       <h2 className="mb-1 text-lg text-charcoal">The wedding pack</h2>
       <p className="mb-4 max-w-prose text-sm text-slate">
         The floor plan, the run sheet, the job list and the group shot list as one document,

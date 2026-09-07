@@ -32,7 +32,7 @@ export default function StatsPanel() {
   }, [guests, tables])
 
   return (
-    <div className={styles.panel}>
+    <div data-tour="seating.overview" className={styles.panel}>
       <header className={styles.header}>
         <h2 className={styles.title}>Overview</h2>
       </header>

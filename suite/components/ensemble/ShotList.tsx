@@ -79,7 +79,9 @@ export function ShotList({
     });
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto p-4">
+    <div
+      data-tour="groupshots.list"
+      className="flex h-full flex-col gap-3 overflow-y-auto p-4">
       {shots.sections.map((section, index) => (
         <div key={section.id} className="rounded border border-charcoal/10">
           <div className="flex items-center gap-1 border-b border-charcoal/10 bg-stone/60 px-2 py-1.5">

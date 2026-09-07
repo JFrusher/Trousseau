@@ -131,7 +131,7 @@ export const CHAPTERS: readonly TourChapter[] = [
       {
         anchor: "timeline.anchor",
         title: "The one thing worth understanding",
-        body: "A block is either anchored to a clock time or it simply follows the block before it. Anchor the ceremony, let the rest follow, and moving the ceremony moves the whole afternoon with it. Nothing is recalculated by hand.",
+        body: "Pick a block and this panel edits it. The field that matters is Anchored at: a block is either pinned to a clock time or it simply follows the one before it. Anchor the ceremony, let the rest follow, and moving the ceremony moves the whole afternoon with it.",
         route: "/timeline",
       },
       {
@@ -159,27 +159,21 @@ export const CHAPTERS: readonly TourChapter[] = [
         route: "/place-cards",
       },
       {
-        anchor: "placecards.elements",
+        anchor: "placecards.sidebar",
         title: "Design the card once",
-        body: "Add text and images, then bind a text box to a field. Type {{First Name}} or {{Table}} and every card fills itself in with that guest's own details.",
+        body: "Everything that shapes the card is in here: text and images, the fonts, and the card and sheet size in real millimetres. Bind a text box to a field — type {{First Name}} or {{Table}} — and every card fills itself in with that guest's own details.",
         route: "/place-cards",
       },
       {
-        anchor: "placecards.geometry",
-        title: "Real millimetres",
-        body: "Card size and sheet layout in real units, so what comes out of your printer is the size you asked for. The default is 85 by 55mm, nine to an A4 sheet.",
-        route: "/place-cards",
-      },
-      {
-        anchor: "placecards.problems",
-        title: "Before you print",
-        body: "Missing fonts, images that have not loaded, guests with no table. Trousseau refuses to print a broken card, which is cheaper than finding out after the good card stock has gone through.",
+        anchor: "placecards.canvas",
+        title: "What you see is what prints",
+        body: "The live card, drawn at its real size with a real guest's details in it. Step through guests to check the long names and the empty fields before you commit any card stock.",
         route: "/place-cards",
       },
       {
         anchor: "placecards.export",
         title: "Print a test first",
-        body: "Export the PDF, then print two cards on plain paper and hold them against your real stock before committing the whole sheet.",
+        body: "Export the PDF, then print two cards on plain paper and hold them against your real stock. Trousseau refuses to export a card with a missing font or a hole where a monogram should be, which is cheaper than finding out afterwards.",
         route: "/place-cards",
       },
     ],

@@ -63,7 +63,7 @@ export function ExportBar() {
   };
 
   return (
-    <div className={styles.bar}>
+    <div data-tour="delegation.export" className={styles.bar}>
       <select
         className={styles.select}
         value={piece}

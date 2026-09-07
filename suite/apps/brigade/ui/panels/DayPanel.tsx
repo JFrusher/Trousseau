@@ -38,7 +38,7 @@ export function DayPanel() {
   };
 
   return (
-    <Panel title="The day">
+    <Panel title="The day" data-tour="delegation.day">
       {day === null ? (
         <p className={styles.none}>
           No day yet. Export one from Cadence — <em>Export day</em> — and import it here.

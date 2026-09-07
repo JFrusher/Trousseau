@@ -13,7 +13,7 @@ export function JobPanel() {
   const job = doc.jobs.find((entry) => entry.id === selectedJobId);
   if (!job) {
     return (
-      <Panel title="Job">
+      <Panel title="Job" data-tour="delegation.jobs">
         <p className={styles.none}>Pick a job on the board to edit it.</p>
       </Panel>
     );
@@ -24,7 +24,7 @@ export function JobPanel() {
   const who = assigneeNames(doc, job);
 
   return (
-    <Panel title="Job">
+    <Panel title="Job" data-tour="delegation.jobs">
       <TextField label="Job" value={job.label} onChange={(label) => updateJob(job.id, { label })} />
 
       <SelectField

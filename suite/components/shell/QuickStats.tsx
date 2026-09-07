@@ -44,13 +44,13 @@ export function QuickStats() {
   return (
     <div className="rounded-lg border border-charcoal/10 bg-stone/60 p-6">
       {empty ? (
-        <p className="text-sm text-slate">
+        <p data-tour="shell.stats" className="text-sm text-slate">
           Nothing saved here yet. Open{" "}
           <span className="text-charcoal">Data</span> in the header to upload a guest list, or
           start in <Link href="/seating" className="text-charcoal underline decoration-gold">Seating</Link>.
         </p>
       ) : (
-        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <dl data-tour="shell.stats" className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Stat label="Guests" value={stats.guests} href="/seating" />
           <Stat label="Seated" value={`${stats.seated} / ${stats.guests}`} href="/place-cards" />
           <Stat label="Tables" value={stats.tables} href="/seating" />
@@ -66,7 +66,7 @@ export function QuickStats() {
         browser.
       </p>
 
-      <nav className="mt-5 grid gap-2 sm:grid-cols-2">
+      <nav data-tour="shell.tools" className="mt-5 grid gap-2 sm:grid-cols-2">
         {TOOLS.map((tool) => (
           <Link
             key={tool.href}

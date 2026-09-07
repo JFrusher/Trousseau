@@ -23,9 +23,13 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import { formatClock, parseClock } from "@/apps/cadence/core/time/minutes";
 import styles from "./fields.module.css";
 
-export function Panel({ title, children }: { title: string; children: ReactNode }) {
+export function Panel({
+  title,
+  children,
+  ...rest
+}: { title: string; children: ReactNode } & React.HTMLAttributes<HTMLElement>) {
   return (
-    <section className={styles.panel}>
+    <section className={styles.panel} {...rest}>
       <h2 className={styles.panelTitle}>{title}</h2>
       <div className={styles.panelBody}>{children}</div>
     </section>

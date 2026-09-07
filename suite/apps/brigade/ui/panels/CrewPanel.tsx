@@ -98,7 +98,7 @@ export function CrewPanel() {
   };
 
   return (
-    <Panel title="Crew">
+    <Panel title="Crew" data-tour="delegation.crew">
       {job === null ? (
         <p className={styles.hint}>Pick a job on the board to put names on it.</p>
       ) : (

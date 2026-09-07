@@ -108,6 +108,7 @@ export function DataPanel() {
       {roomGuests > 0 && (
         <button
           type="button"
+          data-tour="placecards.useroom"
           className={styles.button}
           onClick={() => setCsv(rowsFromRoom())}
           title="Take the guest list and table numbers from the seating plan"

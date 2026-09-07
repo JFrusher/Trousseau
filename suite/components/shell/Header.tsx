@@ -74,6 +74,7 @@ export function Header() {
 
           <button
             type="button"
+            data-tour="shell.data"
             onClick={() => setDataOpen(true)}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded border px-2.5 py-1.5 text-sm transition ${
               dirty

@@ -7,14 +7,14 @@ export function WarningsList() {
 
   if (schedule.conflicts.length === 0) {
     return (
-      <p className={styles.clear}>
+      <p data-tour="timeline.problems" className={styles.clear}>
         Nothing collides. {schedule.slack.toCurfewMin >= 0 ? "The day fits." : ""}
       </p>
     );
   }
 
   return (
-    <ul className={styles.list}>
+    <ul data-tour="timeline.problems" className={styles.list}>
       {schedule.conflicts.map((conflict) => (
         <li
           key={`${conflict.kind}-${conflict.blockIds.join("-")}`}
