@@ -230,6 +230,18 @@ export interface Team {
   name: string;
   phone: string;
   notes: string;
+  /** For sending the call sheet. Teams had a phone and no email. */
+  email: string;
+  /** Agreed total, in whole units of the couple's own currency. Null if not agreed. */
+  cost: number | null;
+  /** Deposit, where one was asked for. */
+  deposit: number | null;
+  /** ISO date the deposit was paid, or "" if it has not been. */
+  depositPaidOn: string;
+  /** ISO date the balance falls due, or "". */
+  balanceDueOn: string;
+  /** ISO date this team confirmed their jobs and times, or "". */
+  confirmedOn: string;
 }
 
 export interface Person {
@@ -244,8 +256,8 @@ export interface Person {
 
 export interface Job {
   id: string;
-  /** The block of the day this hangs off. The only link to the timeline. */
-  blockId: string;
+  /** The block of the day this hangs off, or null for a task not tied to it. */
+  blockId: string | null;
   label: string;
   notes: string;
   teamId: string | null;
@@ -261,6 +273,8 @@ export interface Crew {
   teams: Team[];
   people: Person[];
   jobs: Job[];
+  /** What the couple intends to spend in total, or null if they have not said. */
+  budget: number | null;
 }
 
 // group shots ------------------------------------------------------------------

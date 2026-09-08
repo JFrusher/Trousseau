@@ -11,10 +11,20 @@ import type { Timeline } from "@/lib/model/timeline";
  * of step with the timeline the first time anything moved.
  */
 
+/** A team nobody has agreed money with yet. Spread into every new team. */
+const NO_CONTRACT = {
+  email: "",
+  cost: null,
+  deposit: null,
+  depositPaidOn: "",
+  balanceDueOn: "",
+  confirmedOn: "",
+} as const;
+
 export function addTeam(crew: Crew, name: string, tag: string | null = null): Crew {
   const clean = name.trim();
   if (!clean) return crew;
-  const team: Team = { id: newId("team"), tag, name: clean, phone: "", notes: "" };
+  const team: Team = { id: newId("team"), tag, name: clean, phone: "", notes: "", ...NO_CONTRACT };
   return { ...crew, teams: [...crew.teams, team] };
 }
 
@@ -97,6 +107,7 @@ export function seedTeamsFromTags(crew: Crew, timeline: Timeline): Crew {
       known.add(tag);
       const d = detail.get(tag);
       added.push({
+        ...NO_CONTRACT,
         id: newId("team"),
         tag,
         name: d?.displayName || tag,
@@ -116,8 +127,10 @@ export function seedTeamsFromTags(crew: Crew, timeline: Timeline): Crew {
  * stale the moment it did. Orphans are kept and flagged rather than dropped —
  * losing somebody's work because a block was renamed away is not recoverable.
  */
+// A job with no block was never on the day and is not orphaned by one going
+// missing — it is a task somebody chose to keep off the schedule.
 export const orphanJobs = (crew: Crew, blockIds: ReadonlySet<string>): Job[] =>
-  crew.jobs.filter((j) => !blockIds.has(j.blockId));
+  crew.jobs.filter((j) => j.blockId !== null && !blockIds.has(j.blockId));
 
 /** What to print against a job: the named people, or the team, or nobody. */
 export function assigneeNames(crew: Crew, job: Job): string[] {
@@ -151,7 +164,9 @@ export function personSheets(crew: Crew, order: ReadonlyMap<string, number>): Pe
         .filter((j) => j.personIds.includes(person.id))
         .sort(
           (a, b) =>
-            (order.get(a.blockId) ?? Infinity) - (order.get(b.blockId) ?? Infinity) ||
+            // Jobs off the schedule sort last, then by label.
+            (a.blockId === null ? Infinity : (order.get(a.blockId) ?? Infinity)) -
+              (b.blockId === null ? Infinity : (order.get(b.blockId) ?? Infinity)) ||
             a.label.localeCompare(b.label),
         ),
     }))

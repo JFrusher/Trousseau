@@ -605,16 +605,27 @@ export function readCrew(doc: Trousseau): Crew {
       teams: list(raw["teams"], (t) => {
         if (!isRecord(t) || typeof t["id"] !== "string") return null;
         return {
+          // Keep what this model has no opinion about, for the same reason
+          // coerceGuests does: rebuilding from the list below is how a field
+          // owned by a tool gets silently destroyed on the next read.
+          ...t,
           id: t["id"],
           tag: typeof t["tag"] === "string" ? t["tag"] : null,
           name: str(t["name"], "Team"),
           phone: str(t["phone"]),
           notes: str(t["notes"]),
+          email: str(t["email"]),
+          cost: typeof t["cost"] === "number" ? t["cost"] : null,
+          deposit: typeof t["deposit"] === "number" ? t["deposit"] : null,
+          depositPaidOn: str(t["depositPaidOn"]),
+          balanceDueOn: str(t["balanceDueOn"]),
+          confirmedOn: str(t["confirmedOn"]),
         };
       }),
       people: list(raw["people"], (p) => {
         if (!isRecord(p) || typeof p["id"] !== "string") return null;
         return {
+          ...p,
           id: p["id"],
           name: str(p["name"], "Someone"),
           teamId: typeof p["teamId"] === "string" ? p["teamId"] : null,
@@ -629,8 +640,11 @@ export function readCrew(doc: Trousseau): Crew {
         if (!isRecord(j) || typeof j["id"] !== "string") return null;
         const status = j["status"];
         return {
+          ...j,
           id: j["id"],
-          blockId: str(j["blockId"]),
+          // Null and absent both mean "not tied to the day". An empty string
+          // would be a third spelling of the same thing.
+          blockId: typeof j["blockId"] === "string" && j["blockId"] !== "" ? j["blockId"] : null,
           label: str(j["label"], "Job"),
           notes: str(j["notes"]),
           teamId: typeof j["teamId"] === "string" ? j["teamId"] : null,
@@ -638,6 +652,7 @@ export function readCrew(doc: Trousseau): Crew {
           status: status === "doing" || status === "done" ? status : "todo",
         };
       }),
+      budget: typeof raw["budget"] === "number" ? raw["budget"] : null,
     };
   });
 }
