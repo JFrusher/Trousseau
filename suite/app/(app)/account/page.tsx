@@ -30,6 +30,10 @@ export default function AccountPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
   const client = browserClient();
+  const [signinFailed, setSigninFailed] = useState(false);
+  useEffect(() => {
+    setSigninFailed(new URLSearchParams(window.location.search).get("signin") === "failed");
+  }, []);
 
   useEffect(() => {
     if (!client) {
@@ -115,7 +119,25 @@ export default function AccountPage() {
       ) : !state ? (
         <p className="mt-6 text-slate">Loading…</p>
       ) : !state.signedIn ? (
-        <p className="mt-6 text-slate">Sign in to manage your wedding account.</p>
+        <div className="mt-6 space-y-4">
+          {signinFailed && (
+            <div className="rounded border border-rose/40 bg-rose/10 px-3 py-2 text-sm text-charcoal">
+              <p className="font-medium">That link did not sign you in.</p>
+              <p className="mt-1 text-slate">
+                Two things stop one working. It has to be opened in the same browser that asked
+                for it — a phone, or an email app opening its own window, will not do. And it has
+                to come back to the same address you started on: a link that returns you to a
+                different one cannot carry your session, and will not show your wedding either.
+              </p>
+              <p className="mt-1 text-slate">
+                You are on <strong>{typeof window === "undefined" ? "" : window.location.origin}</strong>.
+                If that is not where you were planning, go back to the address you were using —
+                your wedding is stored per address and is still there, untouched.
+              </p>
+            </div>
+          )}
+          <p className="text-slate">Sign in to manage your wedding account.</p>
+        </div>
       ) : (
         <div className="mt-6 space-y-8">
           {notice && (

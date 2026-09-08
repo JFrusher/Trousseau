@@ -39,19 +39,37 @@ export function sameOriginPath(next: string | null, origin: string): string {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
+  const tokenHash = url.searchParams.get("token_hash");
   const next = url.searchParams.get("next");
 
-  if (code) {
-    try {
-      const client = await serverClient();
-      // A failed exchange is not worth an error page: the destination itself
-      // will show "sign in first", which is the true state of things.
-      if (client) await client.auth.exchangeCodeForSession(code);
-    } catch (error) {
-      console.error("[accounts] GET /auth/callback", error);
+  let failed = false;
+
+  try {
+    const client = await serverClient();
+    if (!client) {
+      failed = Boolean(code || tokenHash);
+    } else if (tokenHash) {
+      // The email template can send a token hash instead of a PKCE code. This
+      // one carries everything needed with it, so the link works in whatever
+      // browser it is opened in — including the one inside a mail app.
+      const { error } = await client.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
+      failed = Boolean(error);
+    } else if (code) {
+      // PKCE. The verifier lives in a cookie set when the link was requested,
+      // so this only succeeds in the browser that asked for it.
+      const { error } = await client.auth.exchangeCodeForSession(code);
+      failed = Boolean(error);
     }
+  } catch (error) {
+    console.error("[accounts] GET /auth/callback", error);
+    failed = true;
   }
 
   const destination = sameOriginPath(next, url.origin);
-  return NextResponse.redirect(new URL(destination, url.origin));
+  const target = new URL(destination, url.origin);
+  // A silent failure here is the worst outcome: the user clicked a link, was
+  // returned to a page saying "sign in", and had no way to know the link had
+  // been opened somewhere it could not work.
+  if (failed) target.searchParams.set("signin", "failed");
+  return NextResponse.redirect(target);
 }

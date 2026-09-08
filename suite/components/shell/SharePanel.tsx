@@ -215,8 +215,9 @@ export function SharePanel({ onProblem }: { onProblem: (message: string | null) 
         ) : (
           <div className="space-y-2">
             <p className="text-xs text-slate">
-              Choose a passphrase and the wedding can be opened on another machine. It is never sent
-              anywhere and cannot be recovered — write it down.
+              One passphrase, used by both machines — chosen here to start sharing, and typed here
+              again to open the wedding somewhere else. It is never sent anywhere and cannot be
+              recovered, so write it down.
             </p>
             <TextField
               label="Passphrase"
@@ -257,6 +258,13 @@ export function SharePanel({ onProblem }: { onProblem: (message: string | null) 
                     There is already a wedding on this device. Opening the shared one replaces it.
                     Export a backup first if you want to keep it.
                   </span>
+                </p>
+              ) : null}
+
+              {joinId.trim() !== "" && passphrase.length < 8 ? (
+                <p className="mt-2 text-xs text-slate">
+                  Now put the passphrase in the box above — the same one you chose on the first
+                  machine. Opening needs both.
                 </p>
               ) : null}
 
