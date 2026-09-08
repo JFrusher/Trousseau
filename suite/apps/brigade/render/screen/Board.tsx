@@ -40,8 +40,12 @@ export function Board() {
   const filtering =
     filter.personId !== null || filter.teamId !== null || filter.unassignedOnly;
 
+  // These look identical to a filter and mean opposite things. A job with no
+  // block was never on the day; a job whose block has gone is a problem.
+  const tasks = doc.jobs.filter((job) => job.blockId === null && shown(job));
   const orphans = doc.jobs.filter(
-    (job) => !blocks.some((block) => block.id === job.blockId) && shown(job),
+    (job) =>
+      job.blockId !== null && !blocks.some((block) => block.id === job.blockId) && shown(job),
   );
 
   if (doc.day === null) {
@@ -58,6 +62,19 @@ export function Board() {
 
   return (
     <div className={styles.board}>
+      {tasks.length > 0 && (
+        <section className={styles.orphans}>
+          <h2 className={styles.orphanHead}>
+            Not tied to the day — {tasks.length} job{tasks.length === 1 ? "" : "s"}
+          </h2>
+          <ul className={styles.jobs}>
+            {tasks.map((job) => (
+              <JobRow key={job.id} job={job} selected={job.id === selectedJobId} onSelect={select} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       {orphans.length > 0 && (
         <section className={styles.orphans}>
           <h2 className={styles.orphanHead}>
