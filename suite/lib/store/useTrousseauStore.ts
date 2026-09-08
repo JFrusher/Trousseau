@@ -302,10 +302,29 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
       set({ cloudStatus: result.reason === "unreachable" ? "error" : "disabled" });
       return;
     }
+
     if (result.document !== null) {
       get().replaceDocument(result.document, { silent: true });
+      set({ cloudStatus: "idle", cloudVersion: result.version, cloudError: null });
+    } else {
+      // Nothing saved for this account yet. A wedding built entirely offline
+      // and then signed into would otherwise sit stranded until the user's
+      // next edit — schedulePersist is the only other thing that calls
+      // syncToCloud, and it fires on a write, not on sign-in. Empty stays
+      // untouched: nothing to lose, and one fewer round trip on a brand-new
+      // account.
+      const local = get().raw;
+      const guests = local["guests"];
+      const day = local["day"] as { blocks?: unknown[] } | null | undefined;
+      const hasContent =
+        (guests !== null && typeof guests === "object" && Object.keys(guests).length > 0) ||
+        (day?.blocks?.length ?? 0) > 0;
+      if (hasContent) {
+        applyCloudResult(await pushDocument(local, 0));
+      } else {
+        set({ cloudStatus: "idle", cloudVersion: result.version, cloudError: null });
+      }
     }
-    set({ cloudStatus: "idle", cloudVersion: result.version, cloudError: null });
 
     const replay = await replayPendingWrite();
     if (replay) applyCloudResult(replay);

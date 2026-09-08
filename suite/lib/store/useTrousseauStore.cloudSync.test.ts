@@ -84,3 +84,42 @@ test("syncToCloud does nothing at all while cloud sync is disabled", async () =>
   expect(pushDocumentMock).not.toHaveBeenCalled();
   expect(useTrousseauStore.getState().cloudStatus).toBe("disabled");
 });
+
+test("startCloudSync pushes the local wedding up on first sign-in, when the cloud has nothing yet", async () => {
+  // The bug this covers: a wedding built entirely offline, then signed into.
+  // fetchCloudDocument correctly reports `document: null` -- nothing has ever
+  // been saved for this account -- and startCloudSync used to just go idle,
+  // leaving the local wedding stranded until the next edit. Exporting from
+  // the account page then answered "Nothing has been saved to your account
+  // yet.", which was true of the server and false of what the user actually
+  // had open.
+  const guests = { g1: { id: "g1", firstName: "Charis" } };
+  useTrousseauStore.setState((state) => ({
+    raw: { ...state.raw, guests },
+    doc: { ...state.doc, guests } as never,
+  }));
+
+  fetchCloudDocumentMock.mockResolvedValue({ ok: true, document: null, version: 0 });
+  pushDocumentMock.mockResolvedValue({ ok: true, version: 1, warnings: [] });
+
+  await useTrousseauStore.getState().startCloudSync();
+
+  expect(pushDocumentMock).toHaveBeenCalledWith(
+    expect.objectContaining({ guests }),
+    0,
+  );
+  expect(useTrousseauStore.getState().cloudStatus).toBe("idle");
+  expect(useTrousseauStore.getState().cloudVersion).toBe(1);
+});
+
+test("startCloudSync does not push an empty wedding on first sign-in", async () => {
+  // Nothing to lose here, and pushing an empty document would still be
+  // correct -- but skipping it is one fewer network round trip for the
+  // overwhelmingly common case of a brand-new account.
+  fetchCloudDocumentMock.mockResolvedValue({ ok: true, document: null, version: 0 });
+
+  await useTrousseauStore.getState().startCloudSync();
+
+  expect(pushDocumentMock).not.toHaveBeenCalled();
+  expect(useTrousseauStore.getState().cloudStatus).toBe("idle");
+});
