@@ -111,6 +111,12 @@ export function coerceGuests(source: unknown): Record<string, Guest> {
     const rsvp = raw["rsvpStatus"];
     const side = raw["side"];
     out[id] = {
+      // Keep every key the suite has no opinion about. Tools own fields this
+      // model has never heard of — Tableaux's `fullName`, `dietaryRaw` and
+      // `assignedSeatId` among them — and `reconcileLoadedDocument` writes the
+      // result of this back on load, so rebuilding a guest from the list below
+      // silently destroyed them. Same rule as the envelope, one level down.
+      ...raw,
       id: str(raw["id"], id),
       firstName: str(raw["firstName"]),
       lastName: str(raw["lastName"]),
