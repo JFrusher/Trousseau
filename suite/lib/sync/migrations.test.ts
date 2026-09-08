@@ -57,6 +57,27 @@ async function databaseWith(files: string[] = migrationFiles()): Promise<PGlite>
       language sql stable
       as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   `);
+  // Same reasoning again for Supabase's `storage` schema: this suite's tables
+  // never reference it, but 20260908000001_wedding_assets_storage.sql does
+  // (`storage.buckets`, `storage.objects`, `storage.foldername()`), read
+  // generically off disk like every other file here. Kept minimal and
+  // identical to the stub in lib/documents/assets.migrations.test.ts.
+  await db.exec(`
+    create schema if not exists storage;
+    create table if not exists storage.buckets (
+      id text primary key,
+      name text not null,
+      public boolean not null default false
+    );
+    create table if not exists storage.objects (
+      id uuid primary key default gen_random_uuid(),
+      bucket_id text references storage.buckets (id),
+      name text not null
+    );
+    create or replace function storage.foldername(name text) returns text[]
+      language sql immutable
+      as $$ select string_to_array(name, '/') $$;
+  `);
   for (const file of files) {
     await db.exec(readFileSync(join(MIGRATIONS, file), "utf8"));
   }
