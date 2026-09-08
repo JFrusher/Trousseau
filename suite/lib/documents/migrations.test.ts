@@ -234,3 +234,28 @@ test("a member reads their own wedding's history through a plain select; a non-m
   ]);
   expect(asStranger.rows).toHaveLength(0);
 });
+
+/**
+ * Applying the same migration twice must not fail.
+ *
+ * Supabase's own runner keeps a ledger and never re-runs a file, but these are
+ * pasted into the SQL editor by hand when standing up an instance, and a paste
+ * that half-applied has to be safe to repeat. `create policy` has no
+ * `if not exists` in Postgres, so every policy is dropped first — this is what
+ * proves it, and it is the failure a real deployment actually hit:
+ * `42710: policy "members can read their wedding's document" already exists`.
+ */
+test("every migration can be applied twice", async () => {
+  const twice = await PGlite.create();
+  await twice.exec("create role anon; create role authenticated;");
+  await authStub(twice);
+
+  for (const pass of [1, 2]) {
+    for (const file of [SYNC_MIGRATION, ACCOUNTS_MIGRATION, DOCUMENTS_MIGRATION]) {
+      await expect(
+        twice.exec(readFileSync(file, "utf8")),
+        `${file} failed on pass ${pass}`,
+      ).resolves.toBeDefined();
+    }
+  }
+});

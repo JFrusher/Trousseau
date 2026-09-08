@@ -54,10 +54,12 @@ revoke all on public.wedding_document_history from anon;
 -- own (this table does not recurse into itself), but there is no reason to
 -- duplicate the membership check's own bugs-not-yet-found when a tested,
 -- already-shipped helper says the same thing.
+drop policy if exists "members can read their wedding's document" on public.wedding_documents;
 create policy "members can read their wedding's document"
   on public.wedding_documents for select
   using (public.is_wedding_member(wedding_id));
 
+drop policy if exists "members can read their wedding's document history" on public.wedding_document_history;
 create policy "members can read their wedding's document history"
   on public.wedding_document_history for select
   using (public.is_wedding_member(wedding_id));

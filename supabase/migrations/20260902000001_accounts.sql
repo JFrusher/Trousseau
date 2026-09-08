@@ -82,14 +82,17 @@ $$;
 revoke all on function public.is_wedding_member(uuid) from public;
 grant execute on function public.is_wedding_member(uuid) to authenticated;
 
+drop policy if exists "members can read their own wedding" on public.account_weddings;
 create policy "members can read their own wedding"
   on public.account_weddings for select
   using (public.is_wedding_member(id));
 
+drop policy if exists "members can read their wedding's membership" on public.wedding_members;
 create policy "members can read their wedding's membership"
   on public.wedding_members for select
   using (public.is_wedding_member(wedding_id));
 
+drop policy if exists "a user can read invites they created" on public.invites;
 create policy "a user can read invites they created"
   on public.invites for select
   using (created_by = auth.uid());
