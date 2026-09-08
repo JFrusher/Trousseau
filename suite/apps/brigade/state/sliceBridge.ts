@@ -60,6 +60,7 @@ export function readSlice(): BrigadeDoc {
     teams: crew.teams,
     people,
     jobs: crew.jobs,
+    budget: crew.budget,
   };
 }
 
@@ -74,7 +75,7 @@ export function writeSlice(doc: BrigadeDoc): void {
     .getState()
     .setSlice(
       "crew",
-      { teams: doc.teams, people: doc.people, jobs: doc.jobs },
+      { teams: doc.teams, people: doc.people, jobs: doc.jobs, budget: doc.budget },
       { label: "the crew", silent: true },
     );
 }

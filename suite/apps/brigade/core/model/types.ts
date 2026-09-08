@@ -98,6 +98,8 @@ export interface BrigadeDoc {
   teams: Team[];
   people: Person[];
   jobs: Job[];
+  /** What the couple intends to spend in total, or null if they have not said. */
+  budget: number | null;
 }
 
 /**

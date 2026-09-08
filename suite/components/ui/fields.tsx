@@ -52,11 +52,17 @@ export function TextField({
   onChange,
   placeholder,
   suggestions,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /**
+   * Passed to the input. `date` and `number` are worth reaching for: they buy
+   * a picker and a numeric keypad on every platform for nothing.
+   */
+  type?: "text" | "date" | "number" | "email";
   /**
    * Offered, not enforced. A free-text field with a list of likely answers is
    * still free text — the church down the road is a real location even though
@@ -69,6 +75,7 @@ export function TextField({
     <Field label={label}>
       <input
         className={styles.input}
+        type={type}
         value={value}
         placeholder={placeholder ?? ""}
         list={suggestions && suggestions.length > 0 ? listId : undefined}

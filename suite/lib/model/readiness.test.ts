@@ -144,3 +144,53 @@ describe("group shots", () => {
     expect(ids({ guests: GUESTS, ...TABLES, shots: shotsWith("g1") })).not.toContain("shots-dangling");
   });
 });
+
+describe("money and confirmations", () => {
+  it("says nothing when there is no budget and nothing committed", () => {
+    expect(ids({ guests: GUESTS, crew: { teams: [{ id: "t1", name: "Ushers" }] } })).not.toContain(
+      "over-budget",
+    );
+  });
+
+  it("reports committing more than the budget", () => {
+    expect(
+      ids({ guests: GUESTS, crew: { budget: 1000, teams: [{ id: "t1", name: "Band", cost: 1400 }] } }),
+    ).toContain("over-budget");
+  });
+
+  it("stays quiet when the budget still covers it", () => {
+    expect(
+      ids({ guests: GUESTS, crew: { budget: 2000, teams: [{ id: "t1", name: "Band", cost: 1400 }] } }),
+    ).not.toContain("over-budget");
+  });
+
+  it("reports a team with jobs that has not confirmed", () => {
+    expect(
+      ids({
+        guests: GUESTS,
+        crew: {
+          teams: [{ id: "t1", name: "Band" }],
+          jobs: [{ id: "j1", label: "Set up", blockId: "b1", teamId: "t1" }],
+        },
+      }),
+    ).toContain("unconfirmed-teams");
+  });
+
+  it("stays quiet once they have", () => {
+    expect(
+      ids({
+        guests: GUESTS,
+        crew: {
+          teams: [{ id: "t1", name: "Band", confirmedOn: "2027-01-04" }],
+          jobs: [{ id: "j1", label: "Set up", blockId: "b1", teamId: "t1" }],
+        },
+      }),
+    ).not.toContain("unconfirmed-teams");
+  });
+
+  it("ignores a supplier with no jobs — a venue has nothing to confirm", () => {
+    expect(
+      ids({ guests: GUESTS, crew: { teams: [{ id: "t1", name: "The barn", cost: 6000 }] } }),
+    ).not.toContain("unconfirmed-teams");
+  });
+});

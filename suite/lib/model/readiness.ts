@@ -228,5 +228,37 @@ export function readiness(doc: Trousseau, raw: unknown): Readiness[] {
     });
   }
 
+  const committed = crew.teams.reduce((total, team) => total + (team.cost ?? 0), 0);
+  if (crew.budget !== null && committed > crew.budget) {
+    out.push({
+      id: "over-budget",
+      severity: "advisory",
+      message: `Committed ${committed.toLocaleString()} against a budget of ${crew.budget.toLocaleString()}.`,
+      href: "/delegation",
+      action: "Look at the costs",
+    });
+  }
+
+  // Only teams with something to do on the day. A venue you are merely paying
+  // has nothing to confirm.
+  const working = new Set(
+    crew.jobs.map((job) => job.teamId).filter((id): id is string => id !== null),
+  );
+  const unconfirmed = crew.teams.filter(
+    (team) => working.has(team.id) && team.confirmedOn === "",
+  );
+  if (unconfirmed.length > 0) {
+    out.push({
+      id: "unconfirmed-teams",
+      severity: "advisory",
+      message:
+        unconfirmed.length === 1
+          ? `${unconfirmed[0]!.name} has not confirmed yet.`
+          : `${unconfirmed.length} suppliers have not confirmed yet.`,
+      href: "/delegation",
+      action: "Chase them",
+    });
+  }
+
   return out;
 }

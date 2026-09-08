@@ -16,6 +16,7 @@ export function CrewPanel() {
   const filter = useStore((state) => state.filter);
   const addTeam = useStore((state) => state.addTeam);
   const updateTeam = useStore((state) => state.updateTeam);
+  const setBudget = useStore((state) => state.setBudget);
   const deleteTeam = useStore((state) => state.deleteTeam);
   const addPerson = useStore((state) => state.addPerson);
   const updatePerson = useStore((state) => state.updatePerson);
@@ -108,6 +109,29 @@ export function CrewPanel() {
         </p>
       )}
 
+      {(() => {
+        const committed = doc.teams.reduce((total, t) => total + (t.cost ?? 0), 0);
+        // A wedding that has neither set a budget nor agreed a cost is not
+        // shown a number it never asked for.
+        if (doc.budget === null && committed === 0) return null;
+        const left = doc.budget === null ? null : doc.budget - committed;
+        return (
+          <section className={styles.budget}>
+            <p>
+              <strong>{committed.toLocaleString()}</strong> committed
+              {doc.budget !== null && ` of ${doc.budget.toLocaleString()}`}
+              {left !== null && ` — ${Math.abs(left).toLocaleString()} ${left < 0 ? "over" : "left"}`}
+            </p>
+            <TextField
+              label="Budget"
+              type="number"
+              value={doc.budget === null ? "" : String(doc.budget)}
+              onChange={(value) => setBudget(value === "" ? null : Number(value))}
+            />
+          </section>
+        );
+      })()}
+
       {doc.teams.map((team) => (
         <section key={team.id} className={styles.team}>
           <div className={styles.teamHead}>
@@ -134,6 +158,52 @@ export function CrewPanel() {
               ×
             </button>
           </div>
+
+          {/* Folded away: most teams are friends doing a job, not suppliers
+              with a contract, and they should not be shown six empty fields. */}
+          <details className={styles.contract} open={team.cost !== null || team.confirmedOn !== ""}>
+            <summary>
+              Contract
+              {team.cost !== null && ` — ${team.cost.toLocaleString()}`}
+              {team.confirmedOn !== "" && " · confirmed"}
+            </summary>
+            <TextField
+              label="Email"
+              type="email"
+              value={team.email}
+              onChange={(email) => updateTeam(team.id, { email })}
+            />
+            <TextField
+              label="Cost"
+              type="number"
+              value={team.cost === null ? "" : String(team.cost)}
+              onChange={(v) => updateTeam(team.id, { cost: v === "" ? null : Number(v) })}
+            />
+            <TextField
+              label="Deposit"
+              type="number"
+              value={team.deposit === null ? "" : String(team.deposit)}
+              onChange={(v) => updateTeam(team.id, { deposit: v === "" ? null : Number(v) })}
+            />
+            <TextField
+              label="Deposit paid"
+              type="date"
+              value={team.depositPaidOn}
+              onChange={(depositPaidOn) => updateTeam(team.id, { depositPaidOn })}
+            />
+            <TextField
+              label="Balance due"
+              type="date"
+              value={team.balanceDueOn}
+              onChange={(balanceDueOn) => updateTeam(team.id, { balanceDueOn })}
+            />
+            <TextField
+              label="Confirmed"
+              type="date"
+              value={team.confirmedOn}
+              onChange={(confirmedOn) => updateTeam(team.id, { confirmedOn })}
+            />
+          </details>
 
           <ul className={styles.list}>
             {doc.people.filter((person) => person.teamId === team.id).map(personRow)}

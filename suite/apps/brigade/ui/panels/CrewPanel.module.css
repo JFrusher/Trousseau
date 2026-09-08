@@ -134,3 +134,24 @@
   font-size: var(--text-xs);
   cursor: pointer;
 }
+
+/* The budget line, above the teams. Absent entirely until there is a number. */
+.budget {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgb(0 0 0 / 0.08);
+}
+
+.budget p {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Folded away: most teams are friends doing a job, not suppliers with a
+   contract, and they should not be shown six empty fields. */
+.contract > summary {
+  cursor: pointer;
+  padding: 0.35rem 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
