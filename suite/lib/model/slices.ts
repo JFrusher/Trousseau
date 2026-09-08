@@ -1,4 +1,26 @@
-import type { Trousseau } from "@jfrusher/trousseau";
+import { eventSchema, type Trousseau } from "@jfrusher/trousseau";
+
+/**
+ * A build-time check that the contract still has the `event` fields this file
+ * reads and hands to Cadence.
+ *
+ * Typing is not enough on its own. `eventSchema` is a `looseObject`, so the
+ * `Event` type it infers carries a catch-all index signature and
+ * `doc.event.anything` type-checks happily as `unknown` — verified by renaming
+ * `coupleNames` in the contract and watching `tsc` stay silent. `.shape` has
+ * no index signature, so asserting against its keys is the check the inferred
+ * type cannot give.
+ *
+ * Here rather than in each tool because this file is where the suite actually
+ * reads them; Plaque, Brigade and Cadence never touch `event` directly.
+ */
+type EventKeys = keyof typeof eventSchema.shape;
+type Assert<T extends true> = T;
+type _EventFieldsExist = Assert<
+  "date" | "coupleNames" | "venueName" | "curfewMin" | "utcOffsetMin" extends EventKeys
+    ? true
+    : false
+>;
 import { resolve } from "@/apps/cadence/core/schedule/resolve";
 import { resolvedDay as resolveDaySlice } from "@/apps/cadence/core/project/day";
 import {
