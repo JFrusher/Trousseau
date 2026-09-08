@@ -44,6 +44,7 @@ instead (see subsystem F).
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
 | F | Onboarding, billing & legal at product scale | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md), [plan](superpowers/plans/2026-09-07-licensing-and-self-hosting.md) complete 2026-09-07; privacy/terms rewrite still open |
 | H | Guided tour & example wedding | — | ✅ **built** — [spec](superpowers/specs/2026-09-07-guided-tour-design.md), [plan](superpowers/plans/2026-09-07-guided-tour.md) complete 2026-09-07 |
+| I | Retention sweep for account weddings | B | ⬜ **not started** — the 24-month sweep covers synced weddings only; the privacy page deliberately does not claim it for accounts |
 | G | Multi-tenant suite mechanics | A, B | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-mechanics-design.md), [plan](superpowers/plans/2026-09-07-multitenant-mechanics.md) complete 2026-09-07 |
 
 ## Decisions log
