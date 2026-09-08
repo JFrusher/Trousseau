@@ -6,6 +6,7 @@ import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { readCrew, readGuests, readSeating, readTimeline } from "@/lib/model/slices";
 import { TOOLS } from "@/lib/tools";
 import { TakeTheTour } from "./TourButtons";
+import { SignInFailed } from "./SignInFailed";
 
 /**
  * What is actually on this device, right now.
@@ -44,6 +45,7 @@ export function QuickStats() {
 
   return (
     <div className="rounded-lg border border-charcoal/10 bg-stone/60 p-6">
+      <SignInFailed />
       {empty ? (
         <p data-tour="shell.stats" className="text-sm text-slate">
           Nothing saved here yet. Open{" "}
