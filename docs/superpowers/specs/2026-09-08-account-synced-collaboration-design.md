@@ -1,158 +1,159 @@
 # Account-synced collaboration
 
+> **Correction (same day):** the first version of this spec was written after
+> an incomplete search — it checked whether `lib/documents` was wired up by
+> grepping `components/` only, and missed that `useTrousseauStore.ts` itself
+> already consumes it. Most of what that version proposed building already
+> exists. This version reflects the real state, found by reading
+> `lib/store/useTrousseauStore.ts`, `lib/store/StoreHydrator.tsx`,
+> `lib/documents/cloudSync.ts`, and `components/shell/DataManager.tsx`
+> directly.
+
 ## Goal
 
 Two partners, each signed in with their own account, always see the current
 wedding — on any device, without a separate secret to remember or hand each
-other. Sync is automatic: no button to press, no passphrase to type.
+other.
 
-This replaces local-only as the default experience. Local-only (no backend
-configured) still works — nothing here requires a backend to exist — but when
-one is configured, signing in is the whole story.
+## Current state (verified by reading the code, not assumed)
+
+**Already fully built, wired, and tested — no work needed:**
+
+- **Accounts.** `lib/accounts` — Supabase magic-link auth, `account_weddings`
+  / `wedding_members` (capped at 2), email invites, `is_wedding_member()` RLS.
+- **Cloud document storage.** `lib/documents` — whole-document JSONB per
+  wedding, RLS-gated, compare-and-set via `save_wedding_document()`,
+  automatic version history. `GET`/`PUT /api/documents`, rate-limited, tested.
+- **The client sync loop.** `lib/documents/cloudSync.ts` (`fetchCloudDocument`,
+  `pushDocument`, `queueWrite`/`replayPendingWrite` — an offline queue of at
+  most one pending write) is consumed directly by
+  `lib/store/useTrousseauStore.ts`:
+  - Every local edit debounce-persists to IndexedDB (250ms), then
+    automatically calls `syncToCloud()` (`useTrousseauStore.ts:404`).
+  - `StoreHydrator.tsx` calls `startCloudSync()` once, right after local
+    hydration, and pushes again on the browser's `online` event.
+  - A rejected push (`409`) is surfaced as `cloudStatus: "conflict"` +
+    `cloudConflict: { document, version }` — never auto-merged.
+  - `resolveConflictTakeTheirs` / `resolveConflictKeepMine` are implemented
+    and already wired to buttons in `components/shell/DataManager.tsx:240-245`
+    ("Use their version" / "Keep mine and overwrite theirs").
+  - `useTrousseauStore.cloudSync.test.ts` covers this.
+
+So "sign in and your data is there, automatically, no passphrase" is **already
+true today** for a single sync exchange (on load, on reconnect, on your own
+edits). The gaps are narrower than the first version of this spec thought.
+
+## What's actually still missing
+
+1. **No periodic or focus-triggered pull.** `startCloudSync()` pulls exactly
+   once, at load. If partner A has the app open and partner B pushes a
+   change, A's tab never learns about it until A reloads or goes
+   offline/online. This is the one real gap against "always up to date" —
+   everything else about liveness already works.
+
+2. **Whole-document conflict, no per-slice merge.** A push conflicts if the
+   version has moved *at all*, even if A changed `guests` and B changed
+   `stationery` — unrelated slices. Today's answer is Keep mine / Take
+   theirs, discarding one side's unrelated edit along with the real conflict.
+   A merge that only asks the user to choose when the *same* slice changed
+   on both sides is a real improvement here.
+
+3. **Two sync systems visible at once.** `components/shell/DataManager.tsx`
+   renders both `SharePanel` (`lib/sync` — the old passphrase/E2E system,
+   `SharePanel.tsx:221-223`) and the new account-based "Cloud" section
+   (`DataManager.tsx:231-259`) in the same panel. The passphrase system is
+   confirmed not live for any real wedding (nothing to migrate) and is
+   strictly worse for this product's goal (separate secret, memory-only
+   session, manual sync button) — it should come out of the UI.
+
+4. **No blob/asset sync in the account-based system.** Fonts and artwork
+   (`lib/sync/assets.ts`'s `collectAssets`/`heldAssetIds`/`acceptAsset`,
+   sourced from `apps/plaque/state/syncAssets` and `apps/cadence/state/syncAssets`)
+   only travel over the old encrypted `lib/sync` blob table. `lib/documents`
+   has no equivalent. Confirmed by grep — no blob/asset/font handling
+   anywhere under `lib/documents`.
 
 ## Non-goals
 
-- **True real-time co-editing.** No cursors, no live keystroke-by-keystroke
-  merge, no CRDT. Refresh-driven liveness (poll + sync-on-focus) was chosen
-  deliberately over this. A future upgrade path, not this project.
-- **Migrating existing passphrase-synced weddings.** Confirmed nothing real is
-  using `lib/sync` yet, so it is replaced outright, not migrated.
-- **Changing the guest link.** It stays a separate, reduced-snapshot mechanism
-  for people with no account. It needs to be re-pointed at the new wedding id
-  (see Open follow-ups) but its design is unchanged.
-
-## Current state (as found)
-
-Three systems already exist, only one of them wired up:
-
-- **`lib/accounts`** — Supabase magic-link auth, `account_weddings` /
-  `wedding_members` (capped at 2), email invites with expiry, `is_wedding_member()`
-  RLS helper. Wired up, working.
-- **`lib/sync`** — passphrase-derived E2E encryption, its own independent
-  `weddings`/`slices`/`blobs` tables (not connected to `account_weddings`),
-  per-slice optimistic-concurrency conflict detection, a manual "Sync" button
-  in `SharePanel.tsx`. Wired up, working, but requires a passphrase the couple
-  manage themselves, and the decryption key is memory-only — lost on every
-  reload. **This is what gets replaced.**
-- **`lib/documents`** — a whole-document JSONB store keyed by
-  `account_weddings.id`, RLS-gated via `is_wedding_member()`, compare-and-set
-  writes through `save_wedding_document()`, automatic append-only version
-  history (`wedding_document_history`). Has a working `GET`/`PUT /api/documents`
-  route, rate-limited, tested. **Built, but nothing calls it.** This is the
-  foundation for everything below.
+- **True real-time co-editing.** No cursors, no live keystroke merge, no
+  CRDT. A short poll plus pull-on-focus is refresh-driven liveness, chosen
+  deliberately over that complexity.
+- **Migrating passphrase-synced weddings.** Confirmed nothing real uses
+  `lib/sync` — its UI is removed, not migrated.
+- **Changing the guest link.** `SharePanel`'s guest-link feature (a
+  separate, reduced-snapshot, its-own-key mechanism for people with no
+  account) needs to be re-pointed at `account_weddings.id` once the
+  passphrase wedding concept goes away, but its design is unchanged. Tracked
+  as a follow-up, not in this pass.
 
 ## Architecture
 
-### Identity and authorization
+### 1. Periodic and focus-triggered pull
 
-Unchanged from `lib/accounts`. One wedding per pair, `account_weddings.id` is
-the only wedding id anywhere in the new design — the passphrase system's
-separate `weddings` table concept goes away entirely.
+Add to `StoreHydrator.tsx` (alongside the existing `online` listener):
 
-### Document sync
+- `setInterval(() => useTrousseauStore.getState().pullFromCloud(), 20_000)`
+  while `cloudStatus !== "disabled"`.
+- A `visibilitychange` listener that calls the same pull when the tab becomes
+  visible again (covers "switched away and came back," which a fixed
+  interval alone misses for a while).
 
-`useTrousseauStore` gets a new sync module (replacing `lib/sync/client.ts`'s
-role) that talks to `/api/documents`. Algorithm, run on every sync:
+This needs a new store action, `pullFromCloud()`, distinct from the existing
+`startCloudSync()` (which also decides whether to push an empty-vs-local
+document on first ever sign-in — the periodic case is simpler: always compare
+and merge, never "is this the first sync").
 
-1. `GET /api/documents` → the server's current document + version.
-2. For each top-level slice (`event`, `guests`, `seating`, `timeline`, `day`,
-   `crew`, `stationery`) compare against the last-agreed fingerprint, exactly
-   as `lib/sync/client.ts`'s `sync()` does today:
-   - Changed only on the server → take it.
-   - Changed only here → keep it, will be pushed.
-   - Changed on both → **conflict**. Neither side's value for that slice is
-     touched; it's queued for the user to resolve.
-3. Build a merged document from the results of step 2.
-4. `PUT /api/documents` with the merged document and the version read in step
-   1 (compare-and-set, same semantics as the existing per-slice version check).
-5. If the PUT is rejected (server moved between steps 1 and 4 — rare), re-fetch
-   and re-run the merge. This mirrors the existing "rare, genuine conflict"
-   handling in `lib/sync/client.ts`.
+### 2. Per-slice merge
 
-This gets per-slice conflict granularity on top of whole-document storage —
-the version number that gets compare-and-set is document-wide, but two
-partners editing *different* slices in the same window still merge cleanly
-with no conflict, because the merge happens client-side before the write.
+`pullFromCloud()` and the conflict path both need to reason per-slice instead
+of accepting or discarding the whole document. New pure function,
+`mergeCloudDocument`, taking the local `raw`, the last-agreed raw (captured at
+the last successful sync), and the server's document — for each top-level key
+(`event`, `guests`, `seating`, `timeline`, `day`, `crew`, `stationery`):
+compare a content fingerprint against the last-agreed one to classify
+changed-here / changed-there / changed-both, exactly the algorithm
+`lib/sync/client.ts`'s `sync()` already implements for the (soon-removed)
+per-slice passphrase model — same idea, applied client-side over one
+whole-document CAS write instead of N per-slice server writes.
 
-**Why not literally reuse `lib/sync`'s existing per-slice tables instead:**
-they're built around the passphrase/encryption model end to end (salt,
-auth-hash, ciphertext columns) and aren't connected to `account_weddings`.
-Adapting them would mean unpicking that model anyway; building the merge on
-top of the already-account-gated `lib/documents` is less total change.
+A genuine per-slice conflict (changed on both sides) is what populates
+`cloudConflict` going forward — not "the document version moved," which is
+what triggers it today.
 
-### Auto-sync triggers
+### 3. Retire the passphrase UI
 
-- On mount (app open / page load).
-- On window focus (coming back to the tab).
-- Every 20 seconds while the tab is open and a wedding is active.
-- A debounced push (~2s after the last local edit) so a burst of typing
-  doesn't push mid-keystroke, but a finished edit doesn't sit unpushed until
-  the next poll tick either.
+Remove `<SharePanel onProblem={setProblem} />` and its "Sharing" `Section`
+from `DataManager.tsx`. `lib/sync/` and its migrations are left in place
+(nothing else in this pass depends on deleting them) but are no longer
+reachable from the UI. Full deletion of the module and its Postgres tables is
+a follow-up once nothing else in the codebase references it — including the
+guest-link, per the non-goal above.
 
-20s is a starting point, not a constraint baked into the design — cheap to
-tune once it's running.
+### 4. Blob/asset sync
 
-### Conflict UX
-
-Because sync is now silent and automatic, a conflict can no longer interrupt
-what the user is doing. It becomes a dismissible banner ("Your seating changes
-and theirs don't match — Keep mine / Take theirs") rather than a blocking
-modal. The underlying resolution actions (`keepMine` / `takeTheirs`) are the
-same operations `lib/sync/client.ts` has today, just triggered from a banner
-instead of a panel the user opened on purpose.
-
-### Blobs (fonts, artwork)
-
-New: a Supabase Storage bucket, not a Postgres table. Objects keyed by
-`{weddingId}/{assetId}`, RLS/storage policies scoped to
-`is_wedding_member(weddingId)`. Client uploads/downloads go straight to
-Storage (signed URLs or direct authenticated access), not proxied through a
-serverless function — avoids the ~4.5MB Vercel body-size ceiling a large
-embedded font could hit going through a Postgres-row approach.
-
-This is new infrastructure; nothing existing to adapt (the old `lib/sync`
-blobs table was encrypted-bytes-in-Postgres and is being retired along with
-the rest of that system).
-
-### What gets removed
-
-- `lib/sync/crypto.ts` (passphrase → key derivation, sealing/unsealing).
-- The passphrase entry / "share this passphrase with your partner" UI in
-  `SharePanel.tsx`.
-- The in-memory-only `Session`, and the "reload asks for the passphrase
-  again" behaviour that comes with it.
-- The passphrase system's own `weddings`/`slices`/`blobs` tables, once nothing
-  references them (see Open follow-ups — not deleted in the same change that
-  adds the new system).
-
-### What replaces the removed UI
-
-`SharePanel.tsx` becomes: sign-in state (already exists via `lib/accounts`),
-an "invite your partner" action (already exists — `createInvite`), and a
-sync status line ("Last synced 12s ago" / a conflict banner when one exists).
-No passphrase step anywhere.
+New Supabase Storage bucket, objects keyed `{weddingId}/{assetId}`, RLS/storage
+policies scoped to `is_wedding_member(weddingId)`. Client uploads/downloads go
+directly to Storage from the browser client (`lib/accounts/browserClient.ts`),
+not proxied through a serverless function — avoids the ~4.5MB Vercel body-size
+ceiling a large embedded font could hit going through a Postgres-row or
+API-route approach. A new `lib/documents/assets.ts` mirrors the shape of
+`lib/sync/assets.ts` (`collectAssets`/`heldAssetIds`/`acceptAsset` sourced
+from the same two per-tool modules) but pushes/pulls via Storage instead of
+sealing bytes for a Postgres row.
 
 ## Testing
 
-Follow the existing pattern in this codebase (`memoryStore()` +
-`supabaseStore()` behind a shared interface, handler logic tested against the
-fake, migrations tested against real Postgres via PGlite — see
-`lib/sync/migrations.test.ts`). The merge algorithm in step 2 above is pure
-logic over plain objects and should get the same kind of direct unit coverage
-`lib/sync/client.test.ts` already has for the equivalent per-slice logic.
+Follow the existing pattern already used throughout: pure logic
+(`mergeCloudDocument`) gets direct unit tests the way `lib/sync/client.test.ts`
+tests the equivalent per-slice logic today. The interval/focus wiring is
+integration-level, alongside the existing
+`lib/store/useTrousseauStore.cloudSync.test.ts`.
 
 ## Open follow-ups (not in this pass)
 
-- **Guest link re-plumbing.** Currently keyed off the passphrase system's
-  wedding id and its own encryption. Needs to move to `account_weddings.id`;
-  its own separate key/encryption for the reduced snapshot is unaffected and
-  out of scope here.
-- **Deleting the old passphrase tables/migrations.** Left in place until the
-  new system has shipped and nothing points at them, then a follow-up
-  migration drops `weddings` / `slices` / `blobs` (the `lib/sync` ones) and
-  the code in `lib/sync/` is deleted.
-- **Push instead of poll.** Supabase Realtime (listening for row changes on
-  `wedding_documents`) could replace the 20s poll with an instant trigger
-  later, without touching the merge/conflict logic above. Noted as a cheap
-  upgrade path, not needed to meet today's "log in anywhere, stay current"
-  goal.
+- Guest link re-pointed at `account_weddings.id`.
+- Deleting `lib/sync/` and its Postgres tables/migrations once nothing
+  references them (the guest link is the last thing that will).
+- Push instead of poll: Supabase Realtime on `wedding_documents` could
+  replace the 20s interval with an instant trigger later, without touching
+  the merge logic above.
