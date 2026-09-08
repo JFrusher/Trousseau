@@ -39,7 +39,7 @@ instead (see subsystem F).
 |---|---|---|---|
 | A | Identity & accounts | — | ✅ [spec written](superpowers/specs/2026-09-02-identity-accounts-design.md) |
 | B | Multi-tenant data & storage | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-storage-design.md), [plan](superpowers/plans/2026-09-02-multitenant-storage.md) complete 2026-09-07 |
-| C | Cadence/suite de-duplication | — | ✅ [spec written](superpowers/specs/2026-09-02-cadence-deduplication-design.md), execution blocked on `gh` access |
+| C | Cadence/suite de-duplication | — | ✅ specced and verified safe; **archiving the four standalone repos is four clicks in GitHub's Settings → Archive**, left to the maintainer rather than installing a CLI to do it |
 | D | Tableaux's future | — | 🟡 **pass one built** — data boundary typed ([plan](superpowers/plans/2026-09-07-tableaux-data-boundary-typing.md), 2026-09-07); 108 files still JS |
 | E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
 | F | Onboarding, billing & legal at product scale | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md), [plan](superpowers/plans/2026-09-07-licensing-and-self-hosting.md) complete 2026-09-07; privacy/terms rewrite still open |
@@ -66,6 +66,13 @@ against, not a discussion to reopen without a reason.
   the OneDrive "remote") was a stopgap for one wedding on two laptops. It is
   explicitly being dropped in favor of real cloud storage for subsystem B —
   not extended or productionized.
+- **2026-09-08** — Clarifying the above: "dropped" means it is not the
+  product's sync story, **not** that the tooling is gone. `.githooks/pre-commit`
+  still runs the cross-slice validator over `data/wedding.trousseau.json` on
+  every commit and still catches real problems, and `scripts/sync.mjs` is still
+  the maintainer's own two-machine workflow. Both stay. Deleting working
+  tooling because a decision log calls it superseded is how you lose something
+  you actually use.
 - **2026-09-02** — Auth: Supabase Auth (already the vendor for the sync/
   sharing backend — no new provider).
 - **2026-09-02** — Account model: two accounts per wedding. Whoever signs up
