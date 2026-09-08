@@ -8,7 +8,6 @@ import { flushPersist, useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { readGuests } from "@/lib/model/slices";
 import { useWriters } from "@/lib/model/useSuite";
 import { reconcileLoadedDocument } from "@/lib/seating/normalise";
-import { SharePanel } from "./SharePanel";
 import { parseCsv, type CsvTable } from "@/lib/data/csv";
 import { download, readTextFile } from "@/lib/data/file";
 import {
@@ -65,9 +64,8 @@ function Body({ onClose }: { onClose: () => void }) {
   const event = useTrousseauStore((s) => s.doc.event);
   const cloudStatus = useTrousseauStore((s) => s.cloudStatus);
   const cloudError = useTrousseauStore((s) => s.cloudError);
-  const cloudConflict = useTrousseauStore((s) => s.cloudConflict);
-  const resolveConflictTakeTheirs = useTrousseauStore((s) => s.resolveConflictTakeTheirs);
-  const resolveConflictKeepMine = useTrousseauStore((s) => s.resolveConflictKeepMine);
+  const cloudConflicts = useTrousseauStore((s) => s.cloudConflicts);
+  const resolveConflict = useTrousseauStore((s) => s.resolveConflict);
   const { setEvent, setGuests } = useWriters();
 
   const [notice, setNotice] = useState<string | null>(null);
@@ -218,10 +216,6 @@ function Body({ onClose }: { onClose: () => void }) {
         </div>
       </Section>
 
-      <Section title="Sharing">
-        <SharePanel onProblem={setProblem} />
-      </Section>
-
       {/*
         Absent entirely without an account. `cloudStatus` is "disabled" until
         `startCloudSync` finds both a configured deployment and a wedding, so
@@ -230,20 +224,29 @@ function Body({ onClose }: { onClose: () => void }) {
       */}
       {cloudStatus !== "disabled" ? (
         <Section title="Cloud">
-          {cloudStatus === "conflict" && cloudConflict ? (
-            <div>
-              <p className="mb-3 text-sm text-slate">
-                Someone else saved a change to this wedding from another device. Choose which
-                version to keep — nothing is merged automatically.
+          {cloudStatus === "conflict" && cloudConflicts.length > 0 ? (
+            <div className="space-y-4">
+              <p className="text-sm text-slate">
+                You and your partner both changed the same thing on different devices. Choose
+                which to keep for each — nothing else is affected.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Action onClick={resolveConflictTakeTheirs} icon={RefreshCw} primary>
-                  Use their version
-                </Action>
-                <Action onClick={() => void resolveConflictKeepMine()} icon={Upload}>
-                  Keep mine and overwrite theirs
-                </Action>
-              </div>
+              {cloudConflicts.map((conflict) => (
+                <div key={conflict.slice} className="rounded border border-charcoal/10 p-3">
+                  <p className="mb-2 text-sm font-semibold capitalize">{conflict.slice}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Action
+                      onClick={() => resolveConflict(conflict.slice, "theirs")}
+                      icon={RefreshCw}
+                      primary
+                    >
+                      Use their version
+                    </Action>
+                    <Action onClick={() => resolveConflict(conflict.slice, "mine")} icon={Upload}>
+                      Keep mine
+                    </Action>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : cloudStatus === "queued" ? (
             <p className="flex items-center gap-2 text-sm text-slate">
