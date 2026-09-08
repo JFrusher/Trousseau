@@ -8,15 +8,7 @@
 
 Free, open source, and free forever. No paid tier, no upsell, no trial.
 
-<!-- IMAGE PLACEHOLDER 1 — hero
-     What to capture: the front page of a wedding with real content in it.
-     Couple's name, venue and date across the top, the four stat tiles
-     (Guests / Seated / Tables / Day blocks) showing non-zero numbers, and
-     the five tool cards below.
-     Suggested size: 1440×900, light theme.
-     Save as: docs/images/home.png and replace this comment with:
-     ![The Trousseau front page](docs/images/home.png)
--->
+![The Trousseau front page — one wedding, five tools, and what is left to do](docs/images/home.png)
 
 ---
 
@@ -84,15 +76,7 @@ canvas is a table that will not fit on the day.
 The panel on the right keeps a running count of who is seated, and breaks the
 guest list down by dietary requirement as you go.
 
-<!-- IMAGE PLACEHOLDER 2 — seating
-     What to capture: the Seating tool with a room that has ten or so tables
-     on the canvas and most guests seated. Ideally the left guest panel is
-     visible with some names, and the right Overview panel shows the
-     Seated / Unseated counts and the dietary breakdown.
-     Suggested size: 1440×900.
-     Save as: docs/images/seating.png and replace this comment with:
-     ![Building the room in Seating](docs/images/seating.png)
--->
+![Building the room in Seating — the guest list, the floor plan, and the dietary breakdown](docs/images/seating.png)
 
 ### 2. Plan the day
 
@@ -110,14 +94,7 @@ The Location field offers the names of spaces you drew in the room, so
 takes free text — a church nobody is going to draw a floor plan of is a real
 place.
 
-<!-- IMAGE PLACEHOLDER 3 — timeline
-     What to capture: the Timeline tool with a full day loaded across two or
-     three lanes, showing blocks with times. If a collision or curfew warning
-     can be shown without looking broken, that is worth including.
-     Suggested size: 1440×900.
-     Save as: docs/images/timeline.png and replace this comment with:
-     ![The running order in Timeline](docs/images/timeline.png)
--->
+![The running order in Timeline — lanes, gaps, and what collides](docs/images/timeline.png)
 
 ### 3. Hand out the jobs
 
