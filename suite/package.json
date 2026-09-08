@@ -20,6 +20,7 @@
     "@sentry/nextjs": "^10.73.0",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.45.0",
+    "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
     "fontkit": "^2.0.4",
     "framer-motion": "^13.1.1",
