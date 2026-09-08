@@ -38,8 +38,8 @@ export const RETENTION_MONTHS = 24;
 
 export const PRIVACY: Policy = {
   title: "Privacy",
-  updated: "2026-09-01",
-  digest: "cf0ffa02b1dd0d37",
+  updated: "2026-09-08",
+  digest: "6d6471cfa67c065a",
   intro:
     "Trousseau is a wedding planning tool that keeps your wedding in your own browser. This page says exactly what is stored, where, for how long, and what I can and cannot see.",
   sections: [
@@ -47,7 +47,8 @@ export const PRIVACY: Policy = {
       heading: "Who is responsible",
       paragraphs: [
         `This is run by ${CONTROLLER.name}, who can be reached at ${CONTROLLER.email}. It is a personal project, not a company.`,
-        "For a wedding you create, you decide what goes into it. I hold it as encrypted bytes on your behalf and cannot read any of it.",
+        "For a wedding you create, you decide what goes into it.",
+        "There are two ways it can reach a server, and they are not equally private. If you sync with a passphrase, or publish a guest link, I hold bytes I genuinely cannot read. If you make an account, I hold your wedding in a database — encrypted at rest, walled off from every other account, but readable by whoever runs the server. Both are described below. Neither happens unless you choose it.",
       ],
     },
     {
@@ -67,6 +68,15 @@ export const PRIVACY: Policy = {
       ],
     },
     {
+      heading: "What an account holds, and who can read it",
+      paragraphs: [
+        "An account exists so you and your partner can plan on separate devices. Making one stores your email address, and nothing else about you — there is no password, no profile, and no name field. Signing in sends a link to that address; clicking it is what proves it is you.",
+        "Your wedding is then stored in a database as one document, encrypted at rest, with database rules that make it unreadable to any other account. Inviting your partner adds exactly one more person to that wedding, by the email address you name.",
+        "Being straight about the difference: this is ordinary, well-guarded storage, not the passphrase system above. I do not read your wedding and there is no support tool that would let me browse it, but I administer the database, so I could. If that matters more to you than syncing does, use the app without an account — it is the default, and nothing leaves your browser.",
+        "Every version you save is kept alongside the current one, so a mistake can be recovered rather than being final.",
+      ],
+    },
+    {
       heading: "What a guest link contains",
       paragraphs: [
         "Deliberately less than the wedding does. A published link carries names and table numbers, and optionally the shape of the room. It does not carry email addresses, phone numbers, dietary requirements, notes, or anybody who has declined.",
@@ -79,6 +89,7 @@ export const PRIVACY: Policy = {
       paragraphs: [
         `A wedding that is not written to for ${RETENTION_MONTHS} months is deleted automatically, along with its uploaded files and its guest link. That is long enough to cover an engagement, the wedding, and a year of still wanting the seating plan.`,
         "There is no backup that outlives this. When it is deleted, it is gone.",
+        "A wedding held under an account is kept for as long as the account is. Deleting your account deletes it, unless your partner is still on it — in which case it stays with them, because it is their wedding too.",
       ],
     },
     {
@@ -86,13 +97,15 @@ export const PRIVACY: Policy = {
       paragraphs: [
         "There is a button. In the Data manager, under Sharing, 'Erase this wedding from the server' removes everything: every slice, every uploaded file, and the guest link. It takes effect immediately.",
         "It erases the server copy only. The wedding stays in your own browser, because withdrawing from a server is not the same as wanting to lose your seating plan. To remove that too, clear this site's data in your browser.",
-        "Deleting needs your passphrase, like every other write. That is the unavoidable cost of a server that cannot read what it stores: there is no reset link and nobody to appeal to. If you have lost your passphrase I cannot delete your wedding on request, because I have no way to tell it is yours — the automatic deletion above is what eventually removes it.",
+        "If you have an account, deleting it is on the account page and needs no passphrase — signing in is what proves it is yours. It removes your membership, and the wedding with it if nobody else is on it.",
+        "Erasing a passphrase-synced wedding is different. It needs your passphrase, like every other write. That is the unavoidable cost of a server that cannot read what it stores: there is no reset link and nobody to appeal to. If you have lost your passphrase I cannot delete your wedding on request, because I have no way to tell it is yours — the automatic deletion above is what eventually removes it.",
       ],
     },
     {
       heading: "Cookies and tracking",
       paragraphs: [
-        "There are none. No cookies are set, by this site or anyone else. There is no analytics, no advertising, no tracking pixels, and no third-party scripts on the page.",
+        "No analytics, no advertising, no tracking pixels, and no third-party scripts on the page. Nothing here follows you anywhere.",
+        "One cookie exists, and only if you sign in: it holds your session, which is what keeps you signed in between visits. It is not used to track you and there is nothing to opt into, because without an account no cookie is set at all.",
         "The browser storage that is used — IndexedDB — holds your wedding, which is the thing you came here to work on. Nothing about you is stored for any other purpose.",
       ],
     },
@@ -108,13 +121,14 @@ export const PRIVACY: Policy = {
       heading: "Staying signed in",
       paragraphs: [
         "If you sync, the credential derived from your passphrase stays in this browser until you sign out or clear the site's data. It is what lets the application keep syncing without asking for the passphrase again.",
+        "An account works the same way from your side, with a session that lasts until you sign out.",
         "The practical consequence is worth stating: on a shared or borrowed computer, signing out matters. Anyone using that browser afterwards can reach the wedding.",
       ],
     },
     {
       heading: "Your rights",
       paragraphs: [
-        "Under UK GDPR you have rights of access, correction, erasure and portability. Two of them are already buttons: 'Export backup' gives you the entire wedding as one file, and the erase button above removes it from the server.",
+        "Under UK GDPR you have rights of access, correction, erasure and portability. Most of them are already buttons rather than requests: 'Export backup' gives you the entire wedding as one file, 'Download my wedding' on the account page does the same from the server copy, and the delete buttons above remove it.",
         `For anything else, or if you think something here is wrong, write to ${CONTROLLER.email}. You can also complain to the Information Commissioner's Office.`,
       ],
     },
@@ -129,15 +143,16 @@ export const PRIVACY: Policy = {
 
 export const TERMS: Policy = {
   title: "Terms",
-  updated: "2026-09-01",
-  digest: "2738c1f6c298401f",
+  updated: "2026-09-08",
+  digest: "02792f062632755c",
   intro:
     "Short, because there is not much to agree about: this is free software, given as it is, that mostly runs on your own machine.",
   sections: [
     {
       heading: "What this is",
       paragraphs: [
-        "A free wedding planning tool, open source under the MIT licence. There is no account, no subscription, and nothing to pay.",
+        "A free wedding planning tool, and open source: the application is under the AGPL, and the data format it is built on is under the MIT licence. There is no subscription, no paid tier, and nothing to pay. There never will be — that is the point of it.",
+        "An account is optional and also free. It exists to sync between devices and to share a wedding with your partner, not to unlock anything.",
         "It was built for one wedding and then made available to anyone who wants it. It is offered as it is, with no warranty and no promise that it is fit for any particular purpose.",
       ],
     },
@@ -151,14 +166,14 @@ export const TERMS: Policy = {
     {
       heading: "Using the shared backend fairly",
       paragraphs: [
-        "Syncing and guest links run on a small server paid for personally. There are limits — how often a wedding can be created, how large a wedding can get, and how much can be uploaded to one — and they are set generously for planning a wedding and meanly for anything else.",
-        "Do not use it as file storage, do not try to work around the limits, and do not attempt to guess other people's passphrases.",
+        "Accounts, syncing and guest links run on a small server paid for personally. There are limits — how often a wedding can be created, how large a wedding can get, and how much can be uploaded to one — and they are set generously for planning a wedding and meanly for anything else.",
+        "Do not use it as file storage, do not try to work around the limits, and do not attempt to reach a wedding that is not yours — by guessing a passphrase, a guest link, or anything else.",
       ],
     },
     {
       heading: "It may not always be there",
       paragraphs: [
-        "There is no uptime guarantee, no support commitment, and no promise that the sharing service will continue to exist. It may be withdrawn at any time.",
+        "There is no uptime guarantee, no support commitment, and no promise that the hosted service will continue to exist. It may be withdrawn at any time. The source is public and documented for self-hosting precisely so that is survivable.",
         "This is why the export button matters. A backup file is the whole wedding, it opens in any copy of this application, and it does not depend on me at all. Take one.",
       ],
     },

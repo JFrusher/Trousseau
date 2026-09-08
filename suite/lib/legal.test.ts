@@ -44,10 +44,16 @@ test("a reader is given a way to make contact", () => {
   expect(policyText(PRIVACY)).toContain(CONTROLLER.email);
 });
 
-test("nothing claims a cookie banner or analytics that do not exist", () => {
-  // If either is ever added, this fails and the policy has to be rewritten
-  // before it can pass — which is the point.
+test("nothing claims an absence that is no longer true", () => {
+  // If analytics are ever added, this fails and the policy has to be
+  // rewritten before it can pass — which is the point.
+  //
+  // The cookie half used to assert "no cookies are set". Accounts made that
+  // false: @supabase/ssr keeps the session in one. The assertion now checks
+  // the cookie is disclosed rather than denied, so the failure mode is the
+  // same in the other direction — remove the disclosure and this fails.
   const text = policyText(PRIVACY).toLowerCase();
-  expect(text).toContain("no cookies are set");
   expect(text).toContain("no analytics");
+  expect(text).toContain("cookie");
+  expect(text).not.toContain("no cookies are set");
 });
