@@ -101,12 +101,40 @@ export interface TableauxDoc extends Record<string, unknown> {
   meta?: Record<string, unknown>
 }
 
+/**
+ * Give every guest a `fullName`, because this panel is the only thing that
+ * displays them and it displays that field.
+ *
+ * Tableaux derives `fullName` in its own `addGuest` and `updateGuest`, so a
+ * guest created here has always had one. A guest arriving any other way — the
+ * suite's CSV import, a restored backup, the example wedding — did not, and
+ * the guest panel showed a hundred blank rows above a count of a hundred
+ * guests, with nobody seatable.
+ *
+ * A name the guest already carries is never overwritten: Tableaux allows one
+ * that is not simply first plus last, and deriving over the top would quietly
+ * rewrite it.
+ */
+function named(guests: Record<string, Guest>): Record<string, Guest> {
+  const out: Record<string, Guest> = {};
+  for (const [id, guest] of Object.entries(guests)) {
+    if (typeof guest?.fullName === "string" && guest.fullName.trim() !== "") {
+      out[id] = guest;
+      continue;
+    }
+    const first = typeof guest?.firstName === "string" ? guest.firstName : "";
+    const last = typeof guest?.lastName === "string" ? guest.lastName : "";
+    out[id] = { ...guest, fullName: `${first} ${last}`.trim() || "New guest" };
+  }
+  return out;
+}
+
 /** The plan as Tableaux's store wants it, assembled from the shared wedding. */
 export function readDoc(): TableauxDoc {
   noteRead('tableaux')
   const { raw, doc } = useTrousseauStore.getState()
   const seating = isRecord(raw.seating) ? raw.seating : {}
-  const guests = isRecord(raw.guests) ? (raw.guests as Record<string, Guest>) : {}
+  const guests = named(isRecord(raw.guests) ? (raw.guests as Record<string, Guest>) : {})
   const meta = isRecord(seating.meta) ? seating.meta : {}
 
   return {
