@@ -41,7 +41,7 @@ instead (see subsystem F).
 | B | Multi-tenant data & storage | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-multitenant-storage-design.md), [plan](superpowers/plans/2026-09-02-multitenant-storage.md) complete 2026-09-07 |
 | C | Cadence/suite de-duplication | — | ✅ specced and verified safe; **archiving the four standalone repos is four clicks in GitHub's Settings → Archive**, left to the maintainer rather than installing a CLI to do it |
 | D | Tableaux's future | — | 🟡 **pass one built** — data boundary typed ([plan](superpowers/plans/2026-09-07-tableaux-data-boundary-typing.md), 2026-09-07); 108 files still JS |
-| E | Brigade's expanded scope | (loosely) A, B | 🟡 decomposed & sequenced (E1→E2→E3→E4), none specced yet |
+| E | Brigade's expanded scope | (loosely) A, B | ✅ [spec written](superpowers/specs/2026-09-08-brigade-vendors-budget-tasks-design.md) — all four in one, because Team and Job already exist |
 | F | Onboarding, billing & legal at product scale | A | ✅ **built** — [spec](superpowers/specs/2026-09-02-onboarding-billing-legal-design.md), [plan](superpowers/plans/2026-09-07-licensing-and-self-hosting.md) complete 2026-09-07; privacy/terms rewrite still open |
 | H | Guided tour & example wedding | — | ✅ **built** — [spec](superpowers/specs/2026-09-07-guided-tour-design.md), [plan](superpowers/plans/2026-09-07-guided-tour.md) complete 2026-09-07 |
 | I | Retention sweep for account weddings | B | ⬜ **not started** — the 24-month sweep covers synced weddings only; the privacy page deliberately does not claim it for accounts |
