@@ -106,3 +106,20 @@ export async function replayPendingWrite(): Promise<PushResult | null> {
   if (!pending) return null;
   return pushDocument(pending.document, pending.expectedVersion);
 }
+
+export interface WeddingIdResult {
+  ok: boolean;
+  weddingId: string | null;
+}
+
+/** The caller's wedding id, or null if there isn't one yet. Never throws. */
+export async function fetchWeddingId(): Promise<WeddingIdResult> {
+  try {
+    const response = await fetch("/api/accounts/wedding");
+    if (!response.ok) return { ok: false, weddingId: null };
+    const body = (await response.json()) as { weddingId: string | null };
+    return { ok: true, weddingId: body.weddingId };
+  } catch {
+    return { ok: false, weddingId: null };
+  }
+}

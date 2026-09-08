@@ -11,12 +11,14 @@ import {
 } from "@jfrusher/trousseau";
 import {
   fetchCloudDocument,
+  fetchWeddingId,
   pushDocument,
   replayPendingWrite,
   type PushResult,
 } from "@/lib/documents/cloudSync";
 import { fingerprintAllSlices, mergeCloudDocument, type SliceConflict } from "@/lib/documents/mergeCloudDocument";
 import { fingerprint } from "@/lib/documents/fingerprint";
+import { syncAssets } from "@/lib/documents/assets";
 
 /**
  * The one store the whole suite reads.
@@ -128,6 +130,8 @@ export interface TrousseauState {
   cloudAgreed: Partial<Record<SliceName, string>>;
   /** Slices changed on both sides since the last agreement. Surfaced, never auto-merged. */
   cloudConflicts: SliceConflict[];
+  /** This device's wedding id, once known. Needed for asset sync's Storage paths. */
+  weddingId: string | null;
 
   /** Called once, after local hydration, when accounts + a wedding are both available. */
   startCloudSync: () => Promise<void>;
@@ -296,6 +300,7 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
   cloudVersion: null,
   cloudAgreed: {},
   cloudConflicts: [],
+  weddingId: null,
 
   startCloudSync: async () => {
     set({ cloudStatus: "syncing" });
@@ -343,6 +348,12 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
       }
     }
 
+    const { weddingId } = await fetchWeddingId();
+    if (weddingId) {
+      set({ weddingId });
+      void syncAssets(weddingId);
+    }
+
     const replay = await replayPendingWrite();
     if (replay) applyCloudResult(replay);
   },
@@ -383,6 +394,8 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
     } else {
       set({ cloudVersion: result.version, cloudAgreed: merged.agreed });
       void get().syncToCloud();
+      const { weddingId } = get();
+      if (weddingId) void syncAssets(weddingId);
     }
   },
 
@@ -473,14 +486,18 @@ function schedulePersist(raw: Record<string, unknown>): void {
  */
 function applyCloudResult(result: PushResult): void {
   if (result.ok) {
-    const raw = useTrousseauStore.getState().raw;
+    const state = useTrousseauStore.getState();
     useTrousseauStore.setState({
       cloudStatus: "idle",
       cloudVersion: result.version,
       cloudConflicts: [],
-      cloudAgreed: fingerprintAllSlices(raw),
+      cloudAgreed: fingerprintAllSlices(state.raw),
       cloudError: null,
     });
+    // Fire-and-forget, same as everywhere else assets ride alongside the
+    // document: a failed or slow asset sync must never block or fail the
+    // document push/pull it accompanies.
+    if (state.weddingId) void syncAssets(state.weddingId);
     return;
   }
   if (result.reason === "conflict") {

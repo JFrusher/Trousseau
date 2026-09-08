@@ -12,6 +12,10 @@ vi.mock("@/lib/documents/cloudSync", () => ({
   fetchCloudDocument: (...args: unknown[]) => fetchCloudDocumentMock(...args),
   pushDocument: (...args: unknown[]) => pushDocumentMock(...args),
   replayPendingWrite: async () => null,
+  // No wedding id in these tests: keeps startCloudSync's asset-sync call a
+  // no-op rather than pulling in the real browserClient/assets modules,
+  // which are not this file's concern.
+  fetchWeddingId: async () => ({ ok: true, weddingId: null }),
 }));
 
 const { useTrousseauStore, flushPersist } = await import("./useTrousseauStore");
