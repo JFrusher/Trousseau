@@ -46,13 +46,21 @@ export function reconcile(
       name: team.displayName || team.tag,
       phone: team.phone,
       notes: team.notes,
+      email: "",
+      cost: null,
+      deposit: null,
+      depositPaidOn: "",
+      balanceDueOn: "",
+      confirmedOn: "",
     }));
 
   return {
     doc: { ...doc, day, teams: [...doc.teams, ...added] },
     report: {
+      // A job with no block was never on the day, so a re-import cannot have
+      // orphaned it.
       orphanedJobIds: doc.jobs
-        .filter((job) => !blockIds.has(job.blockId))
+        .filter((job) => job.blockId !== null && !blockIds.has(job.blockId))
         .map((job) => job.id),
       newBlockIds: day.blocks
         .filter((block) => !previousIds.has(block.id))

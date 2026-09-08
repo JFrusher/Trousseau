@@ -29,9 +29,12 @@ export function JobPanel() {
 
       <SelectField
         label="During"
-        value={job.blockId}
+        value={job.blockId ?? ""}
         options={[
-          ...(orphan ? [{ value: job.blockId, label: "— block deleted —" }] : []),
+          { value: "", label: "— not tied to the day —" },
+          ...(orphan && job.blockId !== null
+            ? [{ value: job.blockId, label: "— block deleted —" }]
+            : []),
           ...(doc.day?.blocks ?? [])
             .slice()
             .sort((a, b) => a.startMin - b.startMin)
@@ -40,7 +43,7 @@ export function JobPanel() {
               label: `${formatClock(entry.startMin)}  ${entry.label}`,
             })),
         ]}
-        onChange={(blockId) => updateJob(job.id, { blockId })}
+        onChange={(blockId) => updateJob(job.id, { blockId: blockId === "" ? null : blockId })}
       />
 
       {orphan ? (

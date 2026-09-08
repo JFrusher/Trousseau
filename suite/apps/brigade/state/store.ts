@@ -109,7 +109,23 @@ export const useStore = create<StoreState>((set, get) => {
       const id = seed.id ?? newId("team");
       edit((doc) => ({
         ...doc,
-        teams: [...doc.teams, { id, tag: null, name: "New team", phone: "", notes: "", ...seed }],
+        teams: [
+          ...doc.teams,
+          {
+            id,
+            tag: null,
+            name: "New team",
+            phone: "",
+            notes: "",
+            email: "",
+            cost: null,
+            deposit: null,
+            depositPaidOn: "",
+            balanceDueOn: "",
+            confirmedOn: "",
+            ...seed,
+          },
+        ],
       }));
       return id;
     },

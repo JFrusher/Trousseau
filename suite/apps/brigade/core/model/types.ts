@@ -43,6 +43,15 @@ export interface Team {
   name: string;
   phone: string;
   notes: string;
+  /** For sending the call sheet. */
+  email: string;
+  /** Agreed total. Null if nothing has been agreed. */
+  cost: number | null;
+  deposit: number | null;
+  /** ISO dates, or "" for "not yet". */
+  depositPaidOn: string;
+  balanceDueOn: string;
+  confirmedOn: string;
 }
 
 export interface Person {
@@ -72,8 +81,8 @@ export interface Person {
  */
 export interface Job {
   id: string;
-  /** The only link back to Cadence. */
-  blockId: string;
+  /** The only link back to Cadence, or null for a task not part of the day. */
+  blockId: string | null;
   label: string;
   notes: string;
   /** Who owns it when no name is on it yet. */
