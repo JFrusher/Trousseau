@@ -302,7 +302,7 @@ export default function RoomCanvas() {
       />
 
       <div className={styles.world} style={{ transform }}>
-        <RoomSpaces screenToCanvas={screenToCanvas} dashed={!hasTables} />
+        <RoomSpaces screenToCanvas={screenToCanvas} dashed={!hasTables} beginPan={beginPan} />
         {zoneIds.map((id) => (
           <ZoneLabel key={id} zoneId={id} screenToCanvas={screenToCanvas} />
         ))}

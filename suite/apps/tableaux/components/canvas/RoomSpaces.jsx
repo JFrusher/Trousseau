@@ -89,7 +89,7 @@ function doorPath(we, seg, ppu) {
  * with HTML overlays for selection handles, rename and recolour. Also renders
  * wall elements (doors, openings) and pillars.
  */
-export default function RoomSpaces({ screenToCanvas, dashed }) {
+export default function RoomSpaces({ screenToCanvas, dashed, beginPan }) {
   const room = useStore((s) => s.room)
   const ppu = useStore((s) => s.settings.pixelsPerUnit || DEFAULT_PPU)
   const unitSystem = useStore((s) => s.settings.unitSystem || 'metric')
@@ -247,10 +247,17 @@ export default function RoomSpaces({ screenToCanvas, dashed }) {
 
   // ── space interaction ────────────────────────────────────────────────────────
 
+  /**
+   * A press on the room body pans by default, exactly like empty canvas —
+   * the room used to swallow the gesture outright (select + stopPropagation
+   * on pointerdown), which made it impossible to start a pan with the
+   * cursor over a room. A plain click, with no drag, still selects the
+   * space: moving it is a second, deliberate stage via the move grip that
+   * appears once selected, below.
+   */
   const selectSpace = (e, sp) => {
     if (e.button !== 0 || editing) return
-    e.stopPropagation()
-    select('space', sp.id)
+    beginPan(e, () => select('space', sp.id))
   }
 
   // In door/opening mode: check if click is near a wall edge and place element there.

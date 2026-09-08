@@ -40,7 +40,7 @@ export function useCanvasPanZoom() {
   }, [])
 
   const beginPan = useCallback(
-    (e) => {
+    (e, onClick) => {
       if (e.button !== 0) return
       const startX = e.clientX
       const startY = e.clientY
@@ -55,7 +55,7 @@ export function useCanvasPanZoom() {
       }
       const onUp = () => {
         setIsPanning(false)
-        if (!moved) useStore.getState().clearSelection()
+        if (!moved) (onClick ?? (() => useStore.getState().clearSelection()))()
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
         window.removeEventListener('pointercancel', onUp)
