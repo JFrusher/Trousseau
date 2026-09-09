@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
 import { env } from "./lib/env";
 
 // Checked here so a misconfigured deploy fails the build rather than answering
@@ -132,5 +133,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
+
+export default withBundleAnalyzer(nextConfig);
 export { contentSecurityPolicy, securityHeaders };
