@@ -447,7 +447,8 @@ Expected: FAIL — `pullFromCloud`/`resolveConflict`/`cloudAgreed`/`cloudConflic
 Add the import (near the existing `@jfrusher/trousseau` import block, line 5-11):
 
 ```ts
-import { fingerprintAllSlices, mergeCloudDocument } from "@/lib/documents/mergeCloudDocument";
+import { fingerprintAllSlices, mergeCloudDocument, type SliceConflict } from "@/lib/documents/mergeCloudDocument";
+import { fingerprint } from "@/lib/documents/fingerprint";
 ```
 
 Replace the `TrousseauState` interface's cloud section (lines 117-135):
@@ -474,12 +475,6 @@ Replace the `TrousseauState` interface's cloud section (lines 117-135):
   pullFromCloud: () => Promise<void>;
   /** Settle one slice's conflict: take the server's value, or keep the local one. */
   resolveConflict: (slice: SliceName, choice: "theirs" | "mine") => void;
-```
-
-Add the `SliceConflict` import alongside the new one above:
-
-```ts
-import { fingerprintAllSlices, mergeCloudDocument, type SliceConflict } from "@/lib/documents/mergeCloudDocument";
 ```
 
 Replace the initial state values (lines 290-293):
@@ -604,12 +599,6 @@ Replace `resolveConflictTakeTheirs` / `resolveConflictKeepMine` (lines 341-354) 
     });
     schedulePersist(raw);
   },
-```
-
-This needs `fingerprint` imported too — extend the Task 1 import:
-
-```ts
-import { fingerprint } from "@/lib/documents/fingerprint";
 ```
 
 Replace `applyCloudResult`'s conflict branch (the `if (result.reason === "conflict")` block, originally lines ~433-438 after the earlier edits shifted line numbers — locate by the comment `// A conflict is recorded, never merged.`):
@@ -1200,7 +1189,7 @@ In `useTrousseauStore.ts`, add the import:
 import { syncAssets } from "@/lib/documents/assets";
 ```
 
-`syncAssets` needs the wedding id, which the store does not currently hold — add it as state, set once by `startCloudSync` (it is available wherever `accountsStore(client).memberOf(userId)` already resolves it server-side; client-side, thread it through `fetchCloudDocument`'s caller instead of adding a new endpoint: extend `FetchResult` in `lib/documents/cloudSync.ts` is out of scope for this task's minimal footprint, so instead read it the same way `SharePanel` used to get a wedding id - via `membership()`-equivalent. Concretely: add a `weddingId: string | null` field to `TrousseauState`, defaulting to `null`, set by `startCloudSync` from a new small helper).
+`syncAssets` needs the wedding id, which the store does not currently hold — add it as state, set once by `startCloudSync`.
 
 Add to `lib/documents/cloudSync.ts` (alongside the existing exports):
 

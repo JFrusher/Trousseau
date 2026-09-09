@@ -11,10 +11,15 @@ import {
 } from "@jfrusher/trousseau";
 import {
   fetchCloudDocument,
+  fetchWeddingId,
+  getPendingWrite,
   pushDocument,
   replayPendingWrite,
   type PushResult,
 } from "@/lib/documents/cloudSync";
+import { fingerprintAllSlices, mergeCloudDocument, type SliceConflict } from "@/lib/documents/mergeCloudDocument";
+import { fingerprint } from "@/lib/documents/fingerprint";
+import { syncAssets } from "@/lib/documents/assets";
 
 /**
  * The one store the whole suite reads.
@@ -122,17 +127,21 @@ export interface TrousseauState {
   cloudError: string | null;
   /** The version this device last confirmed the cloud holds, or null before the first sync. */
   cloudVersion: number | null;
-  /** Set when a write was rejected as a conflict — surfaced, never auto-merged. */
-  cloudConflict: { document: unknown; version: number } | null;
+  /** Fingerprint of each slice as last agreed with the server - the merge baseline. */
+  cloudAgreed: Partial<Record<SliceName, string>>;
+  /** Slices changed on both sides since the last agreement. Surfaced, never auto-merged. */
+  cloudConflicts: SliceConflict[];
+  /** This device's wedding id, once known. Needed for asset sync's Storage paths. */
+  weddingId: string | null;
 
   /** Called once, after local hydration, when accounts + a wedding are both available. */
   startCloudSync: () => Promise<void>;
   /** Push the current document now. Called after every local write, and on reconnect for the queue. */
   syncToCloud: () => Promise<void>;
-  /** Discard the local change, adopt the cloud's version. */
-  resolveConflictTakeTheirs: () => void;
-  /** Overwrite the cloud with the local document, at the cloud's own version — a deliberate second attempt, not a merge. */
-  resolveConflictKeepMine: () => Promise<void>;
+  /** Pull the server's current document and merge it in, per slice. Called on an interval and on focus. */
+  pullFromCloud: () => Promise<void>;
+  /** Settle one slice's conflict: take the server's value, or keep the local one. */
+  resolveConflict: (slice: SliceName, choice: "theirs" | "mine") => void;
 }
 
 function freshDoc(): { raw: Record<string, unknown>; doc: Trousseau } {
@@ -290,7 +299,9 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
   cloudStatus: "disabled",
   cloudError: null,
   cloudVersion: null,
-  cloudConflict: null,
+  cloudAgreed: {},
+  cloudConflicts: [],
+  weddingId: null,
 
   startCloudSync: async () => {
     set({ cloudStatus: "syncing" });
@@ -305,7 +316,13 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
 
     if (result.document !== null) {
       get().replaceDocument(result.document, { silent: true });
-      set({ cloudStatus: "idle", cloudVersion: result.version, cloudError: null });
+      set({
+        cloudStatus: "idle",
+        cloudVersion: result.version,
+        cloudAgreed: fingerprintAllSlices(result.document as Record<string, unknown>),
+        cloudConflicts: [],
+        cloudError: null,
+      });
     } else {
       // Nothing saved for this account yet. A wedding built entirely offline
       // and then signed into would otherwise sit stranded until the user's
@@ -320,37 +337,137 @@ export const useTrousseauStore = create<TrousseauState>()((set, get) => ({
         (guests !== null && typeof guests === "object" && Object.keys(guests).length > 0) ||
         (day?.blocks?.length ?? 0) > 0;
       if (hasContent) {
-        applyCloudResult(await pushDocument(local, 0));
+        applyCloudResult(await pushDocument(local, 0), local);
       } else {
-        set({ cloudStatus: "idle", cloudVersion: result.version, cloudError: null });
+        set({
+          cloudStatus: "idle",
+          cloudVersion: result.version,
+          cloudAgreed: fingerprintAllSlices(local),
+          cloudConflicts: [],
+          cloudError: null,
+        });
       }
     }
 
+    const { weddingId } = await fetchWeddingId();
+    if (weddingId) {
+      set({ weddingId });
+      void syncAssets(weddingId);
+    }
+
+    // Read before the replay, because the replay clears it: the queued
+    // document is what gets pushed, so it is what agreement is recorded
+    // against (see `applyCloudResult`'s `pushed`).
+    const pending = await getPendingWrite();
     const replay = await replayPendingWrite();
-    if (replay) applyCloudResult(replay);
+    if (replay) applyCloudResult(replay, pending ? asRecord(pending.document) : undefined);
   },
 
   syncToCloud: async () => {
     const state = get();
-    if (state.cloudStatus === "disabled") return;
+    // "conflict" refuses as firmly as "disabled" does. Both conflict paths
+    // below call `replaceDocument`, which schedules a persist, whose timer
+    // ends here 250ms later — pushing the merged document (still holding
+    // *local's* value for every conflicted slice) at the version the server
+    // just reported. The compare-and-set would succeed, the partner's edit
+    // would be gone, and the conflict UI would clear itself having chosen
+    // "keep mine" on the user's behalf. Nothing is pushed until the last
+    // conflict is resolved; `resolveConflict` then schedules its own push.
+    if (state.cloudStatus === "disabled" || state.cloudStatus === "conflict") return;
     set({ cloudStatus: "syncing" });
-    const result = await pushDocument(state.raw, state.cloudVersion ?? 0);
-    applyCloudResult(result);
+    const pushed = state.raw;
+    const result = await pushDocument(pushed, state.cloudVersion ?? 0);
+    applyCloudResult(result, pushed);
   },
 
-  resolveConflictTakeTheirs: () => {
-    const conflict = get().cloudConflict;
-    if (!conflict) return;
-    get().replaceDocument(conflict.document, { silent: true });
-    set({ cloudStatus: "idle", cloudVersion: conflict.version, cloudConflict: null });
+  pullFromCloud: async () => {
+    const before = get();
+    if (before.cloudStatus === "disabled" || before.cloudStatus === "syncing") return;
+    // A pull with nothing agreed yet is not a valid pull: with an empty
+    // `cloudAgreed`, every slice classifies as changed-on-both-sides against
+    // every other slice. `startCloudSync` leaves exactly that state
+    // (`cloudVersion: null`) when its first fetch was unreachable, so the
+    // next successful poll would otherwise turn a transient network failure
+    // into a document-wide conflict. Wait for a full sync to set a baseline.
+    if (before.cloudVersion === null) return;
+
+    const result = await fetchCloudDocument();
+    if (!result.ok) {
+      if (result.reason === "unreachable") {
+        set({ cloudStatus: "error", cloudError: "The cloud could not be reached." });
+      }
+      return;
+    }
+
+    // The one retry for a wedding id `startCloudSync` could not resolve.
+    // Cheap, and the alternative is a session with no asset sync at all and
+    // nothing on screen to say why.
+    if (get().weddingId === null) {
+      const resolved = await fetchWeddingId();
+      if (resolved.weddingId) set({ weddingId: resolved.weddingId });
+    }
+
+    // Re-read after the awaits above. The snapshot taken before the fetch is
+    // one network round trip old; merging against it would discard anything
+    // the user typed while it was in flight and then push the discard.
+    const state = get();
+    if (state.cloudStatus === "disabled" || state.cloudStatus === "syncing") return;
+    // Nothing has changed on the server since we last agreed - the common
+    // case on every tick of the poll.
+    if (result.version === state.cloudVersion) return;
+
+    const serverRaw = (result.document ?? {}) as Record<string, unknown>;
+    const merged = mergeCloudDocument(state.raw, serverRaw, state.cloudAgreed);
+
+    if (merged.conflicts.length > 0) {
+      get().replaceDocument(merged.raw, { silent: true });
+      set({
+        cloudStatus: "conflict",
+        cloudConflicts: merged.conflicts,
+        cloudVersion: result.version,
+        cloudAgreed: merged.agreed,
+      });
+    } else if (merged.adopted) {
+      get().replaceDocument(merged.raw, { silent: true });
+      set({ cloudVersion: result.version, cloudAgreed: merged.agreed });
+      void get().syncToCloud();
+    } else {
+      // The version moved but nothing here changed — usually our own write
+      // coming back, or the other tab echoing it. Record the version and
+      // stop: replacing the document would remount every tool for nothing,
+      // and pushing it back is how two open tabs ping-pong forever.
+      set({ cloudVersion: result.version, cloudAgreed: merged.agreed });
+    }
+
+    // Something moved elsewhere, so fonts and artwork may have too.
+    const { weddingId } = get();
+    if (weddingId) void syncAssets(weddingId);
   },
 
-  resolveConflictKeepMine: async () => {
-    const conflict = get().cloudConflict;
+  resolveConflict: (slice, choice) => {
+    const state = get();
+    const conflict = state.cloudConflicts.find((c) => c.slice === slice);
     if (!conflict) return;
-    set({ cloudConflict: null, cloudStatus: "syncing" });
-    const result = await pushDocument(get().raw, conflict.version);
-    applyCloudResult(result);
+    const remaining = state.cloudConflicts.filter((c) => c.slice !== slice);
+    const raw = choice === "theirs" ? mergeSlice(state.raw, slice, conflict.theirs) : state.raw;
+    const resolvedValue = raw[slice];
+
+    set({
+      raw,
+      doc: migrate(raw),
+      // Bumped for the same reason `replaceDocument` bumps it: a tool mounted
+      // before the resolution still holds the pre-resolution slice, and
+      // `toolGeneration`'s `mayWrite()` would let its next autosave write that
+      // back — silently undoing the choice and pushing the undo to the cloud.
+      generation: state.generation + 1,
+      cloudConflicts: remaining,
+      cloudAgreed: { ...state.cloudAgreed, [slice]: fingerprint(resolvedValue) },
+      // Still "conflict" while any remain, which keeps `syncToCloud` refusing
+      // to push a half-resolved document. The last resolution flips it to
+      // "idle", and the persist scheduled below then pushes normally.
+      cloudStatus: remaining.length > 0 ? "conflict" : "idle",
+    });
+    schedulePersist(raw);
   },
 }));
 
@@ -416,25 +533,54 @@ function schedulePersist(raw: Record<string, unknown>): void {
  * called from `schedulePersist`'s timer as well as from the actions, and
  * reaching for `setState` directly is what the persist path already does.
  *
- * A conflict is recorded, never merged. The cloud's document is parked in
- * `cloudConflict` for the user to choose between, and nothing overwrites the
- * document they are looking at until they say so.
+ * A conflict is merged per slice, never overwritten wholesale. Slices that
+ * changed on both sides are parked in `cloudConflicts` for the user to choose
+ * between; every other slice's server value is adopted immediately.
+ *
+ * `pushed` is the document the caller actually sent. Agreement is recorded
+ * against *that*, not against whatever `raw` happens to be when the response
+ * lands: a keystroke during the round trip would otherwise be recorded as
+ * agreed with a server that never received it, and the next merge would treat
+ * that slice as unchanged here and quietly take the partner's value over it.
  */
-function applyCloudResult(result: PushResult): void {
+function applyCloudResult(result: PushResult, pushed?: Record<string, unknown>): void {
   if (result.ok) {
     useTrousseauStore.setState({
       cloudStatus: "idle",
       cloudVersion: result.version,
-      cloudConflict: null,
+      cloudConflicts: [],
+      cloudAgreed: fingerprintAllSlices(pushed ?? useTrousseauStore.getState().raw),
       cloudError: null,
     });
+    // No asset sync here. This runs after every debounced edit burst, and
+    // fonts and artwork only change on upload — listing the bucket and
+    // reading every blob out of IndexedDB on each keystroke burst buys
+    // nothing. `startCloudSync` and `pullFromCloud` cover the two cases where
+    // something might actually have changed elsewhere.
     return;
   }
   if (result.reason === "conflict") {
-    useTrousseauStore.setState({
-      cloudStatus: "conflict",
-      cloudConflict: { document: result.document, version: result.version },
-    });
+    const state = useTrousseauStore.getState();
+    const merged = mergeCloudDocument(
+      state.raw,
+      result.document as Record<string, unknown>,
+      state.cloudAgreed,
+    );
+    state.replaceDocument(merged.raw, { silent: true });
+
+    if (merged.conflicts.length > 0) {
+      useTrousseauStore.setState({
+        cloudStatus: "conflict",
+        cloudConflicts: merged.conflicts,
+        cloudVersion: result.version,
+        cloudAgreed: merged.agreed,
+      });
+    } else {
+      // Every differing slice resolved cleanly - finalize by pushing the
+      // merged document at the version the server just reported.
+      useTrousseauStore.setState({ cloudVersion: result.version, cloudAgreed: merged.agreed });
+      void useTrousseauStore.getState().syncToCloud();
+    }
     return;
   }
   if (result.reason === "queued") {

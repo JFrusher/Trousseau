@@ -418,6 +418,27 @@ async function pullBlobs(): Promise<void> {
 // the guest link --------------------------------------------------------------
 
 /**
+ * Re-establish the session for a wedding this device already belongs to.
+ *
+ * The session is memory-only, so a reload leaves the guest link unpublishable
+ * and — worse — un-take-down-able until a passphrase is entered again. `join`
+ * cannot be that entry point: it takes the server's slices over the local
+ * document and resets `shareToken`, which is the only record of the live link.
+ * Publishing and taking down need the write token and nothing else, so this
+ * derives the keys from the stored salt and stops there.
+ *
+ * A wrong passphrase derives a wrong write token rather than failing here; the
+ * server rejects it on the next call, which is where the message belongs.
+ */
+export async function unlockShare(passphrase: string): Promise<Session> {
+  const known = await membership();
+  if (!known) throw new Error("This device is not part of a shared wedding.");
+  const keys = await deriveKeys(passphrase, known.salt);
+  session = { weddingId: known.weddingId, ...keys };
+  return session;
+}
+
+/**
  * Publish, replacing whatever was there.
  *
  * One token per wedding, kept in the membership. Minting a fresh one each time
