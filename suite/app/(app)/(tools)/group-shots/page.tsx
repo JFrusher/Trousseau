@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { EnsembleBoard } from "@/components/ensemble/EnsembleBoard";
+import { EnsembleClient } from "./EnsembleClient";
 
 export const metadata: Metadata = {
   title: "Group shots",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function GroupShotsPage() {
-  return <EnsembleBoard />;
+  return <EnsembleClient />;
 }

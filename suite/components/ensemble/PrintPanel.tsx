@@ -5,7 +5,6 @@ import { browserFontSource } from "@/apps/brigade/render/pdf/fontSource";
 import { Button, Empty, Panel, Segmented } from "@/components/ui/controls";
 import { download } from "@/lib/data/file";
 import { shotListCsv } from "@/lib/ensemble/exports";
-import { renderShotSheet } from "@/lib/ensemble/render/pdf/shotSheet";
 import { resolveShot } from "@/lib/ensemble/resolve";
 import type { Guest, Seating, Shots } from "@/lib/model/types";
 
@@ -46,6 +45,7 @@ export function PrintPanel({
     setBusy(true);
     setError(null);
     try {
+      const { renderShotSheet } = await import("@/lib/ensemble/render/pdf/shotSheet");
       const bytes = await renderShotSheet(
         shots.sections,
         guests,

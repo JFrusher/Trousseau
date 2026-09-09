@@ -3,6 +3,7 @@ import { accountsConfigured } from "@/lib/env";
 import { createWeddingHandler } from "@/lib/accounts/handlers";
 import { accountsStore } from "@/lib/accounts/supabaseStore";
 import { currentUser, serverClient } from "@/lib/accounts/serverClient";
+import { allow, CREATE_LIMIT } from "@/lib/sync/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,9 @@ const unconfigured = () =>
 
 const unauthenticated = () =>
   NextResponse.json({ error: "Sign in first." }, { status: 401 });
+
+const throttled = () =>
+  NextResponse.json({ error: "Too many requests. Wait a while and try again." }, { status: 429 });
 
 /**
  * Anything thrown past the specific checks above is a genuine surprise — a
@@ -47,6 +51,8 @@ export async function POST() {
     if (!accountsConfigured()) return unconfigured();
     const user = await currentUser();
     if (!user) return unauthenticated();
+
+    if (!allow(`accounts:create-wedding:${user.id}`, CREATE_LIMIT)) return throttled();
 
     const client = await serverClient();
     if (!client) return unconfigured();

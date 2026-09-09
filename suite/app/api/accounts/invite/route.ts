@@ -4,6 +4,7 @@ import { createInviteHandler } from "@/lib/accounts/handlers";
 import { accountsStore } from "@/lib/accounts/supabaseStore";
 import { currentUser, serverClient } from "@/lib/accounts/serverClient";
 import { check, inviteEmailSchema } from "@/lib/accounts/schemas";
+import { allow, INVITE_LIMIT } from "@/lib/sync/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 const unconfigured = () =>
   NextResponse.json({ error: "Accounts are not set up on this deployment." }, { status: 501 });
 const unauthenticated = () => NextResponse.json({ error: "Sign in first." }, { status: 401 });
+const throttled = () =>
+  NextResponse.json({ error: "Too many requests. Wait a while and try again." }, { status: 429 });
 
 /** See the note in `../wedding/route.ts`: an uncaught throw here becomes an HTML 500 the UI can't parse. */
 const failed = (error: unknown) => {
@@ -23,6 +26,8 @@ export async function POST(request: Request) {
     if (!accountsConfigured()) return unconfigured();
     const user = await currentUser();
     if (!user) return unauthenticated();
+
+    if (!allow(`accounts:invite:${user.id}`, INVITE_LIMIT)) return throttled();
 
     let body: unknown;
     try {
