@@ -65,6 +65,21 @@ test("downloads a server asset this device does not hold yet", async () => {
   expect(result).toEqual({ uploaded: 0, downloaded: 1 });
 });
 
+test("a failed list stops the sync rather than reading as an empty bucket", async () => {
+  // Swallowing the error left `onServer` empty, which re-uploads every font
+  // this device holds on every sync and downloads nothing, with no signal
+  // anywhere that the bucket was never actually read.
+  listMock.mockResolvedValue({ data: null, error: { message: "permission denied" } });
+  collectAssetsMock.mockResolvedValue([{ id: "font-a1", bytes: new Uint8Array([1, 2, 3]) }]);
+  heldAssetIdsMock.mockResolvedValue([]);
+
+  const result = await syncAssets("wedding-1");
+
+  expect(uploadMock).not.toHaveBeenCalled();
+  expect(downloadMock).not.toHaveBeenCalled();
+  expect(result).toEqual({ uploaded: 0, downloaded: 0 });
+});
+
 test("does nothing when local and server already agree", async () => {
   listMock.mockResolvedValue({ data: [{ name: "font-a1" }], error: null });
   collectAssetsMock.mockResolvedValue([{ id: "font-a1", bytes: new Uint8Array([1]) }]);

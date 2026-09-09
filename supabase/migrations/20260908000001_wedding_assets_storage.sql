@@ -8,6 +8,14 @@
 --
 -- Object paths are "{wedding_id}/{asset_id}" - the policies below read the
 -- wedding id as the first path segment via storage.foldername(name).
+--
+-- Each policy checks the segment's *shape* before casting it to uuid. These
+-- are permissive policies OR'd into every query against storage.objects, a
+-- table shared by every bucket, and Postgres does not promise to evaluate the
+-- operands of `and` left to right - so an unguarded `::uuid` can raise
+-- "invalid input syntax for type uuid" on somebody else's bucket, whose paths
+-- were never meant to be wedding ids. The regex makes the cast unreachable
+-- until the text is already known to be castable.
 
 insert into storage.buckets (id, name, public)
 values ('wedding-assets', 'wedding-assets', false)
@@ -18,6 +26,7 @@ create policy "wedding members can read their wedding-assets"
   on storage.objects for select
   using (
     bucket_id = 'wedding-assets'
+    and (storage.foldername(name))[1] ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
     and public.is_wedding_member((storage.foldername(name))[1]::uuid)
   );
 
@@ -26,6 +35,7 @@ create policy "wedding members can upload their wedding-assets"
   on storage.objects for insert
   with check (
     bucket_id = 'wedding-assets'
+    and (storage.foldername(name))[1] ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
     and public.is_wedding_member((storage.foldername(name))[1]::uuid)
   );
 
@@ -34,6 +44,7 @@ create policy "wedding members can replace their wedding-assets"
   on storage.objects for update
   using (
     bucket_id = 'wedding-assets'
+    and (storage.foldername(name))[1] ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
     and public.is_wedding_member((storage.foldername(name))[1]::uuid)
   );
 
@@ -42,5 +53,6 @@ create policy "wedding members can delete their wedding-assets"
   on storage.objects for delete
   using (
     bucket_id = 'wedding-assets'
+    and (storage.foldername(name))[1] ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
     and public.is_wedding_member((storage.foldername(name))[1]::uuid)
   );

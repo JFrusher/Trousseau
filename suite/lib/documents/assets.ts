@@ -21,7 +21,16 @@ export async function syncAssets(weddingId: string): Promise<AssetSyncResult> {
   if (!client) return { uploaded: 0, downloaded: 0 };
   const bucket = client.storage.from(BUCKET);
 
-  const { data: listed } = await bucket.list(weddingId);
+  // A failed list is not "the bucket is empty". Treating it as empty
+  // re-uploads every font this device holds and downloads nothing, on every
+  // sync, with nobody any the wiser — so a failure here stops the whole
+  // exchange instead.
+  //
+  // ponytail: `list` pages at 100 objects and this reads only the first page.
+  // Beyond 100 assets for one wedding the rest are invisible: pass
+  // `{ limit, offset }` in a loop if a wedding ever gets that many.
+  const { data: listed, error: listError } = await bucket.list(weddingId);
+  if (listError) return { uploaded: 0, downloaded: 0 };
   const onServer = new Set((listed ?? []).map((entry) => entry.name));
 
   let uploaded = 0;

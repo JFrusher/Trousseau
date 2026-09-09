@@ -25,6 +25,16 @@ export interface MergeResult {
   conflicts: SliceConflict[];
   /** Updated agreed-fingerprint map: includes every slice that is now settled. */
   agreed: Partial<Record<SliceName, string>>;
+  /**
+   * True when any value in `raw` came from the server rather than from local.
+   *
+   * A caller that replaces the document unconditionally makes every accepted
+   * server write bounce straight back — a version bump and a history row for a
+   * document nobody changed, which the *other* tab then pulls and bounces
+   * again. It also remounts the whole tool subtree (keyed on `generation`) on
+   * both devices every poll. So: replace and push only when this is true.
+   */
+  adopted: boolean;
 }
 
 export function fingerprintAllSlices(raw: Record<string, unknown>): Partial<Record<SliceName, string>> {
@@ -38,9 +48,18 @@ export function mergeCloudDocument(
   serverRaw: Record<string, unknown>,
   agreedFingerprints: Partial<Record<SliceName, string>>,
 ): MergeResult {
-  const raw = { ...localRaw };
+  // Seeded from the server, then overlaid with local, so a top-level key this
+  // build has never heard of — a slice belonging to a tool a newer version of
+  // the suite added — defaults to the server's copy instead of vanishing from
+  // the merged document and then being pushed back missing. The contract's
+  // envelope uses `looseObject` for exactly this reason. Every known slice is
+  // decided by the loop below, which writes `raw[slice]` on every branch.
+  const raw: Record<string, unknown> = { ...serverRaw, ...localRaw };
   const agreed = { ...agreedFingerprints };
   const conflicts: SliceConflict[] = [];
+  let adopted = Object.keys(serverRaw).some(
+    (key) => !(key in localRaw) && !(SLICE_NAMES as readonly string[]).includes(key),
+  );
 
   for (const slice of SLICE_NAMES) {
     const mine = localRaw[slice];
@@ -59,19 +78,22 @@ export function mergeCloudDocument(
 
     if (changedHere && changedThere) {
       conflicts.push({ slice, theirs });
-      continue; // raw[slice] stays at localRaw[slice]; agreed[slice] stays at base.
+      raw[slice] = mine; // Local's value stands until the user chooses.
+      continue; // agreed[slice] stays at base.
     }
 
     if (changedThere) {
       raw[slice] = theirs;
       agreed[slice] = theirFp;
+      adopted = true;
       continue;
     }
 
     // changedHere only: keep mine. Left unmarked in `agreed` (still `base`) -
     // the next successful push (Task 3) recomputes the full agreed map from
     // whatever was actually accepted, which is the one true source for it.
+    raw[slice] = mine;
   }
 
-  return { raw, conflicts, agreed };
+  return { raw, conflicts, agreed, adopted };
 }
