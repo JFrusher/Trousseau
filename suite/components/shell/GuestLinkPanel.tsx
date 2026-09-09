@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Check as CheckIcon, Copy, Link2, Unlink } from "lucide-react";
+import {
+  AlertTriangle,
+  Check as CheckIcon,
+  Copy,
+  Link2,
+  Trash2,
+  Unlink,
+} from "lucide-react";
 import { readGuests, readSeating } from "@/lib/model/slices";
 import { useTrousseauStore } from "@/lib/store/useTrousseauStore";
 import { newShareKey, seal } from "@/lib/sync/crypto";
@@ -9,6 +16,7 @@ import { shareSnapshot } from "@/lib/sync/shareSnapshot";
 import {
   createShared,
   currentSession,
+  deleteFromServer,
   membership,
   publishShare,
   takeDownShare,
@@ -41,6 +49,8 @@ export function GuestLinkPanel({ onProblem }: { onProblem: (message: string | nu
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [showPlan, setShowPlan] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [erasing, setErasing] = useState(false);
+  const [erasePhrase, setErasePhrase] = useState("");
 
   const refresh = useCallback(async () => {
     const known = await membership();
@@ -172,6 +182,66 @@ export function GuestLinkPanel({ onProblem }: { onProblem: (message: string | nu
               </p>
             </div>
           ) : null}
+
+          {/*
+            Erasure, kept behind a typed confirmation rather than a second
+            click. It removes the wedding from the legacy passphrase server —
+            not the copy on this device — so it stays reversible right up to
+            the moment "delete" is typed.
+          */}
+          <div className="border-t border-charcoal/10 pt-2">
+            {erasing ? (
+              <div className="space-y-2 rounded border border-rose/50 bg-rose/10 p-2">
+                <p className="text-xs text-charcoal">
+                  This removes the wedding from the server for good — every slice, every uploaded
+                  font and picture, and the guest link. Anyone holding that link will find nothing
+                  there. The copy on this device is untouched.
+                </p>
+                <TextField
+                  label='Type "delete" to confirm'
+                  value={erasePhrase}
+                  onChange={setErasePhrase}
+                  placeholder="delete"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    icon={Trash2}
+                    tone="danger"
+                    disabled={erasePhrase.trim().toLowerCase() !== "delete" || busy !== null}
+                    onClick={() =>
+                      void run("erase", async () => {
+                        await deleteFromServer();
+                        setUnlocked(false);
+                        setShareLink(null);
+                        setErasing(false);
+                        setErasePhrase("");
+                        await refresh();
+                        return "Erased from the server. The wedding is still here on this device.";
+                      })
+                    }
+                  >
+                    {busy === "erase" ? "Erasing…" : "Erase from server"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setErasing(false);
+                      setErasePhrase("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="text-xs text-slate underline underline-offset-2 hover:text-charcoal"
+                onClick={() => setErasing(true)}
+              >
+                Erase this wedding from the server
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         /*
