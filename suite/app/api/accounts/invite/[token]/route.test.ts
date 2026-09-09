@@ -2,9 +2,7 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import { memoryStore } from "@/lib/accounts/store";
 
-const store = memoryStore() as ReturnType<typeof memoryStore> & {
-  _seedEmail(userId: string, email: string): void;
-};
+const store = memoryStore();
 
 let currentUserResult: { id: string; email: string } | null = { id: "user-1", email: "a@example.com" };
 

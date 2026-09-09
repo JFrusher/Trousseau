@@ -25,13 +25,16 @@ export default function ExportModal() {
   const addToast = useStore((s) => s.addToast)
   const fileRef = useRef(null)
 
-  // TODO(ux-audit): these four handlers have no try/catch, no busy/disabled
-  // state, and no success toast, unlike the sibling PrintModal.jsx which
-  // wraps the same kind of work properly. A thrown exception (e.g.
-  // XLSX.write on pathological data, or a browser-blocked download) leaves
-  // the modal looking unresponsive with nothing logged for the user, and
-  // even on success there's no "Exported." confirmation. See
-  // tmp/ux-audit.md #M1 (and #M2 for the missing success toast).
+  // TODO(ux-audit): handleJson, handleCsv, and handleReport have no
+  // try/catch, no busy/disabled state, and no success toast, unlike the
+  // sibling PrintModal.jsx which wraps the same kind of work properly. A
+  // thrown exception (e.g. XLSX.write on pathological data, or a
+  // browser-blocked download) leaves the modal looking unresponsive with
+  // nothing logged for the user, and even on success there's no "Exported."
+  // confirmation. See tmp/ux-audit.md #M1 (and #M2 for the missing success
+  // toast). handleGroupsXlsx now has error handling (its failure mode is a
+  // network chunk-load error, not a thrown export error) but still has no
+  // busy state or success toast, same as the other three.
   const handleJson = () => {
     const s = useStore.getState()
     exportJson(s.serialize(), s.meta.weddingName)
@@ -49,8 +52,15 @@ export default function ExportModal() {
   }
   const handleGroupsXlsx = async () => {
     const s = useStore.getState()
-    await exportGroupsXlsx(s, s.meta.weddingName)
-    closeModal()
+    try {
+      await exportGroupsXlsx(s, s.meta.weddingName)
+      closeModal()
+    } catch {
+      addToast({
+        type: 'error',
+        message: "Couldn't export the group list. Check your connection and try again.",
+      })
+    }
   }
   const handleImportFile = async (file) => {
     if (!file) return

@@ -42,7 +42,12 @@ export const CREATE_LIMIT: Limit = { max: 5, windowMs: 60 * 60 * 1000 };
 /** Sending an invite email. Same budget shape as CREATE_LIMIT, named for what it guards: an outbound email send, not "creating unlimited weddings." */
 export const INVITE_LIMIT: Limit = { max: 5, windowMs: 60 * 60 * 1000 };
 
-/** Failed unlock attempts. Generous enough never to bite a real typo. */
+/**
+ * Failed unlock attempts. Generous enough never to bite a real typo.
+ *
+ * Also spent by `POST /api/accounts/invite/[token]` on every accept-invite
+ * attempt, success included — there, every attempt counts, not only failures.
+ */
 export const AUTH_LIMIT: Limit = { max: 20, windowMs: 15 * 60 * 1000 };
 
 /** Ordinary reads and writes by somebody already holding the passphrase. */
@@ -85,7 +90,12 @@ export function callerKey(request: Request): string {
   return first && first.length > 0 ? first : "unknown";
 }
 
-/** Only failures count, so a working session is never throttled by its own use. */
+/**
+ * Only failures count here, so a working session is never throttled by its
+ * own use. (AUTH_LIMIT itself is also spent elsewhere on every attempt,
+ * success included — see its own doc comment — this function is specifically
+ * the failures-only path.)
+ */
 export function noteAuthFailure(key: string): void {
   allow(`auth:${key}`, AUTH_LIMIT);
 }

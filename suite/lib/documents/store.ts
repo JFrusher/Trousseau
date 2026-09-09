@@ -26,9 +26,18 @@ export interface DocumentStore {
    * way — accepted or not — so a rejected write can show what it lost to.
    */
   saveDocument(weddingId: string, document: unknown, expectedVersion: number): Promise<SaveResult>;
-  /** Weddings whose document was last saved before `before`, oldest first. */
+  /**
+   * Weddings stale as of `before`, oldest first: either a document last saved
+   * before that time, or (the Supabase-backed implementation only) a wedding
+   * old enough to count but that has never had a document saved at all.
+   */
   staleWeddings(before: string): Promise<string[]>;
-  /** Delete a wedding's document outright — used only by the retention sweep. */
+  /**
+   * Delete a wedding outright, not just its document — used only by the
+   * retention sweep. The Supabase-backed implementation deletes the whole
+   * `account_weddings` row, cascading to its document, history, members, and
+   * invites.
+   */
   deleteWedding(weddingId: string): Promise<void>;
 }
 
