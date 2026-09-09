@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Database, Users } from "lucide-react";
@@ -9,7 +10,10 @@ import { TOOLS } from "@/lib/tools";
 import { AccountStatus } from "./AccountStatus";
 import { HowThisWorks } from "./TourButtons";
 import { ChromeSlot } from "./chrome";
-import { DataManager } from "./DataManager";
+
+const DataManager = dynamic(() => import("./DataManager").then((m) => m.DataManager), {
+  ssr: false,
+});
 
 /**
  * The one header, on every page.
@@ -20,6 +24,12 @@ import { DataManager } from "./DataManager";
  */
 export function Header() {
   const [dataOpen, setDataOpen] = useState(false);
+  // DataManager's chunk (framer-motion, CSV/guest-import parsing, etc.) is
+  // dynamically imported — keep it out of the tree entirely until the user
+  // has opened it once, so the chunk isn't fetched on every route's first
+  // render. Once opened, it stays mounted so its own AnimatePresence can
+  // still animate the close.
+  const [dataEverOpened, setDataEverOpened] = useState(false);
   const pathname = usePathname();
   const guestCount = useTrousseauStore((s) => Object.keys(s.doc.guests).length);
   const dirty = useTrousseauStore((s) => s.status === "error");
@@ -76,7 +86,10 @@ export function Header() {
           <button
             type="button"
             data-tour="shell.data"
-            onClick={() => setDataOpen(true)}
+            onClick={() => {
+              setDataEverOpened(true);
+              setDataOpen(true);
+            }}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded border px-2.5 py-1.5 text-sm transition ${
               dirty
                 ? "border-rose bg-rose/15 text-charcoal"
@@ -92,7 +105,7 @@ export function Header() {
         </div>
       </header>
 
-      <DataManager open={dataOpen} onClose={() => setDataOpen(false)} />
+      {dataEverOpened ? <DataManager open={dataOpen} onClose={() => setDataOpen(false)} /> : null}
     </>
   );
 }
