@@ -35,7 +35,7 @@ export const DEFAULT_CHAIR_CM = 45
 // ── seat-count distribution for rectangles ──────────────────────────────────
 
 /** Split a capacity across rectangle edges according to the preset's layout. */
-function sidesFromLayout(cap, def) {
+export function sidesFromLayout(cap, def) {
   const layout = def.seatLayout
   let top = 0
   let bottom = 0
@@ -132,6 +132,56 @@ function halfCircleSeatsAt(cap, radius, cy) {
     seats.push({ x: Math.cos(angle) * seatR, y: cy - Math.sin(angle) * seatR })
   }
   return seats
+}
+
+// Matches the seat order rectSeatsFromSides lays out in, and therefore the
+// order assignedGuestIds indices are grouped in for a seat-mode rect table.
+const SIDE_ORDER = ['top', 'bottom', 'left', 'right']
+
+/**
+ * Re-slice a seat-mode rect table's assignedGuestIds when its per-side seat
+ * counts change, side by side — instead of truncating the flat array by raw
+ * index against the new total capacity, which has no idea which side the
+ * user actually resized and can evict a guest on an untouched side while the
+ * side that shrank sails through even though it had a free seat to give up.
+ *
+ * A side that grows keeps its guests' positions and gets empty seats
+ * appended. A side that shrinks drops its own empty seats first; a guest is
+ * only bumped into the returned overflow when every remaining seat on that
+ * specific side is already taken. A side whose count didn't change is left
+ * completely untouched.
+ */
+export function remapSeatsForSides(guestIds = [], oldSides, newSides) {
+  let cursor = 0
+  const nextSegments = []
+  const overflow = []
+
+  for (const side of SIDE_ORDER) {
+    const oldCount = Math.max(0, Math.round(oldSides?.[side] || 0))
+    const newCount = Math.max(0, Math.round(newSides?.[side] || 0))
+    const raw = guestIds.slice(cursor, cursor + oldCount)
+    const segment = Array.from({ length: oldCount }, (_, i) => raw[i] ?? null)
+    cursor += oldCount
+
+    if (newCount >= oldCount) {
+      nextSegments.push([...segment, ...new Array(newCount - oldCount).fill(null)])
+      continue
+    }
+    const occupied = segment.filter(Boolean)
+    if (occupied.length <= newCount) {
+      nextSegments.push([...occupied, ...new Array(newCount - occupied.length).fill(null)])
+    } else {
+      nextSegments.push(occupied.slice(0, newCount))
+      overflow.push(...occupied.slice(newCount))
+    }
+  }
+
+  // Anything beyond the last known side (e.g. the array already carried
+  // overflow from an earlier resize) rides along rather than being dropped.
+  if (cursor < guestIds.length) overflow.push(...guestIds.slice(cursor).filter(Boolean))
+
+  const out = nextSegments.flat()
+  return overflow.length ? [...out, ...overflow] : out
 }
 
 /**

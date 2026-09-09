@@ -70,6 +70,38 @@ describe('table geometry actions', () => {
     expect(s().tables[id].perSideSeats).toBeNull()
   })
 
+  it('setPerSideSeats only evicts a guest when the shrinking side has no free seat left', () => {
+    const doc = baseDoc()
+    doc.tables.t1 = {
+      id: 't1',
+      label: 'Table 1',
+      designation: null,
+      type: 'rect',
+      capacity: 8,
+      x: 0,
+      y: 0,
+      rotation: 0,
+      seatMode: 'seat',
+      colour: null,
+      perSideSeats: { top: 2, bottom: 2, left: 2, right: 2 },
+      // Seat order matches rectSeatsFromSides: top, bottom, left, right.
+      // `left` has one free seat (index 4) and one occupied (index 5).
+      assignedGuestIds: ['top0', 'top1', 'bottom0', 'bottom1', null, 'left1', 'right0', 'right1'],
+    }
+    s().hydrate(doc)
+
+    // Shrink `left` from 2 to 1 — it already has a free seat, so nobody
+    // should be evicted anywhere, least of all on the untouched `right` side.
+    s().setPerSideSeats('t1', { top: 2, bottom: 2, left: 1, right: 2 })
+
+    const t = s().tables.t1
+    expect(t.capacity).toBe(7)
+    expect(t.assignedGuestIds).toHaveLength(7) // no overflow — nobody evicted
+    expect(t.assignedGuestIds.slice(0, 4)).toEqual(['top0', 'top1', 'bottom0', 'bottom1'])
+    expect(t.assignedGuestIds[4]).toBe('left1') // kept the occupied seat, dropped the empty one
+    expect(t.assignedGuestIds.slice(5, 7)).toEqual(['right0', 'right1']) // untouched side, unshifted
+  })
+
   it('changeTableType clears per-side seating', () => {
     const id = s().createCustomTable({ perSideSeats: { top: 2, bottom: 2 } }).meta.newTableId
     s().changeTableType(id, 'round')

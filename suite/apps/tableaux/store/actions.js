@@ -18,7 +18,12 @@ import {
   clampPerSide,
   seatCountFromPerSide,
 } from '../utils/tableTypes.js'
-import { deriveSizeUnits, DEFAULT_PPU } from '../utils/seatPositions.js'
+import {
+  deriveSizeUnits,
+  DEFAULT_PPU,
+  sidesFromLayout,
+  remapSeatsForSides,
+} from '../utils/seatPositions.js'
 
 // ── array helpers ───────────────────────────────────────────────────────────
 
@@ -224,7 +229,8 @@ export const changeTableType = (id, type) => (state) => {
 }
 
 // Set independent seat counts per edge for a (custom) rectangle. Capacity is
-// derived from the sum, and seat-level arrays are renormalised to the new size.
+// derived from the sum, and seat-level arrays are re-sliced side by side so a
+// resize on one edge can't evict a guest sitting on a different, untouched one.
 export const setPerSideSeats = (id, perSide) => (state) => {
   const table = state.tables[id]
   if (!table) return null
@@ -232,7 +238,8 @@ export const setPerSideSeats = (id, perSide) => (state) => {
   const capacity = Math.max(1, seatCountFromPerSide(clean))
   let assignedGuestIds = table.assignedGuestIds || []
   if (table.seatMode === 'seat') {
-    assignedGuestIds = normaliseSeats(assignedGuestIds, capacity)
+    const oldSides = table.perSideSeats || sidesFromLayout(table.capacity, getTableType(table.type))
+    assignedGuestIds = remapSeatsForSides(assignedGuestIds, oldSides, clean)
   }
   return {
     type: 'SET_PER_SIDE_SEATS',
