@@ -210,6 +210,34 @@ test("the guest link keeps one token, so an old link never serves a stale plan",
   expect(await store.getShare(first)).toBeNull();
 });
 
+test("unlockShare restores the session for a take-down without disturbing anything else", async () => {
+  // The session lives in memory, so a reload leaves a published link with no
+  // way to take it down. `join` cannot be the way back: it takes the server's
+  // slices over the local document and resets `shareToken`, which is the only
+  // record of the live link — so the take-down button would vanish at exactly
+  // the moment it is needed.
+  await client.createShared("correct horse battery staple");
+  setLocal("guests", { g1: { id: "g1", firstName: "Charis" } });
+  await client.sync();
+  const { seal, newShareKey } = await import("./crypto");
+  const token = await client.publishShare(await seal((await newShareKey()).key, { v: 1 }));
+
+  // A reload, modelled as one: the membership survives in IndexedDB, the
+  // module-level session does not.
+  vi.resetModules();
+  const reloaded = await import("./client");
+  expect(reloaded.currentSession()).toBeNull();
+
+  await reloaded.unlockShare("correct horse battery staple");
+
+  expect(reloaded.currentSession()).not.toBeNull();
+  expect((await reloaded.membership())!.shareToken).toBe(token);
+  expect(localGuests()).toEqual({ g1: { id: "g1", firstName: "Charis" } });
+
+  await reloaded.takeDownShare();
+  expect(await store.getShare(token)).toBeNull();
+});
+
 test("a wrong passphrase never reaches the local document", async () => {
   await client.createShared("correct horse battery staple");
   setLocal("guests", { g1: { id: "g1", firstName: "Charis" } });

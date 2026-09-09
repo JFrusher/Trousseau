@@ -9,6 +9,7 @@ import { readGuests } from "@/lib/model/slices";
 import { useWriters } from "@/lib/model/useSuite";
 import { reconcileLoadedDocument } from "@/lib/seating/normalise";
 import { parseCsv, type CsvTable } from "@/lib/data/csv";
+import { GuestLinkPanel } from "./GuestLinkPanel";
 import { download, readTextFile } from "@/lib/data/file";
 import {
   guessMapping,
@@ -260,6 +261,16 @@ function Body({ onClose }: { onClose: () => void }) {
           )}
         </Section>
       ) : null}
+
+      {/*
+        The guest link outlives the passphrase sync it used to sit beside: it
+        publishes a reduced, separately-keyed snapshot for people with no
+        account. Without it on screen nobody can take down a link they have
+        already published, which is the half of it that matters.
+      */}
+      <Section title="Guest link">
+        <GuestLinkPanel onProblem={setProblem} />
+      </Section>
 
       <Section title="Guest list">
         {pending ? (
