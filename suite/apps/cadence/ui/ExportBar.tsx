@@ -1,12 +1,7 @@
 import { useState } from "react";
 import type { OutputId } from "../core/model/types";
 import { blockingConflicts } from "../core/schedule/conflicts";
-import { renderAllCallSheets } from "../render/pdf/callSheet";
-import { renderContactSheet } from "../render/pdf/contactSheet";
 import { browserFontSource } from "../render/pdf/fontSource";
-import { renderOrderOfDay } from "../render/pdf/orderOfDay";
-import { renderRunSheet } from "../render/pdf/runSheet";
-import { renderTimeline } from "../render/pdf/timeline";
 import { getBlob } from "../state/blobStore";
 import { getDoc, selectSchedule, useStore } from "../state/store";
 import { Button } from "@/components/ui/fields";
@@ -48,14 +43,14 @@ export function ExportBar() {
       const generatedOn = `Made with Cadence, ${new Date().toLocaleDateString()}`;
       const bytes =
         piece === "timeline"
-          ? await renderTimeline(doc, { fontSource, generatedOn })
+          ? await (await import("../render/pdf/timeline")).renderTimeline(doc, { fontSource, generatedOn })
           : piece === "run-sheet"
-            ? await renderRunSheet(doc, { fontSource, generatedOn })
+            ? await (await import("../render/pdf/runSheet")).renderRunSheet(doc, { fontSource, generatedOn })
             : piece === "call-sheet"
-              ? await renderAllCallSheets(doc, { fontSource, generatedOn })
+              ? await (await import("../render/pdf/callSheet")).renderAllCallSheets(doc, { fontSource, generatedOn })
               : piece === "order-of-day"
-                ? await renderOrderOfDay(doc, { fontSource })
-                : await renderContactSheet(doc, { fontSource, generatedOn });
+                ? await (await import("../render/pdf/orderOfDay")).renderOrderOfDay(doc, { fontSource })
+                : await (await import("../render/pdf/contactSheet")).renderContactSheet(doc, { fontSource, generatedOn });
 
       const slug = (doc.day.coupleNames || "cadence")
         .toLowerCase()

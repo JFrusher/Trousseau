@@ -1,4 +1,3 @@
-import * as fontkit from "fontkit";
 import type { UploadedFont } from "../core/model/types";
 import { getBlob, putBlob, type BlobBackend } from "./blobStore";
 
@@ -10,17 +9,6 @@ export interface LoadedFont {
 
 const registered = new Set<string>();
 
-/** Reads the family name out of the file itself, so the picker is honest. */
-export function familyOf(bytes: Uint8Array): string | null {
-  try {
-    const font = fontkit.create(bytes as unknown as Buffer);
-    const named = font as unknown as { familyName?: string; fullName?: string };
-    return named.familyName ?? named.fullName ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export type AddFontResult = { font: UploadedFont; error?: undefined } | { error: string };
 
 /**
@@ -30,6 +18,7 @@ export type AddFontResult = { font: UploadedFont; error?: undefined } | { error:
  */
 export async function addFont(file: File | Blob, backend?: BlobBackend): Promise<AddFontResult> {
   const bytes = new Uint8Array(await file.arrayBuffer());
+  const { familyOf } = await import("./fontFamily");
   const family = familyOf(bytes);
   if (!family) {
     return { error: "That file is not a font Cadence can read. Try a .ttf, .otf or .woff2." };
