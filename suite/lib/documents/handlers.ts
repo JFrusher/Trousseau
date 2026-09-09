@@ -1,5 +1,6 @@
 import { migrate, suggestedFilename, TROUSSEAU_EXTENSION } from "@jfrusher/trousseau";
 import { checkCrossSlice } from "./crossSliceValidation";
+import { retentionCutoff } from "@/lib/sync/handlers";
 import type { DocumentStore } from "./store";
 
 export interface Reply {
@@ -94,4 +95,18 @@ function exportFilename(document: unknown): string {
   } catch {
     return `wedding${TROUSSEAU_EXTENSION}`;
   }
+}
+
+/**
+ * Delete account-held weddings nobody has written to inside the retention
+ * period. Mirrors lib/sync/handlers.ts's sweepAbandoned exactly — same cutoff,
+ * same shape — for the account-based system that one doesn't cover.
+ */
+export async function sweepAbandonedDocuments(
+  store: DocumentStore,
+  now: Date = new Date(),
+): Promise<{ deleted: string[] }> {
+  const stale = await store.staleWeddings(retentionCutoff(now));
+  for (const id of stale) await store.deleteWedding(id);
+  return { deleted: stale };
 }

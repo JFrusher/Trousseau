@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import { exportDocumentHandler, getDocumentHandler, saveDocumentHandler } from "./handlers";
+import { describe, expect, it, test, vi } from "vitest";
+import { exportDocumentHandler, getDocumentHandler, saveDocumentHandler, sweepAbandonedDocuments } from "./handlers";
+import { RETENTION_MONTHS } from "@/lib/sync/handlers";
 import { memoryStore } from "./store";
 
 const validDoc = {
@@ -107,5 +108,25 @@ describe("exportDocumentHandler", () => {
     expect(JSON.parse(reply.file.text)).toEqual(broken);
     // migrate() threw, so the name falls back instead of the export failing.
     expect(reply.file.filename).toBe("wedding.trousseau.json");
+  });
+});
+
+describe("sweepAbandonedDocuments", () => {
+  test("a wedding untouched inside the retention period is left alone", async () => {
+    const store = memoryStore();
+    await store.saveDocument("recent", { a: 1 }, 0);
+    expect((await sweepAbandonedDocuments(store)).deleted).toEqual([]);
+    expect(await store.getDocument("recent")).not.toBeNull();
+  });
+
+  test("a wedding untouched past the retention period is swept", async () => {
+    const store = memoryStore();
+    await store.saveDocument("old", { a: 1 }, 0);
+
+    const later = new Date();
+    later.setMonth(later.getMonth() + RETENTION_MONTHS + 1);
+
+    expect((await sweepAbandonedDocuments(store, later)).deleted).toEqual(["old"]);
+    expect(await store.getDocument("old")).toBeNull();
   });
 });

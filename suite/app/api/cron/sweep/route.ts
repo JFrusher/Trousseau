@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { sweepAbandoned } from "@/lib/sync/handlers";
 import { supabaseStore } from "@/lib/sync/supabaseStore";
+import { sweepAbandonedDocuments } from "@/lib/documents/handlers";
+import { adminDocumentsClient, documentStore } from "@/lib/documents/supabaseStore";
 
 /**
  * Retention, once a day.
@@ -34,10 +36,19 @@ export async function GET(request: Request) {
 
   try {
     const { deleted } = await sweepAbandoned(db);
+
+    const adminClient = adminDocumentsClient();
+    const documentsDeleted = adminClient
+      ? (await sweepAbandonedDocuments(documentStore(adminClient))).deleted
+      : [];
+
     // Ids only. They identify a row, not a person, and the server could not say
     // whose wedding it was even if it wanted to.
-    console.info(`[Trousseau] retention sweep removed ${deleted.length} wedding(s)`);
-    return NextResponse.json({ deleted: deleted.length });
+    const total = deleted.length + documentsDeleted.length;
+    console.info(
+      `[Trousseau] retention sweep removed ${deleted.length} passphrase wedding(s), ${documentsDeleted.length} account wedding(s)`,
+    );
+    return NextResponse.json({ deleted: total });
   } catch (cause) {
     // A failed sweep must be loud: it deletes, it runs unattended, and silence
     // here means data kept past the period the Privacy Policy states.
