@@ -4,6 +4,7 @@ import { acceptInviteHandler } from "@/lib/accounts/handlers";
 import { accountsStore } from "@/lib/accounts/supabaseStore";
 import { currentUser, serverClient } from "@/lib/accounts/serverClient";
 import { check, tokenSchema } from "@/lib/accounts/schemas";
+import { allow, AUTH_LIMIT } from "@/lib/sync/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,10 @@ export async function POST(_request: Request, context: { params: Promise<{ token
     }
     const user = await currentUser();
     if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+
+    if (!allow(`accounts:accept-invite:${user.id}`, AUTH_LIMIT)) {
+      return NextResponse.json({ error: "Too many requests. Wait a while and try again." }, { status: 429 });
+    }
 
     const { token: rawToken } = await context.params;
     const token = check(tokenSchema, rawToken);

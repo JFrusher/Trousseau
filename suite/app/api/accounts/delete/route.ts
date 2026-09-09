@@ -4,6 +4,7 @@ import { env, accountsConfigured } from "@/lib/env";
 import { deleteAccountHandler } from "@/lib/accounts/handlers";
 import { accountsStore } from "@/lib/accounts/supabaseStore";
 import { currentUser, serverClient } from "@/lib/accounts/serverClient";
+import { allow, CREATE_LIMIT } from "@/lib/sync/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,10 @@ async function deleteAccount() {
   }
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+
+  if (!allow(`accounts:delete:${user.id}`, CREATE_LIMIT)) {
+    return NextResponse.json({ error: "Too many requests. Wait a while and try again." }, { status: 429 });
+  }
 
   const client = await serverClient();
   if (!client) {

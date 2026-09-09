@@ -39,6 +39,9 @@ export interface Limit {
 /** Creating weddings: rare, and the most expensive thing a stranger can do. */
 export const CREATE_LIMIT: Limit = { max: 5, windowMs: 60 * 60 * 1000 };
 
+/** Sending an invite email. Same budget shape as CREATE_LIMIT, named for what it guards: an outbound email send, not "creating unlimited weddings." */
+export const INVITE_LIMIT: Limit = { max: 5, windowMs: 60 * 60 * 1000 };
+
 /** Failed unlock attempts. Generous enough never to bite a real typo. */
 export const AUTH_LIMIT: Limit = { max: 20, windowMs: 15 * 60 * 1000 };
 
