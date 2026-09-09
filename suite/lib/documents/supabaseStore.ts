@@ -1,5 +1,14 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { env } from "@/lib/env";
 import type { DocumentRecord, DocumentStore, SaveResult } from "./store";
+
+/**
+ * How many abandoned weddings one sweep will remove.
+ *
+ * Bounded so a first run against a long-neglected database cannot time out the
+ * function that calls it; the sweep runs daily and catches up.
+ */
+const SWEEP_BATCH = 100;
 
 /**
  * The Postgres implementation, over a caller-scoped client — same reasoning
@@ -43,5 +52,50 @@ export function documentStore(client: SupabaseClient): DocumentStore {
       };
       return { accepted: row.accepted, record };
     },
+
+    async staleWeddings(before) {
+      const { data, error } = await client
+        .from("wedding_documents")
+        .select("wedding_id")
+        .lt("updated_at", before)
+        .order("updated_at", { ascending: true })
+        .limit(SWEEP_BATCH);
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((row) => row.wedding_id as string);
+    },
+
+    async deleteWedding(weddingId) {
+      // Deletes account_weddings, not just wedding_documents: wedding_documents
+      // and wedding_document_history both cascade from account_weddings (`on
+      // delete cascade`, supabase/migrations/20260903000001_wedding_documents.sql),
+      // and wedding_members does too (20260902000001_accounts.sql) — this is
+      // what actually retires the whole wedding, not just its document.
+      const { error } = await client.from("account_weddings").delete().eq("id", weddingId);
+      if (error) throw new Error(error.message);
+    },
   };
+}
+
+let adminClient: SupabaseClient | null = null;
+
+/**
+ * A service-role client, for the retention sweep only.
+ *
+ * `documentStore(client)` is generic over any `SupabaseClient` — the normal
+ * app routes pass it a caller-scoped client so RLS applies, but the sweep has
+ * to see every wedding, not just one account's, so it gets this one instead.
+ * Same 5-second fetch timeout as lib/sync/supabaseStore.ts's equivalent, and
+ * for the same reason: a paused Supabase project must fail fast, not hang.
+ */
+export function adminDocumentsClient(): SupabaseClient | null {
+  if (adminClient) return adminClient;
+  const { SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key } = env();
+  if (!url || !key) return null;
+  adminClient = createClient(url, key, {
+    auth: { persistSession: false },
+    global: {
+      fetch: async (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(5000) }),
+    },
+  });
+  return adminClient;
 }

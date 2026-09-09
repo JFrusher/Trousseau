@@ -26,6 +26,10 @@ export interface DocumentStore {
    * way — accepted or not — so a rejected write can show what it lost to.
    */
   saveDocument(weddingId: string, document: unknown, expectedVersion: number): Promise<SaveResult>;
+  /** Weddings whose document was last saved before `before`, oldest first. */
+  staleWeddings(before: string): Promise<string[]>;
+  /** Delete a wedding's document outright — used only by the retention sweep. */
+  deleteWedding(weddingId: string): Promise<void>;
 }
 
 export function memoryStore(): DocumentStore {
@@ -55,6 +59,17 @@ export function memoryStore(): DocumentStore {
       };
       documents.set(weddingId, record);
       return { accepted: true, record };
+    },
+
+    async staleWeddings(before) {
+      return [...documents.values()]
+        .filter((record) => record.updatedAt < before)
+        .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+        .map((record) => record.weddingId);
+    },
+
+    async deleteWedding(weddingId) {
+      documents.delete(weddingId);
     },
   };
 }
