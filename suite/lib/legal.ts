@@ -38,8 +38,8 @@ export const RETENTION_MONTHS = 24;
 
 export const PRIVACY: Policy = {
   title: "Privacy",
-  updated: "2026-09-08",
-  digest: "6d6471cfa67c065a",
+  updated: "2026-09-09",
+  digest: "b09f5ee56d8145dc",
   intro:
     "Trousseau is a wedding planning tool that keeps your wedding in your own browser. This page says exactly what is stored, where, for how long, and what I can and cannot see.",
   sections: [
@@ -89,7 +89,7 @@ export const PRIVACY: Policy = {
       paragraphs: [
         `A wedding that is not written to for ${RETENTION_MONTHS} months is deleted automatically, along with its uploaded files and its guest link. That is long enough to cover an engagement, the wedding, and a year of still wanting the seating plan.`,
         "There is no backup that outlives this. When it is deleted, it is gone.",
-        "A wedding held under an account is kept for as long as the account is. Deleting your account deletes it, unless your partner is still on it — in which case it stays with them, because it is their wedding too.",
+        `A wedding held under an account follows the same rule: ${RETENTION_MONTHS} months with nobody writing to it, and it is deleted the same way. Deleting your account deletes it immediately, regardless of that timer — unless your partner is still on it, in which case it stays with them, because it is their wedding too.`,
       ],
     },
     {
