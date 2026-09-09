@@ -1,10 +1,5 @@
 import { useState } from "react";
 import { blocking } from "../core/jobs/coverage";
-import {
-  renderAllPersonSheets,
-  renderAllTeamSheets,
-  renderJobList,
-} from "../render/pdf/jobSheets";
 import { browserFontSource } from "../render/pdf/fontSource";
 import { download } from "../state/projectIO";
 import { getDoc, selectCover, useStore } from "../state/store";
@@ -39,6 +34,9 @@ export function ExportBar() {
     try {
       const fontSource = browserFontSource();
       const generatedOn = `Made with Brigade, ${new Date().toLocaleDateString()}`;
+      const { renderAllPersonSheets, renderAllTeamSheets, renderJobList } = await import(
+        "../render/pdf/jobSheets"
+      );
       const bytes =
         piece === "job-list"
           ? await renderJobList(doc, { fontSource, generatedOn })
