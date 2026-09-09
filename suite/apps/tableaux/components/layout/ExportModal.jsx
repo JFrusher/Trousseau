@@ -47,9 +47,9 @@ export default function ExportModal() {
     exportReportCsv(s, s.meta.weddingName)
     closeModal()
   }
-  const handleGroupsXlsx = () => {
+  const handleGroupsXlsx = async () => {
     const s = useStore.getState()
-    exportGroupsXlsx(s, s.meta.weddingName)
+    await exportGroupsXlsx(s, s.meta.weddingName)
     closeModal()
   }
   const handleImportFile = async (file) => {

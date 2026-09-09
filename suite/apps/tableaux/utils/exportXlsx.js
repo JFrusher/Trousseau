@@ -1,7 +1,12 @@
-import * as XLSX from 'xlsx'
 import { slug, downloadFile } from './exportJson.js'
 
 const sortKey = (s) => String(s || '').toLowerCase()
+
+// xlsx is heavy and only needed on export, so it is dynamically imported
+// (kept out of the main bundle) — same reasoning as exportPdf.js's loadPdf().
+async function loadXlsx() {
+  return import('xlsx')
+}
 
 /** One row per non-declined guest: big group / subgroup / family / full name / table. */
 export function buildGroupSheetRows(state) {
@@ -36,7 +41,8 @@ export function buildGroupSheetRows(state) {
   return { headers, rows }
 }
 
-export function exportGroupsXlsx(state, name) {
+export async function exportGroupsXlsx(state, name) {
+  const XLSX = await loadXlsx()
   const { headers, rows } = buildGroupSheetRows(state)
   const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows])
   sheet['!cols'] = [{ wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 28 }, { wch: 14 }]
