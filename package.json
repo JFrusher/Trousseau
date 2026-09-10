@@ -38,6 +38,7 @@
     "data:status": "python -m dvc status && python -m dvc data status",
     "data:pull": "python -m dvc pull",
     "data:push": "npm run data:validate && python -m dvc add data/wedding.trousseau.json data/exports && python -m dvc push",
+    "clean": "git clean -Xdf node_modules dist .next coverage",
     "sync": "node scripts/sync.mjs"
   },
   "dependencies": {
