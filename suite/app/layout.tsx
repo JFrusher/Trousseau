@@ -46,7 +46,11 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: "Trousseau", description },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en" className={`${marcellus.variable} ${lato.variable}`}>
       {/* Nothing but the page here. The header and the local document belong to
