@@ -18,7 +18,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@jfrusher/knotwork": "file:..",
     "@pdf-lib/fontkit": "^1.1.1",
-    "@sentry/nextjs": "^10.75.0",
+    "@sentry/nextjs": "^11.1.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "@vercel/analytics": "^2.0.1",
